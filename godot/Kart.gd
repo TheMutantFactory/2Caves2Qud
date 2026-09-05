@@ -42,6 +42,11 @@ var net_heading := 0.0
 var stun_t := 0.0
 var slip_t := 0.0
 var air_t := 0.0          # a jump pad's hop: no off-road drag, drawn lifted on an arc
+var branch := -1          # the parallel route this kart is on (Track.branches index), -1 = the loop
+var branch_idx := 0       # its sample along that branch
+var branch_choice := -1   # an AI kart's pick at the next fork
+var choice_fork := -1
+var branch_log := false
 var air_len := 0.0
 var hit_flash := 0.0
 var spin := 0.0
@@ -436,11 +441,11 @@ func apply_control(dt: float, throttle: float, steer: float, drift: bool, track:
 
 func ai_control(dt: float, track: Track, karts: Array, drift_prob: float) -> Dictionary:
 	var look := 3 + int(speed() / 220.0)
-	var idx := (next_wp + look) % track.n
-	var d := track.direction_at(idx)
+	var aim := track.aim(self, look)
+	var d: Vector2 = aim["dir"]
 	var nrm := Vector2(-d.y, d.x)
 	ai_offset = clampf(ai_offset + rng.randf_range(-1.0, 1.0) * dt * 0.4, -0.45, 0.45)
-	var target := track.points[idx] + nrm * (ai_offset * track.width * 0.5)
+	var target: Vector2 = aim["pos"] + nrm * (ai_offset * float(aim["width"]) * 0.5)
 
 	var fwd := forward()
 	var side := Vector2(-fwd.y, fwd.x)

@@ -173,8 +173,15 @@ Probe: `--hazard-log` → `lap N: hazard set k / n live`; `--timescale=3` gets a
 in ~35 s wall. monsters.json `name` is now the cleaned DISPLAY name; `qud` is the blueprint
 name (racers.json and abilities key on `qud`).
 
+PARALLEL ROUTES (2026-09-05): spec `branches` → `Track.branches` (`_build_branches`, open
+Catmull-Rom, `_ribbon_of` generalises the road strip); `nearest()` returns `branch/bidx` and the
+branch sample's EQUIVALENT loop index (`branch_equiv`) so `advance` keeps laps; `Track.aim` +
+`choose_branch` steer the AI (`Kart.branch*` fields); hazards/items on branches; minimap draws
+them. GDScript gotcha: `var x := <expr over an untyped param>` fails to infer — type it.
+Probe: `branches: N parallel routes` + `branch: <kart> takes <name>` under `--hazard-log`.
+
 Next, in order:
-1. A second road for parallel routes, then section races, then lap-changing geometry (docs/tracks.md).
+1. Section races, then lap-changing geometry, then moving hazards with a path (docs/tracks.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

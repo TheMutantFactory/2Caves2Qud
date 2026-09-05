@@ -352,6 +352,79 @@ COURSES = [
          gaps=["road material thinning per lap", "Recoming/Crossing portal split", "Evil Twin best-lap ghost"]),
 ]
 
+# --- parallel routes -----------------------------------------------------------
+# A branch leaves the loop at `frm` and rejoins at `to` (fractions). Its interior control
+# points are placed on the chord between those two loop points, pushed by `offset` px along
+# the chord's normal toward the loop's centroid (an inside cut) or away (an outer detour).
+# kind "expert" = narrower, luminous curb; "safe" = wider, grey curb. Hazards are at
+# fractions of the branch.
+
+def _loop_points(control, samples=16):
+    pts = []
+    m = len(control)
+    for i in range(m):
+        p0, p1, p2, p3 = (control[(i - 1) % m], control[i], control[(i + 1) % m], control[(i + 2) % m])
+        for s in range(samples):
+            t = s / samples
+            t2, t3 = t * t, t * t * t
+            x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3)
+            y = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
+            pts.append((x, y))
+    return pts
+
+
+def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None):
+    return {"name": name, "kind": kind, "from": frm, "to": to, "offset": offset, "width": width,
+            "ai_take": ai_take, "hazards": hazards or []}
+
+
+def place_branch(b, control):
+    pts = _loop_points(control)
+    cx = sum(p[0] for p in pts) / len(pts)
+    cy = sum(p[1] for p in pts) / len(pts)
+    a = pts[int(b["from"] * len(pts)) % len(pts)]
+    c = pts[int(b["to"] * len(pts)) % len(pts)]
+    dx, dy = c[0] - a[0], c[1] - a[1]
+    ln = math.hypot(dx, dy) or 1.0
+    nx, ny = -dy / ln, dx / ln
+    mx, my = (a[0] + c[0]) / 2, (a[1] + c[1]) / 2
+    if (cx - mx) * nx + (cy - my) * ny < 0:     # make +offset point at the centroid
+        nx, ny = -nx, -ny
+    out = dict(b)
+    out["control"] = []
+    for f, k in ((0.25, 0.8), (0.5, 1.0), (0.75, 0.8)):
+        px, py = a[0] + dx * f + nx * b["offset"] * k, a[1] + dy * f + ny * b["offset"] * k
+        out["control"].append([int(px), int(py)])
+    out.pop("offset")
+    return out
+
+
+BRANCHES = {
+    "joppa": [branch("pond cut", "expert", 0.46, 0.58, 190, 150, 0.4, [haz("water", 0.3, 0.0, 150), haz("water", 0.7, 0.0, 150)])],
+    "redrock": [branch("cavern bridge", "safe", 0.30, 0.44, -240, 220, 0.45)],
+    "rustwells": [branch("wire bridge", "expert", 0.28, 0.40, 220, 140, 0.35, [haz("jump", 0.5, 0.0, 120)])],
+    "stilt": [branch("left aisle", "safe", 0.40, 0.56, -210, 240, 0.3, [haz("cart", 0.5, 0.0, 150, period=8.0, duty=0.35, laps=[2])]),
+              branch("right aisle", "safe", 0.40, 0.56, 210, 240, 0.3, [haz("cart", 0.5, 0.0, 150, period=8.0, duty=0.35, phase=4.0, laps=[3])])],
+    "gritgate": [branch("service tunnel", "safe", 0.34, 0.64, -260, 220, 0.45)],
+    "asphalt": [branch("dry outer bend", "safe", 0.45, 0.56, -220, 220, 0.45)],
+    "golgotha": [branch("second chute", "expert", 0.05, 0.18, 200, 170, 0.4, [haz("poison", 0.5, 0.0, 150, period=4.0, duty=0.4, phase=2.0)])],
+    "bethesda": [branch("chrome elevator", "expert", 0.34, 0.42, 240, 150, 0.35, [haz("jump", 0.5, 0.0, 130)])],
+    "kyakukya": [branch("root ramp", "safe", 0.28, 0.40, -220, 220, 0.4)],
+    "chavvah": [branch("slender branches", "expert", 0.26, 0.34, 260, 130, 0.3, [haz("jump", 0.35, 0.0, 110), haz("jump", 0.7, 0.0, 110)])],
+    "hinnom": [branch("water line", "expert", 0.42, 0.50, 200, 170, 0.35, [haz("water", 0.5, 0.0, 170)])],
+    "palladium": [branch("inner chute", "expert", 0.56, 0.66, 230, 150, 0.35, [haz("jump", 0.5, 0.0, 130, laps=[2, 3])])],
+    "ydfreehold": [branch("red workshop", "expert", 0.36, 0.52, 240, 170, 0.3, [haz("barrier", 0.5, 0.0, 130, period=6.0, duty=0.45)]),
+                   branch("violet salon", "safe", 0.36, 0.52, -240, 230, 0.3)],
+    "moonstair": [branch("shortcut crystals", "expert", 0.48, 0.58, 240, 140, 0.35, [haz("static", 0.5, 0.0, 140, period=5.0, duty=0.4)])],
+    "hydropon": [branch("centre leaves", "expert", 0.30, 0.62, 300, 150, 0.35, [haz("water", 0.5, 0.0, 170, laps=[1, 2]), haz("jump", 0.5, 0.0, 120, laps=[3, 4, 5])])],
+    "omonporch": [branch("high line", "expert", 0.58, 0.70, 260, 150, 0.35, [haz("jump", 0.5, 0.0, 130)])],
+    "tomb": [branch("recovery corridor", "safe", 0.40, 0.56, -250, 220, 0.45)],
+    "thinworld": [branch("Recoming portal", "safe", 0.80, 0.92, -220, 200, 0.5)],
+}
+# main-loop entries a branch takes over
+BRANCH_REPLACES = {"stilt": [("cart", 0.45), ("cart", 0.52)], "palladium": [("jump", 0.60)], "hydropon": [("jump", 0.50)],
+                   "bethesda": [("jump", 0.38)], "chavvah": [("jump", 0.30)]}
+
 CUPS = ["Fresh Water Cup", "Chrome Cup", "Canopy Cup", "Reef Cup", "Spindle Cup"]
 
 
@@ -373,6 +446,9 @@ def build():
         t["hazards"] = hz + LAPPED.get(t["key"], [])
         if t["key"] in LAP_NOTES:
             t["lap_notes"] = {str(k): v for k, v in LAP_NOTES[t["key"]].items()}
+        gone = BRANCH_REPLACES.get(t["key"], [])
+        t["hazards"] = [h for h in t["hazards"] if (h["kind"], h["at"]) not in gone]
+        t["branches"] = [place_branch(b, t["control"]) for b in BRANCHES.get(t["key"], [])]
         t["control"] = [[int(x), int(y)] for x, y in t["control"]]
         tracks.append(t)
     return tracks

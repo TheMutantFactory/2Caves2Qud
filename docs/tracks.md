@@ -74,6 +74,43 @@ Lake Hinnom's current reverses, the Moon Stair's pads exist only from lap 2 (Sta
 Elastic), the Hydropon's centre leaves span on lap 3, and the Thin World's void shows through
 more each lap. `--hazard-log` prints `lap N: hazard set k / n live` at every change.
 
+## Parallel routes
+
+A course's `branches` are second roads: each leaves the loop at one fraction and rejoins at
+another through control points placed on the chord between those two points, pushed toward
+the loop's centroid for an inside cut or away for an outer detour (`tools/qud_tracks.py`
+`branch()` / `place_branch()`). The bible's route language is on the curbs: a `safe` route is
+wider with grey curbs, an `expert` route narrower with luminous cyan curbs. A branch carries
+its own hazards at fractions of its length (with cycles and lap gates like the loop's) and a
+double set of items halfway along, the premium pickups the bible puts on the slower line.
+
+In the engine a branch counts as road, a kart on it keeps its loop progress through the
+branch sample's equivalent loop index (so laps and positions stay right), and AI karts
+decide at the fork with the branch's `ai_take` chance and aim along it (`Track.aim`,
+`choose_branch`). The minimap draws branches in their route colour. `--hazard-log` prints
+`branch: <kart> takes <route>`.
+
+| course | route | kind | what it is |
+|---|---|---|---|
+| Joppa | pond cut | expert | shorter, through two water patches |
+| Red Rock | cavern bridge | safe | the wide outer bridge |
+| Rust Wells | wire bridge | expert | a jump across the gap |
+| Six Day Stilt | left aisle, right aisle | safe | the three bazaar aisles; carts fill one per lap |
+| Grit Gate | service tunnel | safe | around the force barriers |
+| Asphalt Mines | dry outer bend | safe | around the oil |
+| Golgotha | second chute | expert | a vent of its own |
+| Bethesda Susa | chrome elevator | expert | a jump past the switchbacks |
+| Kyakukya | root ramp | safe | around the pool |
+| Chavvah | slender branches | expert | two hops between limbs |
+| Lake Hinnom | water line | expert | shorter, slower |
+| Palladium Reef | inner chute | expert | its jump opens on lap 2 |
+| Yd Freehold | red workshop, violet salon | expert, safe | two of the three rooms; the loop is the market |
+| Moon Stair | shortcut crystals | expert | warm static on the way |
+| Hydropon | centre leaves | expert | water until lap 3, then a pad |
+| Omonporch | high line | expert | the magnetic release |
+| Tomb | recovery corridor | safe | around the crematory |
+| Thin World | Recoming portal | safe | the twin of the Crossing |
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
@@ -87,9 +124,9 @@ to data. The big ones:
   level; the branch-to-branch transfers and the shaft drops stay on one road.
 - **Lap-by-lap geometry**: lilies that add road, a tree that leans, a road that thins. Lap
   sets change which hazards and pads are live, not the road itself.
-- **Parallel routes**: Yd Freehold's rooms, Grit Gate's corridor vs tunnel, the Thin World's
-  twin portals. Each course is one line.
+- **A third room** (Yd Freehold has two branches and the loop; the bible has three rooms
+  plus a lap-3 bypass) and routes that split more than once.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: a second road
-for parallel routes, section races, and a lap-changing road (lilies, the thinning road).
+The next engine features that would unlock the most courses are, in order: section races,
+a lap-changing road (lilies, the thinning road), and moving hazards with a path.

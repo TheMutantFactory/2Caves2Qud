@@ -159,7 +159,45 @@
    "lap_notes": {
     "2": "the waterwheel turns faster",
     "3": "a gap opens in the paddles"
-   }
+   },
+   "branches": [
+    {
+     "name": "pond cut",
+     "kind": "expert",
+     "from": 0.46,
+     "to": 0.58,
+     "width": 150,
+     "ai_take": 0.4,
+     "hazards": [
+      {
+       "kind": "water",
+       "at": 0.3,
+       "side": 0.0,
+       "radius": 150
+      },
+      {
+       "kind": "water",
+       "at": 0.7,
+       "side": 0.0,
+       "radius": 150
+      }
+     ],
+     "control": [
+      [
+       2852,
+       1159
+      ],
+      [
+       2887,
+       1359
+      ],
+      [
+       2992,
+       1533
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "redrock",
@@ -353,7 +391,32 @@
    "lap_notes": {
     "2": "the baboons aim for the racing lane",
     "3": "stones fall inside and out"
-   }
+   },
+   "branches": [
+    {
+     "name": "cavern bridge",
+     "kind": "safe",
+     "from": 0.3,
+     "to": 0.44,
+     "width": 220,
+     "ai_take": 0.45,
+     "hazards": [],
+     "control": [
+      [
+       2265,
+       1603
+      ],
+      [
+       2546,
+       1648
+      ],
+      [
+       2827,
+       1596
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "rustwells",
@@ -535,7 +598,39 @@
    "lap_notes": {
     "2": "a bridge panel collapses: take the outer bypass",
     "3": "the gap is jumpable"
-   }
+   },
+   "branches": [
+    {
+     "name": "wire bridge",
+     "kind": "expert",
+     "from": 0.28,
+     "to": 0.4,
+     "width": 140,
+     "ai_take": 0.35,
+     "hazards": [
+      {
+       "kind": "jump",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 120
+      }
+     ],
+     "control": [
+      [
+       1920,
+       923
+      ],
+      [
+       2326,
+       971
+      ],
+      [
+       2732,
+       930
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "stilt",
@@ -604,32 +699,7 @@
      1800
     ]
    ],
-   "hazards": [
-    {
-     "kind": "cart",
-     "at": 0.45,
-     "side": -0.4,
-     "radius": 150,
-     "period": 8.0,
-     "duty": 0.35,
-     "phase": 0.0,
-     "laps": [
-      2
-     ]
-    },
-    {
-     "kind": "cart",
-     "at": 0.52,
-     "side": 0.4,
-     "radius": 150,
-     "period": 8.0,
-     "duty": 0.35,
-     "phase": 4.0,
-     "laps": [
-      3
-     ]
-    }
-   ],
+   "hazards": [],
    "spells": [
     "Bronze Dagger",
     "Short Bow",
@@ -671,7 +741,81 @@
    "lap_notes": {
     "2": "the left aisle fills with carts",
     "3": "the market turns: right aisle busy"
-   }
+   },
+   "branches": [
+    {
+     "name": "left aisle",
+     "kind": "safe",
+     "from": 0.4,
+     "to": 0.56,
+     "width": 240,
+     "ai_take": 0.3,
+     "hazards": [
+      {
+       "kind": "cart",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 150,
+       "period": 8.0,
+       "duty": 0.35,
+       "phase": 0.0,
+       "laps": [
+        2
+       ]
+      }
+     ],
+     "control": [
+      [
+       3221,
+       1211
+      ],
+      [
+       3223,
+       1427
+      ],
+      [
+       3142,
+       1627
+      ]
+     ]
+    },
+    {
+     "name": "right aisle",
+     "kind": "safe",
+     "from": 0.4,
+     "to": 0.56,
+     "width": 240,
+     "ai_take": 0.3,
+     "hazards": [
+      {
+       "kind": "cart",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 150,
+       "period": 8.0,
+       "duty": 0.35,
+       "phase": 4.0,
+       "laps": [
+        3
+       ]
+      }
+     ],
+     "control": [
+      [
+       2890,
+       1149
+      ],
+      [
+       2810,
+       1349
+      ],
+      [
+       2812,
+       1565
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "gritgate",
@@ -817,7 +961,32 @@
    "lap_notes": {
     "2": "a third gate comes online",
     "3": "the barrier cycle inverts"
-   }
+   },
+   "branches": [
+    {
+     "name": "service tunnel",
+     "kind": "safe",
+     "from": 0.34,
+     "to": 0.64,
+     "width": 220,
+     "ai_take": 0.45,
+     "hazards": [],
+     "control": [
+      [
+       2942,
+       1466
+      ],
+      [
+       3008,
+       1665
+      ],
+      [
+       2970,
+       1872
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "asphalt",
@@ -989,7 +1158,32 @@
    "lap_notes": {
     "2": "an oil ribbon leaks across the causeway",
     "3": "a second ribbon: chain the slides"
-   }
+   },
+   "branches": [
+    {
+     "name": "dry outer bend",
+     "kind": "safe",
+     "from": 0.45,
+     "to": 0.56,
+     "width": 220,
+     "ai_take": 0.45,
+     "hazards": [],
+     "control": [
+      [
+       3258,
+       1758
+      ],
+      [
+       3214,
+       1939
+      ],
+      [
+       3091,
+       2080
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "golgotha",
@@ -1160,6 +1354,41 @@
     84,
     90,
     70
+   ],
+   "branches": [
+    {
+     "name": "second chute",
+     "kind": "expert",
+     "from": 0.05,
+     "to": 0.18,
+     "width": 170,
+     "ai_take": 0.4,
+     "hazards": [
+      {
+       "kind": "poison",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 150,
+       "period": 4.0,
+       "duty": 0.4,
+       "phase": 2.0
+      }
+     ],
+     "control": [
+      [
+       1129,
+       413
+      ],
+      [
+       1468,
+       518
+      ],
+      [
+       1822,
+       545
+      ]
+     ]
+    }
    ]
   },
   {
@@ -1268,12 +1497,6 @@
      "period": 7.0,
      "duty": 0.5,
      "phase": 3.0
-    },
-    {
-     "kind": "jump",
-     "at": 0.38,
-     "side": 0.0,
-     "radius": 130
     }
    ],
    "spells": [
@@ -1314,6 +1537,38 @@
     128,
     132,
     136
+   ],
+   "branches": [
+    {
+     "name": "chrome elevator",
+     "kind": "expert",
+     "from": 0.34,
+     "to": 0.42,
+     "width": 150,
+     "ai_take": 0.35,
+     "hazards": [
+      {
+       "kind": "jump",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 130
+      }
+     ],
+     "control": [
+      [
+       3002,
+       832
+      ],
+      [
+       3002,
+       988
+      ],
+      [
+       3093,
+       1115
+      ]
+     ]
+    }
    ]
   },
   {
@@ -1488,7 +1743,32 @@
    "lap_notes": {
     "2": "the middle cap falls off the beat",
     "3": "long, short, long"
-   }
+   },
+   "branches": [
+    {
+     "name": "root ramp",
+     "kind": "safe",
+     "from": 0.28,
+     "to": 0.4,
+     "width": 220,
+     "ai_take": 0.4,
+     "hazards": [],
+     "control": [
+      [
+       2796,
+       1946
+      ],
+      [
+       3003,
+       1779
+      ],
+      [
+       3145,
+       1553
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "rainbowwood",
@@ -1665,7 +1945,8 @@
    "lap_notes": {
     "2": "the yellow weep joins the soup",
     "3": "magenta, and the rivers mix"
-   }
+   },
+   "branches": []
   },
   {
    "key": "chavvah",
@@ -1756,16 +2037,6 @@
      "at": 0.69,
      "side": 0.0,
      "radius": 130
-    },
-    {
-     "kind": "jump",
-     "at": 0.3,
-     "side": 0.0,
-     "radius": 130,
-     "laps": [
-      2,
-      3
-     ]
     }
    ],
    "spells": [
@@ -1809,7 +2080,45 @@
    "lap_notes": {
     "2": "the tree leans toward the branch transfer",
     "3": "the tree leans back to the terrace"
-   }
+   },
+   "branches": [
+    {
+     "name": "slender branches",
+     "kind": "expert",
+     "from": 0.26,
+     "to": 0.34,
+     "width": 130,
+     "ai_take": 0.3,
+     "hazards": [
+      {
+       "kind": "jump",
+       "at": 0.35,
+       "side": 0.0,
+       "radius": 110
+      },
+      {
+       "kind": "jump",
+       "at": 0.7,
+       "side": 0.0,
+       "radius": 110
+      }
+     ],
+     "control": [
+      [
+       2038,
+       662
+      ],
+      [
+       2223,
+       707
+      ],
+      [
+       2405,
+       648
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "eynroj",
@@ -1959,7 +2268,8 @@
    "lap_notes": {
     "2": "the echoes double",
     "3": "the echoes intensify"
-   }
+   },
+   "branches": []
   },
   {
    "key": "hinnom",
@@ -2122,7 +2432,39 @@
    "lap_notes": {
     "2": "the kraken turns the current",
     "3": "the current turns back"
-   }
+   },
+   "branches": [
+    {
+     "name": "water line",
+     "kind": "expert",
+     "from": 0.42,
+     "to": 0.5,
+     "width": 170,
+     "ai_take": 0.35,
+     "hazards": [
+      {
+       "kind": "water",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 170
+      }
+     ],
+     "control": [
+      [
+       3119,
+       964
+      ],
+      [
+       3086,
+       1114
+      ],
+      [
+       3133,
+       1259
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "palladium",
@@ -2230,16 +2572,6 @@
     },
     {
      "kind": "jump",
-     "at": 0.6,
-     "side": 0.0,
-     "radius": 130,
-     "laps": [
-      2,
-      3
-     ]
-    },
-    {
-     "kind": "jump",
      "at": 0.35,
      "side": 0.3,
      "radius": 110,
@@ -2289,7 +2621,43 @@
    "lap_notes": {
     "2": "the inner chute opens",
     "3": "a sunslag polyp glows gold"
-   }
+   },
+   "branches": [
+    {
+     "name": "inner chute",
+     "kind": "expert",
+     "from": 0.56,
+     "to": 0.66,
+     "width": 150,
+     "ai_take": 0.35,
+     "hazards": [
+      {
+       "kind": "jump",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 130,
+       "laps": [
+        2,
+        3
+       ]
+      }
+     ],
+     "control": [
+      [
+       2894,
+       1606
+      ],
+      [
+       2894,
+       1785
+      ],
+      [
+       2982,
+       1941
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "ydfreehold",
@@ -2440,7 +2808,65 @@
    ],
    "lap_notes": {
     "3": "the pipes light a surface bypass"
-   }
+   },
+   "branches": [
+    {
+     "name": "red workshop",
+     "kind": "expert",
+     "from": 0.36,
+     "to": 0.52,
+     "width": 170,
+     "ai_take": 0.3,
+     "hazards": [
+      {
+       "kind": "barrier",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 130,
+       "period": 6.0,
+       "duty": 0.45,
+       "phase": 0.0
+      }
+     ],
+     "control": [
+      [
+       3006,
+       986
+      ],
+      [
+       2739,
+       1005
+      ],
+      [
+       2497,
+       1117
+      ]
+     ]
+    },
+    {
+     "name": "violet salon",
+     "kind": "safe",
+     "from": 0.36,
+     "to": 0.52,
+     "width": 230,
+     "ai_take": 0.3,
+     "hazards": [],
+     "control": [
+      [
+       3102,
+       1358
+      ],
+      [
+       2859,
+       1470
+      ],
+      [
+       2592,
+       1489
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "moonstair",
@@ -2600,7 +3026,42 @@
    "lap_notes": {
     "2": "warm static: ELASTIC",
     "3": "warm static: TWINNED"
-   }
+   },
+   "branches": [
+    {
+     "name": "shortcut crystals",
+     "kind": "expert",
+     "from": 0.48,
+     "to": 0.58,
+     "width": 140,
+     "ai_take": 0.35,
+     "hazards": [
+      {
+       "kind": "static",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 140,
+       "period": 5.0,
+       "duty": 0.4,
+       "phase": 0.0
+      }
+     ],
+     "control": [
+      [
+       3034,
+       749
+      ],
+      [
+       3017,
+       965
+      ],
+      [
+       3094,
+       1167
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "hydropon",
@@ -2686,17 +3147,6 @@
       1,
       2
      ]
-    },
-    {
-     "kind": "jump",
-     "at": 0.5,
-     "side": 0.0,
-     "radius": 120,
-     "laps": [
-      3,
-      4,
-      5
-     ]
     }
    ],
    "spells": [
@@ -2734,7 +3184,54 @@
     "3": "new leaves span the centre",
     "4": "the lilies keep growing",
     "5": "the bloom"
-   }
+   },
+   "branches": [
+    {
+     "name": "centre leaves",
+     "kind": "expert",
+     "from": 0.3,
+     "to": 0.62,
+     "width": 150,
+     "ai_take": 0.35,
+     "hazards": [
+      {
+       "kind": "water",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 170,
+       "laps": [
+        1,
+        2
+       ]
+      },
+      {
+       "kind": "jump",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 120,
+       "laps": [
+        3,
+        4,
+        5
+       ]
+      }
+     ],
+     "control": [
+      [
+       1601,
+       758
+      ],
+      [
+       1636,
+       1045
+      ],
+      [
+       1785,
+       1293
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "omonporch",
@@ -2879,7 +3376,39 @@
    "lap_notes": {
     "2": "the magnetic window shortens",
     "3": "a second release point"
-   }
+   },
+   "branches": [
+    {
+     "name": "high line",
+     "kind": "expert",
+     "from": 0.58,
+     "to": 0.7,
+     "width": 150,
+     "ai_take": 0.35,
+     "hazards": [
+      {
+       "kind": "jump",
+       "at": 0.5,
+       "side": 0.0,
+       "radius": 130
+      }
+     ],
+     "control": [
+      [
+       1894,
+       665
+      ],
+      [
+       1692,
+       792
+      ],
+      [
+       1455,
+       821
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "tomb",
@@ -3064,7 +3593,32 @@
    "lap_notes": {
     "2": "the crematory sequences combine",
     "3": "press, arm, vent, fan at once"
-   }
+   },
+   "branches": [
+    {
+     "name": "recovery corridor",
+     "kind": "safe",
+     "from": 0.4,
+     "to": 0.56,
+     "width": 220,
+     "ai_take": 0.45,
+     "hazards": [],
+     "control": [
+      [
+       2591,
+       1135
+      ],
+      [
+       2857,
+       1123
+      ],
+      [
+       3109,
+       1209
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "thinworld",
@@ -3217,7 +3771,32 @@
    "lap_notes": {
     "2": "the road thins: the void shows through",
     "3": "only the edges remain"
-   }
+   },
+   "branches": [
+    {
+     "name": "Recoming portal",
+     "kind": "safe",
+     "from": 0.8,
+     "to": 0.92,
+     "width": 200,
+     "ai_take": 0.5,
+     "hazards": [],
+     "control": [
+      [
+       856,
+       1285
+      ],
+      [
+       664,
+       1418
+      ],
+      [
+       535,
+       1612
+      ]
+     ]
+    }
+   ]
   },
   {
    "key": "chicago_loop",

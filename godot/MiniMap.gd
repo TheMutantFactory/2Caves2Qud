@@ -58,6 +58,12 @@ func _draw() -> void:
 		route.append(route[0])
 		var rw := maxf(2.0, track.width * scale) if track.city != null else 3.0
 		draw_polyline(route, Color(1.0, 0.93, 0.35, 0.9), rw)
+	for br in track.branches:
+		var line := PackedVector2Array()
+		for p in br["pts"]:
+			line.append(_world_to_map(p, center, scale))
+		if line.size() > 1:
+			draw_polyline(line, Color(0.6, 0.65, 0.75, 0.8) if String(br["kind"]) == "safe" else Color(0.5, 1.0, 1.0, 0.9), 2.0)
 
 	# barricades
 	if track.city != null and not track.free_mode:

@@ -682,6 +682,8 @@ var hazard_log := false
 func _spawn_track_hazards() -> void:
 	var n := 0
 	hazard_log = OS.get_cmdline_user_args().has("--hazard-log")
+	for kart in karts:
+		kart.branch_log = hazard_log
 	for spot in track.hazard_spots():
 		var kind := String(spot["kind"])
 		var spec: Dictionary = HAZARD_KINDS.get(kind, HAZARD_KINDS["fire"])

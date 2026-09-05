@@ -26,6 +26,9 @@ var route := {}
 var barricade_nodes: Array = []
 var barricade_walls: Array = []   # [a: Vector2, b: Vector2] segments across sealed side streets
 var free_mode := false
+# Parallel routes (spec "branches"): a second road that leaves the loop at one fraction and
+# rejoins at another. {name, kind (safe|expert), pts, from_i, to_i, width, ai_take, hazards}
+var branches: Array = []
 
 
 func setup(k: String, rng: RandomNumberGenerator) -> void:
@@ -85,6 +88,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 
 	_build_ground()
 	_build_road()
+	_build_branches()
 	_build_start_line()
 	_build_scenery(rng)
 
@@ -521,16 +525,31 @@ func _build_ground() -> void:
 
 
 func _ribbon(offset_a: float, offset_b: float, lift_px: float, tex: Texture2D, color: Color, name: String) -> void:
+	_ribbon_of(points, true, offset_a, offset_b, lift_px, tex, color, name)
+
+
+static func _dir_of(pts: PackedVector2Array, i: int, closed: bool) -> Vector2:
+	var m := pts.size()
+	var j := (i + 1) % m if closed else mini(i + 1, m - 1)
+	var k := i if (closed or i < m - 1) else m - 2
+	var d := pts[j] - pts[k]
+	return d.normalized() if d.length_squared() > 0.0 else Vector2.RIGHT
+
+
+# A road strip along any polyline (the loop, closed; a branch, open).
+func _ribbon_of(pts: PackedVector2Array, closed: bool, offset_a: float, offset_b: float, lift_px: float, tex: Texture2D, color: Color, name: String) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var along := 0.0
 	var prev_l: Vector3
 	var prev_r: Vector3
 	var prev_v := 0.0
-	for i in range(n + 1):
-		var idx := i % n
-		var p := points[idx]
-		var d := direction_at(idx)
+	var m := pts.size()
+	var count := m + 1 if closed else m
+	for i in range(count):
+		var idx := i % m
+		var p := pts[idx]
+		var d := _dir_of(pts, idx, closed)
 		var nrm := Vector2(-d.y, d.x)
 		var l := to3(p + nrm * offset_a, lift_px)
 		var r := to3(p + nrm * offset_b, lift_px)
@@ -547,13 +566,102 @@ func _ribbon(offset_a: float, offset_b: float, lift_px: float, tex: Texture2D, c
 		prev_l = l
 		prev_r = r
 		prev_v = v
-		along += seg_len[idx]
+		along += pts[idx].distance_to(pts[(idx + 1) % m])
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _material(tex, color)
 	mi.name = name
 	add_child(mi)
+
+
+# ---------------------------------------------------------------- parallel routes
+
+static func catmull_rom_open(ctrl: Array, samples: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var m := ctrl.size()
+	if m < 2:
+		return out
+	for i in range(m - 1):
+		var p0: Vector2 = ctrl[maxi(0, i - 1)]
+		var p1: Vector2 = ctrl[i]
+		var p2: Vector2 = ctrl[i + 1]
+		var p3: Vector2 = ctrl[mini(m - 1, i + 2)]
+		for s in samples:
+			var t := float(s) / samples
+			var t2 := t * t
+			var t3 := t2 * t
+			out.append(0.5 * ((2.0 * p1) + (-p0 + p2) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3))
+	out.append(ctrl[m - 1])
+	return out
+
+
+func _build_branches() -> void:
+	branches.clear()
+	var samples := maxi(4, int(round(8.0 * scale_k * 90.0 / float(Shared.t(["race", "waypoint_spacing"], 90.0)))))
+	var road_tex: Texture2D = QUD.texture(String(spec.get("road_tex", "tiles/track_%s_road.png" % key)))
+	var bi := 0
+	for b in spec.get("branches", []):
+		var from_i := clampi(int(floor(float(b.get("from", 0.3)) * n)), 2, n - 3)
+		var to_i := clampi(int(floor(float(b.get("to", 0.5)) * n)), from_i + 2, n - 2)
+		var ctrl := [points[from_i]]
+		for c in b.get("control", []):
+			ctrl.append(Vector2(c[0], c[1]) * scale_k)
+		ctrl.append(points[to_i])
+		var pts := catmull_rom_open(ctrl, samples)
+		var w := float(b.get("width", 180)) * (1.0 + (scale_k - 1.0) * 0.35)
+		var kind := String(b.get("kind", "safe"))
+		branches.append({"name": String(b.get("name", "route %d" % (bi + 1))), "kind": kind, "pts": pts,
+			"from_i": from_i, "to_i": to_i, "width": w, "ai_take": float(b.get("ai_take", 0.4)),
+			"hazards": b.get("hazards", [])})
+		# the road: main texture; the curbs say what it is (bible route language: grey dashed =
+		# the safer alternate, luminous = the expert route)
+		var curb := Color(0.55, 0.55, 0.6) if kind == "safe" else Color(0.5, 1.0, 1.0)
+		_ribbon_of(pts, false, -w * 0.5, w * 0.5, 7.0, road_tex, Color(0.72, 0.72, 0.75) if kind == "safe" else Color(0.85, 0.9, 1.0), "Branch%d" % bi)
+		_ribbon_of(pts, false, -w * 0.5 - 14.0, -w * 0.5, 7.5, null, curb, "Branch%dCurbL" % bi)
+		_ribbon_of(pts, false, w * 0.5, w * 0.5 + 14.0, 7.5, null, curb, "Branch%dCurbR" % bi)
+		bi += 1
+	if bi > 0:
+		print("branches: %d parallel routes (%s): %s" % [bi, key, ", ".join(branches.map(func(b): return "%s %s" % [b["name"], b["kind"]]))])
+
+
+# The main-loop index a branch sample stands in for (its share of the way from fork to merge).
+func branch_equiv(b: int, j: int) -> int:
+	var br: Dictionary = branches[b]
+	var m: int = (br["pts"] as PackedVector2Array).size()
+	return int(round(lerp(float(br["from_i"]), float(br["to_i"]), float(j) / maxf(1.0, m - 1))))
+
+
+# Where an AI kart should aim `look` samples ahead: along its branch when it is on one (or
+# has chosen one at the fork), else along the loop. -> {pos, dir, width}
+func aim(kart, look: int) -> Dictionary:
+	var b: int = kart.branch
+	var j: int = kart.branch_idx + look
+	if b < 0 and kart.branch_choice >= 0:
+		var br: Dictionary = branches[kart.branch_choice]
+		var ahead: int = int(br["from_i"]) - kart.next_wp
+		if ahead <= look and ahead > -4:
+			b = kart.branch_choice
+			j = maxi(1, look - ahead)
+	if b >= 0:
+		var br: Dictionary = branches[b]
+		var pts: PackedVector2Array = br["pts"]
+		if j < pts.size() - 1:
+			return {"pos": pts[j], "dir": _dir_of(pts, j, false), "width": float(br["width"])}
+		var idx := (int(br["to_i"]) + (j - pts.size() + 1)) % n
+		return {"pos": points[idx], "dir": direction_at(idx), "width": width}
+	var idx2: int = (kart.next_wp + look) % n
+	return {"pos": points[idx2], "dir": direction_at(idx2), "width": width}
+
+
+# The fork decision: once per pass, an AI kart approaching a branch takes it with ai_take.
+func choose_branch(kart) -> void:
+	for b in branches.size():
+		var br: Dictionary = branches[b]
+		var fork: int = int(br["from_i"]) - 6
+		if kart.next_wp >= fork and kart.next_wp < int(br["from_i"]) and kart.choice_fork != fork:
+			kart.choice_fork = fork
+			kart.branch_choice = b if kart.rng.randf() < float(br["ai_take"]) else -1
 
 
 func _build_road() -> void:
@@ -662,13 +770,28 @@ func nearest(p: Vector2, hint: int, window := 30) -> Dictionary:
 		if d < best_d:
 			best_d = d
 			best_i = i
-	return {"idx": best_i, "dist": sqrt(best_d)}
+	var out := {"idx": best_i, "dist": sqrt(best_d), "branch": -1, "bidx": 0}
+	# a branch counts only within its own road; then its equivalent loop index stands in
+	for b in branches.size():
+		var br: Dictionary = branches[b]
+		var pts: PackedVector2Array = br["pts"]
+		var half := float(br["width"]) * 0.5
+		for j in range(pts.size() - 1):
+			var q := Geometry2D.get_closest_point_to_segment(p, pts[j], pts[j + 1])
+			var d := p.distance_squared_to(q)
+			if d < best_d and d <= half * half:
+				best_d = d
+				out = {"idx": branch_equiv(b, j), "dist": sqrt(d), "branch": b, "bidx": j}
+	return out
 
 
 func on_road(p: Vector2, hint: int) -> bool:
 	if city != null and (free_mode or nearest(p, hint).dist > width * 0.5):
 		return city.on_any_street(p)
-	return nearest(p, hint).dist <= width * 0.5
+	var near := nearest(p, hint)
+	if int(near.get("branch", -1)) >= 0:
+		return true
+	return near.dist <= width * 0.5
 
 
 func start_positions(count: int) -> Array:
@@ -690,6 +813,16 @@ func hazard_spots() -> Array:
 	var out := []
 	if n == 0:
 		return out
+	for br in branches:
+		var pts: PackedVector2Array = br["pts"]
+		for h in br["hazards"]:
+			var j := clampi(int(floor(float(h.get("at", 0.5)) * (pts.size() - 1))), 0, pts.size() - 1)
+			var d := _dir_of(pts, j, false)
+			var nrm := Vector2(-d.y, d.x)
+			out.append({"kind": String(h.get("kind", "fire")), "pos": pts[j] + nrm * float(h.get("side", 0.0)) * float(br["width"]) * 0.5,
+				"radius": float(h.get("radius", 150.0)), "period": float(h.get("period", 0.0)),
+				"duty": float(h.get("duty", 0.5)), "phase": float(h.get("phase", 0.0)),
+				"laps": h.get("laps", []), "per_lap": h.get("per_lap", {})})
 	for h in spec.get("hazards", []):
 		var i := int(floor(float(h.get("at", 0.0)) * n)) % n
 		var d := direction_at(i)
@@ -711,6 +844,14 @@ func item_positions() -> Array:
 		for k in [-1, 0, 1]:
 			out.append(points[i] + nrm * (k * width * 0.3))
 		i += step
+	# a branch carries a double set halfway along: the bible's premium pickups on the slower line
+	for br in branches:
+		var pts: PackedVector2Array = br["pts"]
+		var j := pts.size() / 2
+		var d := _dir_of(pts, j, false)
+		var nrm := Vector2(-d.y, d.x)
+		for k in [-1, 1]:
+			out.append(pts[j] + nrm * (k * float(br["width"]) * 0.25))
 	return out
 
 
@@ -718,6 +859,20 @@ const WINDOW := 10
 
 # Move the kart's waypoint pointer forward; returns true on a new lap.
 func advance(kart) -> bool:
+	if not branches.is_empty():
+		var near := nearest(kart.pos, kart.next_wp, 40)
+		var was: int = kart.branch
+		kart.branch = int(near.get("branch", -1))
+		kart.branch_idx = int(near.get("bidx", 0))
+		if kart.branch >= 0:
+			var eq: int = int(near["idx"])
+			if eq >= kart.next_wp and eq - kart.next_wp < n / 2:
+				kart.next_wp = eq + 1        # branches never span the start line, so no lap here
+			if was < 0 and kart.branch_log:
+				print("branch: %s takes %s" % [kart.display_name, String(branches[kart.branch]["name"])])
+		elif was >= 0:
+			kart.branch_choice = -1
+		choose_branch(kart)
 	var thresh2 := pow(width * 0.7, 2)
 	var best := -1
 	for k in WINDOW:
