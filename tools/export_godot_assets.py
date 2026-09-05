@@ -22,8 +22,11 @@ and sound without any of it entering the repo.
                                 composited on the track colours
     tiles/<ts>_wall_1..4.png    barricade textures: a wall family's front faces
     tiles/floor_<ts>.png, chasm_<x>.png, item_*.png, portal_*.png, cloud_*.png
-    effects/*.png (6-frame strips), effects/proj/*.png, status/stun.png
-                                procedural for now, Qud-coloured
+    effects/*.png (6-frame strips), effects/proj/*.png, status/stun.png,
+    tiles/cloud_*.png, portal    Qud tiles animated per frame (fire, gas, force
+                                field, phase, liquids, mutation art); projectiles
+                                are the item's own tile (grenade, dagger, slug,
+                                arrow, rocket) named by each record's kart.projectile
     sfx/<engine name>.ogg       the engine's sound cues mapped onto Qud clips
     sfx/<clip>.ogg + variants.json   every take of every sound the items, mutations
                                 and pickups name (their blueprints' MissileFireSound,
@@ -169,8 +172,125 @@ def tileable(img, base_rgb, size=96):
     return out
 
 
-def effect_strip(name, letter, frames=6, size=48):
-    """A 6-frame burst: an expanding ring in the effect's colour, fading."""
+# Qud art for the engine's effect strips (6 frames), hazard clouds (4 frames), the stun
+# icon and the portal: each frame is a Qud tile painted in a palette letter, x3, with a
+# per-frame transform. Qud draws its explosions as glyph particles, so these are the
+# game's own fire, gas, force field, phase and mutation drawings animated by us.
+#   ops per frame: ("a", alpha 0..1) ("flip",) ("rot", deg) ("scale", k)
+def _fx_frame(tile, main, detail, ops, size):
+    img = load_tile(tile)
+    if img is None:
+        return None
+    img = scaled(paint(img, main, detail))
+    for op in ops:
+        if op[0] == "flip":
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+        elif op[0] == "rot":
+            img = img.rotate(op[1], resample=Image.NEAREST, expand=False)
+        elif op[0] == "scale":
+            k = op[1]
+            w, h = max(1, int(img.width * k)), max(1, int(img.height * k))
+            img = img.resize((w, h), Image.NEAREST)
+        elif op[0] == "a":
+            a = img.getchannel("A").point(lambda v: int(v * op[1]))
+            img.putalpha(a)
+    frame = Image.new("RGBA", size, (0, 0, 0, 0))
+    frame.alpha_composite(img, ((size[0] - img.width) // 2, (size[1] - img.height) // 2))
+    return frame
+
+
+def fx_strip(frames, size=(48, 72)):
+    """frames: [(tile, main, detail, ops)] -> one horizontal strip, or None if a tile is missing."""
+    out = Image.new("RGBA", (size[0] * len(frames), size[1]), (0, 0, 0, 0))
+    for i, (tile, main, detail, ops) in enumerate(frames):
+        f = _fx_frame(tile, main, detail, ops, size)
+        if f is None:
+            return None
+        out.alpha_composite(f, (i * size[0], 0))
+    return out
+
+
+def _pulse(tile, main, detail, ks=(0.7, 0.85, 1.0, 1.0, 0.9, 0.75), fade=True, flip_alt=False, rot=0):
+    fr = []
+    n = len(ks)
+    for i, k in enumerate(ks):
+        ops = [("scale", k)]
+        if flip_alt and i % 2 == 1:
+            ops.append(("flip",))
+        if rot:
+            ops.append(("rot", rot * i))
+        if fade:
+            ops.append(("a", 1.0 - 0.7 * (i / (n - 1)) ** 2))
+        fr.append((tile, main, detail, ops))
+    return fr
+
+
+FIRE = "Items/sw_fire1.bmp"
+FIRE2 = "Items/sw_fire2.bmp"
+GAS = ["Tiles2/gas_0.png", "Tiles2/gas_1.png", "Tiles2/gas_2.png", "Tiles2/gas_3.png"]
+EFFECTS_QUD = {
+    "fire": [(FIRE, "R", "W", [("a", 1)]), (FIRE2, "R", "W", [("a", 1)]), (FIRE, "R", "W", [("flip",)]),
+             (FIRE2, "R", "W", [("flip",)]), (FIRE, "r", "R", [("a", 0.7)]), (FIRE2, "r", "R", [("a", 0.4)])],
+    "ice": _pulse("Mutations/freezing_ray.bmp", "C", "Y"),
+    "lightning_0": [("Mutations/electrical_generation.bmp", "W", "Y", [("flip",)] if i % 2 else []) for i in range(6)],
+    "translocation": _pulse("Tiles2/status_phase_change.bmp", "M", "m", ks=(1.0,) * 6, rot=60),
+    "blood": [("Water/sw_liquid_%d.bmp" % (i + 1), "r", "R", [("a", 1.0 - 0.1 * i)]) for i in range(6)],
+    "dark": _pulse("Deaths/death_spacetime.bmp", "m", "K", ks=(0.8, 0.9, 1.0, 1.05, 1.0, 0.9)),
+    "shield_apply": _pulse("Mutations/force_bubble.bmp", "B", "C", ks=(0.5, 0.7, 0.85, 1.0, 1.0, 1.0), fade=False),
+    "shield_expire": _pulse("Mutations/force_bubble.bmp", "b", "B", ks=(1.0, 1.0, 0.95, 0.85, 0.7, 0.5)),
+    "fang": _pulse("Creatures/natural-weapon-arc.bmp", "Y", "y", ks=(0.8, 1.0, 1.1, 1.0, 0.9, 0.8), flip_alt=True),
+    "physical": _pulse("Combat3C/arrow_360_impact.png", "y", "Y", ks=(0.6, 0.8, 1.0, 1.0, 0.9, 0.8)),
+    "arcane": _pulse("Mutations/sunder_mind.bmp", "M", "Y", rot=30),
+    "heal": _pulse("Items/sw_heart.bmp", "R", "W", ks=(0.7, 0.9, 1.05, 1.1, 1.0, 0.9)),
+    "buff_apply": _pulse("Tiles2/status_sprinting.bmp", "W", "Y", ks=(0.7, 0.9, 1.0, 1.0, 0.95, 0.9)),
+    "poison": [(GAS[i % 4], "g", "G", [("a", 1.0 - 0.12 * i)]) for i in range(6)],
+    "holy": _pulse("Items/light_circle.bmp", "Y", "W", rot=15),
+}
+CLOUDS_QUD = {"ice": ("C", "c"), "thunder": ("W", "y"), "rainstorm": ("B", "b")}
+STUN_TILE = ("Mutations/stunning_force.bmp", "W", "Y")
+PORTAL_TILE = ("Items/ms_teleport_gate.png", "c", "C")
+# projectiles: name -> (tile, main, detail); item and mutation records name their own tiles
+PROJ_QUD = {
+    "fire_ball": ("Items/sw_grenade_mki.bmp", "W", "Y"), "arcane_bolt": ("Items/sw_bullet.bmp", "y", "Y"),
+    "sw_bullet": ("Items/sw_bullet.bmp", "y", "Y"), "sw_arrow": ("Items/sw_arrow.bmp", "w", "Y"),
+    "sw_shotgun_shell": ("Items/sw_shotgun_shell.bmp", "r", "W"), "rocket": ("Combat3C/rocket.png", "y", "Y"),
+    "sw_grenade_mki": ("Items/sw_grenade_mki.bmp", "W", "Y"),
+}
+
+
+def export_effects(out, proj_tiles):
+    edir = os.path.join(out, "effects")
+    os.makedirs(os.path.join(edir, "proj"), exist_ok=True)
+    n = 0
+    for name, frames in EFFECTS_QUD.items():
+        strip = fx_strip(frames)
+        if strip is None:
+            strip = effect_strip_fallback(name, EFFECT_COLOURS.get(name, "Y"))
+        else:
+            n += 1
+        strip.save(os.path.join(edir, name + ".png"))
+    tiles = dict(PROJ_QUD)
+    tiles.update(proj_tiles)
+    for name, (tile, main, detail) in tiles.items():
+        # x1.5: a thrown grenade or a slug should read at a third of a kart, not a full tile
+        im = tile_or_blank(tile, main, detail)
+        im.resize((im.width * 3 // 2, im.height * 3 // 2), Image.NEAREST).save(os.path.join(edir, "proj", name + ".png"))
+    os.makedirs(os.path.join(out, "status"), exist_ok=True)
+    scaled(tile_or_blank(*STUN_TILE)).save(os.path.join(out, "status", "stun.png"))
+    tdir = os.path.join(out, "tiles")
+    os.makedirs(tdir, exist_ok=True)
+    scaled(tile_or_blank(*PORTAL_TILE)).save(os.path.join(tdir, "portal_dormant_portal.png"))
+    for cloud, (m, d) in CLOUDS_QUD.items():
+        strip = fx_strip([(GAS[i], m, d, []) for i in range(4)], size=(48, 72))
+        if strip is not None:
+            strip.save(os.path.join(tdir, "cloud_%s_cloud.png" % cloud))
+    os.makedirs(os.path.join(out, "icons"), exist_ok=True)
+    os.makedirs(os.path.join(out, "equipment"), exist_ok=True)
+    return n, len(tiles)
+
+
+def effect_strip_fallback(name, letter, frames=6, size=48):
+    """A 6-frame burst in the effect's colour, for a strip whose Qud tile is missing."""
     col = qud_palette.rgb(letter)
     strip = Image.new("RGBA", (size * frames, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(strip)
@@ -181,35 +301,11 @@ def effect_strip(name, letter, frames=6, size=48):
         a = int(255 * (1.0 - t * 0.85))
         x0 = i * size + c
         d.ellipse([x0 - r, c - r, x0 + r, c + r], outline=col + (a,), width=max(2, int(6 * (1 - t)) + 2))
-        if name in ("fang", "physical", "blood"):
-            for k in range(6):
-                ang = k * math.pi / 3 + t * 0.7
-                d.line([x0 + math.cos(ang) * r * 0.4, c + math.sin(ang) * r * 0.4,
-                        x0 + math.cos(ang) * r, c + math.sin(ang) * r], fill=col + (a,), width=2)
     return strip
 
 
 def stun_icon(size=24):
-    im = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    col = qud_palette.rgb("W") + (255,)
-    for k in range(3):
-        cx = 4 + k * 8
-        d.polygon([(cx, 2), (cx + 2, 7), (cx + 7, 7), (cx + 3, 10), (cx + 5, 15), (cx, 12), (cx - 5, 15), (cx - 3, 10), (cx - 7, 7), (cx - 2, 7)], fill=col)
-    return im
-
-
-def projectile(name, letter):
-    col = qud_palette.rgb(letter)
-    im = Image.new("RGBA", (30, 12), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    if name == "fire_ball":
-        d.ellipse([4, 1, 26, 11], fill=col + (255,))
-        d.ellipse([10, 3, 22, 9], fill=qud_palette.rgb("W") + (255,))
-    else:
-        d.line([2, 6, 28, 6], fill=col + (255,), width=4)
-        d.ellipse([22, 2, 30, 10], fill=qud_palette.rgb("Y") + (255,))
-    return im
+    return scaled(tile_or_blank(*STUN_TILE))
 
 
 # ---------------------------------------------------------------- units
@@ -323,7 +419,7 @@ def export_items(bp, out, sounds=None):
     n = write_icons(out, ib.icons)
     for key, (tile, main, detail) in PICKUP_ICONS.items():
         scaled(tile_or_blank(tile, main, detail)).save(os.path.join(out, "icons", key + ".png"))
-    return recs, n
+    return recs, n, ib.icons
 
 
 # ---------------------------------------------------------------- tiles
@@ -383,29 +479,9 @@ def export_track_tiles(out, manifest, tiles_dir):
     for ch, (q, m, d) in CHASMS.items():
         tileable(tile_or_blank(q, m, d), (0, 0, 0)).save(os.path.join(tdir, "chasm_%s.png" % ch))
     for name, (q, m, d) in ITEM_TILES.items():
-        scaled(tile_or_blank(q, m, d)).save(os.path.join(tdir, name + ".png"))
-    for cloud, letter in (("ice", "C"), ("thunder", "W"), ("rainstorm", "B")):
-        im = Image.new("RGBA", (48, 32), (0, 0, 0, 0))
-        dr = ImageDraw.Draw(im)
-        col = qud_palette.rgb(letter)
-        for cx, cy, r in ((14, 18, 10), (26, 14, 12), (36, 20, 9)):
-            dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=col + (200,))
-        im.save(os.path.join(tdir, "cloud_%s_cloud.png" % cloud))
+        if name != "portal_dormant_portal":
+            scaled(tile_or_blank(q, m, d)).save(os.path.join(tdir, name + ".png"))
     return len(tracks)
-
-
-def export_effects(out):
-    edir = os.path.join(out, "effects")
-    os.makedirs(os.path.join(edir, "proj"), exist_ok=True)
-    for name, letter in EFFECT_COLOURS.items():
-        effect_strip(name, letter).save(os.path.join(edir, name + ".png"))
-    projectile("fire_ball", "O").save(os.path.join(edir, "proj", "fire_ball.png"))
-    projectile("arcane_bolt", "M").save(os.path.join(edir, "proj", "arcane_bolt.png"))
-    os.makedirs(os.path.join(out, "status"), exist_ok=True)
-    stun_icon().save(os.path.join(out, "status", "stun.png"))
-    os.makedirs(os.path.join(out, "icons"), exist_ok=True)
-    os.makedirs(os.path.join(out, "equipment"), exist_ok=True)
-    return len(EFFECT_COLOURS)
 
 
 # ---------------------------------------------------------------- sound
@@ -556,7 +632,7 @@ def main(argv=None):
     bp = B.Blueprints(qud_assets.path("data"))
     import qud_sounds
     sounds = qud_sounds.SoundIndex(qud_assets.path("sfx"))
-    items, n_icons = export_items(bp, out, sounds)
+    items, n_icons, ib_icons = export_items(bp, out, sounds)
     log("items:   %d as action-bar spells, %d icons" % (len(items), n_icons))
     import qud_mutations
     ab = qud_mutations.AbilityBuilder(bp, {r["qud"]: r for r in items}, lambda t: qud_assets.tile_file(t) is not None, sounds)
@@ -572,7 +648,18 @@ def main(argv=None):
     with open(os.path.join(out, "data", "equipment.json"), "w", encoding="utf-8") as f:
         f.write("[]\n")
     log("tracks:  %d" % export_track_tiles(out, manifest, qud_assets.path("tiles")))
-    log("effects: %d" % export_effects(out))
+    proj_tiles = {}
+    for rec in items:
+        pj = rec["kart"].get("projectile")
+        if pj and pj in ib_icons:
+            proj_tiles[pj] = ib_icons[pj]
+    for m in monsters:
+        for rec in m["spells"]:
+            pj = rec["kart"].get("projectile")
+            if pj and pj in ab.icons:
+                proj_tiles[pj] = ab.icons[pj]
+    n_fx, n_proj = export_effects(out, proj_tiles)
+    log("effects: %d strips from Qud tiles, %d projectile sprites" % (n_fx, n_proj))
     mapping = export_sounds(out)
     n_takes, n_names = export_sound_takes(out, sounds, items, monsters)
     log("takes:   %d clips linked for %d named sounds (per-weapon fire/hit, mutations, pickups)" % (n_takes, n_names))
@@ -599,8 +686,22 @@ def main(argv=None):
     with open(os.path.join(out, "README.txt"), "w") as f:
         f.write("Generated by tools/export_godot_assets.py from the Qud asset store. Not committed.\n")
     link_project(repo, out)
+    reimport(repo)
     log("done")
     return 0
+
+
+def reimport(repo):
+    """Godot caches imported textures under godot/.godot/imported and only refreshes them
+    on an import pass; without this a re-exported strip keeps its old pixels in the running
+    game. CAVES2_GODOT names the binary (else the macOS default); CAVES2_NO_IMPORT=1 skips."""
+    import subprocess
+    godot = os.environ.get("CAVES2_GODOT") or "/Users/homefolder/Downloads/Godot.app/Contents/MacOS/Godot"
+    if os.environ.get("CAVES2_NO_IMPORT") or not os.path.exists(godot):
+        log("reimport: skipped (set CAVES2_GODOT to the Godot binary)")
+        return
+    log("reimport: refreshing Godot's texture cache...")
+    subprocess.run([godot, "--headless", "--path", os.path.join(repo, "godot"), "--import"], capture_output=True)
 
 
 if __name__ == "__main__":

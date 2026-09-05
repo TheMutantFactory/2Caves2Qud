@@ -126,6 +126,8 @@ class AbilityBuilder:
         kart = {k: v for k, v in spec.items() if k not in ("dmg", "per_level", "range")}
         if dmg > 0:
             kart["damage"] = dmg
+        if spec["kind"] in ("bolt", "blast") and stem:
+            kart["projectile"] = stem
         if "radius" in kart and lv > 1:
             kart["radius"] = round(kart["radius"] * (1.0 + 0.06 * (lv - 1)))
         rec = {

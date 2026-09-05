@@ -404,7 +404,7 @@ static func cast_spell(race, kart: Kart, spell: Dictionary) -> bool:
 			var homing := target_ahead(race, kart, rng_px * 1.5)
 			var n := maxi(1, int(e.get("count", 1)))
 			for i in n:
-				var p := spawn_projectile(race, kart, QUD.texture("effects/proj/arcane_bolt.png"), 1100.0, dmg, dtype, 0.0, rng_px / 1100.0 + 0.4, homing if i == 0 else null)
+				var p := spawn_projectile(race, kart, proj_texture(e, "arcane_bolt"), 1100.0, dmg, dtype, 0.0, rng_px / 1100.0 + 0.4, homing if i == 0 else null)
 				p.player_only = not kart.is_player
 				if i > 0:   # the first shot homes; the rest fan out around it
 					p.vel = p.vel.rotated(deg_to_rad(12.0 * ceil(i / 2.0) * (1.0 if i % 2 == 1 else -1.0)))
@@ -412,7 +412,7 @@ static func cast_spell(race, kart: Kart, spell: Dictionary) -> bool:
 		"blast":
 			var n := maxi(1, int(e.get("count", 1)))
 			for i in n:
-				var p := spawn_projectile(race, kart, QUD.texture("effects/proj/fire_ball.png"), 950.0, dmg, dtype, float(e.get("radius", 60.0)) + bon(kart, "spell_radius"), rng_px / 950.0 + 0.5)
+				var p := spawn_projectile(race, kart, proj_texture(e, "fire_ball"), 950.0, dmg, dtype, float(e.get("radius", 60.0)) + bon(kart, "spell_radius"), rng_px / 950.0 + 0.5)
 				p.player_only = not kart.is_player
 				if i > 0:
 					p.vel = p.vel.rotated(deg_to_rad(10.0 * ceil(i / 2.0) * (1.0 if i % 2 == 1 else -1.0)))
@@ -594,6 +594,16 @@ static func ring_effects(race, center: Vector2, radius: float, tex: Texture2D, f
 		if dir.dot(fwd) < -0.45:
 			continue   # the rear wedge sits on the chase camera
 		race.spawn_effect(tex, track.to3(center + dir * radius * 0.85, 24.0), 6, 0.07, -1.0, 1.2)
+
+
+# The projectile's art: the item's own tile (the grenade you threw, the dagger, a slug,
+# an arrow, a rocket; qud/data/spells.json kart.projectile), else the kind's default.
+static func proj_texture(e: Dictionary, default: String) -> Texture2D:
+	var name := String(e.get("projectile", ""))
+	var tex: Texture2D = QUD.texture("effects/proj/%s.png" % name) if name != "" else null
+	if tex == null:
+		tex = QUD.texture("effects/proj/%s.png" % default)
+	return tex
 
 
 # Optional per-effect extras on a projectile.

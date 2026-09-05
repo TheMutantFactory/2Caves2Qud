@@ -140,7 +140,14 @@ takes `-001..-005`. `tools/qud_sounds.py` resolves; records carry `kart.sound` (
 `hit_sound` (Race's projectile loop plays it on impact / a grenade's end of flight), the arcade
 pickups play `pickup_<kind>`. The 15 engine cues in `mapping.json` are still regex guesses.
 
+QUD ART for effects (2026-09-05): `EFFECTS_QUD` / `PROJ_QUD` tables in the exporter build the
+strips from tiles with per-frame ops (scale/flip/rot/alpha); records carry `kart.projectile`
+(a tile stem in `effects/proj/`), `Items.proj_texture` resolves it. GOTCHA: Godot IMPORTS the
+PNGs under the `godot/qud` symlink (`.import` sidecars land in the store) and serves the CACHED
+texture from `.godot/imported` after a re-export — the exporter now ends with a headless
+`--import` (`CAVES2_GODOT` names the binary, `CAVES2_NO_IMPORT=1` skips). If art looks stale,
+that is why. Effect strips are 48×72 frames (Qud tiles ×3); projectiles ×1.5.
+
 Next, in order:
-1. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
-2. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
+1. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

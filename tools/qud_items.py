@@ -235,6 +235,7 @@ class ItemBuilder:
         rec["kart"] = kart
         rec["range"] = 7
         rec["max_charges"] = 3
+        kart["projectile"] = rec["asset"][1]      # you see the grenade you threw fly
         self.sound(rec, o, "ThrownSound", "sfx_throwing_generic_throw", "sfx_throwing_stone_medium_throw")
         self.hit_sound(rec, o["tags"].get("DetonatedSound"),
                        "sfx_grenade_gas_explode" if spec["kind"] in ("patch", "hex") else "sfx_grenade_highExplosive_explode")
@@ -290,6 +291,17 @@ class ItemBuilder:
         if "shotgun" in lname:
             kart.update({"kind": "bolt", "count": 3, "damage": round(dmg * 0.8, 1)})
             rec["range"] = 4
+        if kart.get("kind") in ("bolt", "blast"):
+            if "launcher" in lname or "rocket" in lname or "mortar" in lname or "cannon" in lname:
+                kart["projectile"] = "rocket"
+            elif "grenade" in lname:
+                kart["projectile"] = "sw_grenade_mki"
+            elif "shotgun" in lname:
+                kart["projectile"] = "sw_shotgun_shell"
+            elif "BaseBow" in o["chain"] or "dart" in lname or "spitter" in lname or "pitcher" in lname:
+                kart["projectile"] = "sw_arrow"
+            else:
+                kart["projectile"] = "sw_bullet"
         rec["kart"] = kart
         self.sound(rec, o, "MissileFireSound",
                    "sfx_missile_bow_fire" if "BaseBow" in o["chain"] else None,
@@ -308,7 +320,7 @@ class ItemBuilder:
         rec["stats"] = {"damage": round(dmg, 1)}
         rec["range"] = 5
         rec["max_charges"] = 4
-        rec["kart"] = {"kind": "bolt", "dtype": "Physical"}
+        rec["kart"] = {"kind": "bolt", "dtype": "Physical", "projectile": rec["asset"][1]}
         self.sound(rec, o, "ThrownSound", "sfx_throwing_generic_throw")
         self.hit_sound(rec, "sfx_throwing_generic_hitOrganic")
         self.records.append(rec)

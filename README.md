@@ -69,9 +69,19 @@ GodotSteam extension (online stays off until `tools/get_godotsteam.py` fetches i
 blueprint with a tile becomes a racer (its `Level` sets the difficulty band, `Hitpoints` the
 weight), the player castes from `Subtypes.xml` are the wardrobe skins, track road and ground
 are Qud floor tiles over the track colours, barricades are wall-family faces, the engine's
-sound cues map onto Qud clips and its twelve battle themes onto Qud's soundtrack. Effects
-and projectiles are procedural placeholders in Qud colours for now; equipment is an empty
-list until Qud's artifacts come in.
+sound cues map onto Qud clips and its twelve battle themes onto Qud's soundtrack. Equipment is an
+empty list until Qud's artifacts come in.
+
+### Effects and projectiles are Qud drawings
+
+Qud draws its explosions as glyph particles, so there are no explosion sprites to take; the
+engine's effect strips are instead Qud's own tiles animated frame by frame: its fire tiles
+flicker for a burn, its four gas frames roll for poison and the hazard clouds, the force
+bubble grows and fades for shields, the phase-change swirl turns for a teleport, the liquid
+tiles pool for blood, the freezing ray, sunder mind, light circle and heart pulse for ice,
+arcane, holy and healing. Projectiles are the thing itself: the grenade you threw, the dagger,
+a slug, an arrow or a rocket, named per record by `kart.projectile`, and a mutation's bolt is
+its own glyph. The stun icon is Stunning Force, the portal a teleport gate.
 
 ## Qud items as the weapons
 
