@@ -148,6 +148,20 @@ texture from `.godot/imported` after a re-export — the exporter now ends with 
 `--import` (`CAVES2_GODOT` names the binary, `CAVES2_NO_IMPORT=1` skips). If art looks stale,
 that is why. Effect strips are 48×72 frames (Qud tiles ×3); projectiles ×1.5.
 
+COURSES + RACER SELECT (2026-09-05): `tools/qud_tracks.py` GENERATES `shared/tracks.json` (edit
+the script; 20 courses + the city guest); `docs/tracks.md` has the table and the `gaps`.
+Exporter `TILESETS` are Qud biomes (35) and `wall_families` is keyed by the course's `wallset`.
+Track: `spec.elevation`, `hazard_spots()`; Race: `_spawn_track_hazards` (fixed `Items.Hazard`
+patches, `HAZARD_KINDS`), `laps` from the spec, GP fallback `Shared.track_for_level`. Menu
+`levels` page = COURSES (cups); `racers` page = `RacerSelect.gd` (design doc in mutant-plan);
+`tools/qud_racers.py` → `data/racers.json`. Probes: `hazards: N course patches (<key>)` in the
+race log; `--mode=racers --party=N --select_demo=...` + `--select_autostart` → `menu: page=levels
+players=N`. GOTCHA: a bad python splice duplicated a block of the exporter once — after editing
+by index, `grep -c "^def name"` for duplicates.
+
 Next, in order:
-1. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
+1. Engine features the courses need most: cycling hazards (period + cue), a jump-pad patch,
+   per-lap hazard sets, then section races (docs/tracks.md).
+2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
+3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

@@ -89,6 +89,7 @@ def clean_name(display, fallback):
             break
         s = t
     s = re.sub(r"&[a-zA-Z]|\^[a-zA-Z]", "", s)
+    s = re.sub(r"=[A-Za-z0-9_.:]+=", "", s)      # the game's name templates (=creatureregionadjective=)
     s = re.sub(r"\s+", " ", s).strip()
     words = []
     for w in s.split(" "):

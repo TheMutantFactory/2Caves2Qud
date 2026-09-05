@@ -64,7 +64,7 @@ func _ready() -> void:
 		_dump_mapping(args)
 		return
 	for a in args:
-		if a.begins_with("--party=") and mode == "lobby":   # seat fake players so the lobby can be rendered
+		if a.begins_with("--party=") and mode in ["lobby", "racers"]:   # seat fake players so the lobby / racer select can be rendered
 			Players.clear()
 			var skins := Wardrobe.skins()
 			for i in clampi(int(a.substr(8)), 1, Players.MAX):
@@ -88,6 +88,14 @@ func _ready() -> void:
 	_show("title")
 	if mode == "wardrobe":
 		_open_wardrobe()
+	elif mode == "racers_grid":
+		_show("title")
+		root.queue_free()
+		root = Control.new()
+		root.size = Vector2(1920, 1080)
+		add_child(root)
+		page = "racers_grid"
+		_build_racers_grid()
 	elif mode in ["racers", "levels", "types", "lobby", "online", "rifttype_select"]:
 		_show(mode.trim_suffix("_select"))
 	if Campaign.rift_page:
@@ -146,7 +154,7 @@ func _show(p: String) -> void:
 		"types":
 			_build_types()
 		"racers":
-			_build_racers()
+			_build_racer_select()
 		"levels":
 			_build_levels()
 		"lobby":
@@ -155,7 +163,7 @@ func _show(p: String) -> void:
 			_build_online()
 		"rifttype":
 			_build_rifttype()
-	Players.joins_enabled = p == "lobby"
+	Players.joins_enabled = p in ["lobby", "racers"]
 
 
 # ---------------------------------------------------------------- pages
@@ -221,7 +229,7 @@ func _pick_type(key: String) -> void:
 	if key == "rig":
 		_start_rig()
 	elif key == "party":
-		_show("lobby")
+		_show("racers")
 	elif key == "online":
 		_show("online")
 	elif key == "single":
@@ -230,7 +238,7 @@ func _pick_type(key: String) -> void:
 		_start_race(1)
 
 
-func _build_racers() -> void:
+func _build_racers_grid() -> void:
 	root.add_child(_at(_label("RACER SELECT", 60, Color(1.0, 0.93, 0.35)), Vector2(60, 20)))
 	root.add_child(_at(_label("wizards wear an outfit and cast from the action bar; a monster races with its own attack only.   Esc back", 18, Color(0.7, 0.7, 0.7)), Vector2(60, 88)))
 	var scroll := ScrollContainer.new()
@@ -280,6 +288,46 @@ func _build_racers() -> void:
 		first.call_deferred("grab_focus")
 
 
+var racer_select: RacerSelect = null
+
+
+func _build_racer_select() -> void:
+	racer_select = RacerSelect.new()
+	root.add_child(racer_select)
+	for pl in Players.players:      # seats already taken (the lobby, a previous visit) join at once
+		racer_select.join(int(pl["seat"]))
+	racer_select.refresh()
+
+
+# The old flat grid, kept for a mouse-only session (--mode=racers_grid).
+func _build_racers() -> void:
+	_build_racers_grid()
+
+
+func _drive_racer_select() -> void:
+	if racer_select == null or not is_instance_valid(racer_select):
+		return
+	var frames := Players.frames()
+	var start := false
+	for i in frames.size():
+		var p: Dictionary = Players.players[i]
+		var seat := int(p["seat"])
+		if racer_select.seats[seat]["state"] == "unjoined":
+			racer_select.join(seat)
+		if racer_select.handle(seat, frames[i]):
+			start = true
+	if not start and "--select_autostart" in OS.get_cmdline_user_args() and racer_select.all_ready():
+		start = true      # tests: proceed as if the first seat pressed A
+	if start:
+		if Players.count() > 1:
+			race_type = "party"
+		Players.joins_enabled = false
+		_show("levels")
+		return
+	if Engine.get_physics_frames() % 6 == 0:
+		racer_select.refresh()
+
+
 func _racer_card(text: String, unit: String, enabled: bool, cb: Callable) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = Vector2(216, 150)
@@ -314,39 +362,94 @@ func _pick_racer(kind: String, unit: String, name: String) -> void:
 
 
 func _build_levels() -> void:
-	root.add_child(_at(_label("REALM", 60, Color(1.0, 0.93, 0.35)), Vector2(60, 20)))
-	root.add_child(_at(_label("pick the realm to race, and which of its three layouts.   Esc back", 18, Color(0.7, 0.7, 0.7)), Vector2(60, 88)))
+	root.add_child(_at(_label("COURSES", 60, Color(1.0, 0.93, 0.35)), Vector2(60, 20)))
+	root.add_child(_at(_label("five cups of Qud's places, easiest first.   Esc back", 18, Color(0.7, 0.7, 0.7)), Vector2(60, 88)))
 	var scroll := ScrollContainer.new()
 	scroll.position = Vector2(60, 130)
 	scroll.size = Vector2(1800, 920)
 	root.add_child(scroll)
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	scroll.add_child(grid)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 14)
+	scroll.add_child(vb)
 	var first: Button = null
-	for realm in range(1, Campaign.MAX_LEVEL + 1):
-		var opts := Shared.realm_options(realm)
-		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", 6)
-		var l := _label("Realm %2d" % realm, 24)
-		l.custom_minimum_size = Vector2(130, 60)
-		hb.add_child(l)
-		if opts.is_empty():
-			var b := _button("seeded loop", 20, func(): _start_race(realm), 280.0)
-			hb.add_child(b)
+	var cups: Array = Shared.cups.duplicate()
+	for k in Shared.tracks:
+		var c := String(Shared.tracks[k].get("cup", "Guest Cup"))
+		if not cups.has(c):
+			cups.append(c)
+	for cup in cups:
+		var tracks := Shared.cup_tracks(cup)
+		for k in Shared.tracks:      # guests (the city track) sit outside track_order
+			var tr: Dictionary = Shared.tracks[k]
+			if String(tr.get("cup", "Guest Cup")) == cup and not tracks.has(tr):
+				tracks.append(tr)
+		if tracks.is_empty():
+			continue
+		vb.add_child(_label(String(cup).to_upper(), 28, Color(0.55, 0.85, 1.0)))
+		var grid := GridContainer.new()
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", 10)
+		grid.add_theme_constant_override("v_separation", 10)
+		vb.add_child(grid)
+		for tr in tracks:
+			var b := _course_card(tr)
+			grid.add_child(b)
 			if first == null:
 				first = b
-		for e in opts:
-			var f := String(e["file"])
-			var b := _button("%s / %s" % [String(e["tileset"]).capitalize(), e["chasm"]], 18, func(): _start_race(realm, f), 150.0)
-			hb.add_child(b)
-			if first == null:
-				first = b
-		grid.add_child(hb)
+	if not Shared.realms.is_empty():
+		vb.add_child(_label("REALMS   (the game's generated levels)", 28, Color(0.55, 0.85, 1.0)))
+		for realm in range(1, Campaign.MAX_LEVEL + 1):
+			for e in Shared.realm_options(realm):
+				var f := String(e["file"])
+				vb.add_child(_button("Realm %d  %s / %s" % [realm, String(e["tileset"]).capitalize(), e["chasm"]], 18, func(): _start_race(realm, f), 400.0))
 	if first != null:
 		first.call_deferred("grab_focus")
+
+
+# A course tile: number, name, difficulty pips, the racing sentence, its signature skill.
+func _course_card(tr: Dictionary) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(440, 190)
+	b.pressed.connect(func(): _start_course(String(tr["key"])))
+	var vb := VBoxContainer.new()
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vb.offset_left = 12
+	vb.offset_right = -12
+	vb.offset_top = 8
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var idx := int(tr.get("cup_index", 0))
+	var diff := float(tr.get("difficulty", 1.0))
+	var pips := ""
+	for i in 5:
+		pips += "*" if i < int(floor(diff)) else ("+" if i < diff else "-")
+	var head := _label("%s%s   %s" % [("%02d  " % idx) if idx < 99 else "", String(tr["name"]), pips], 22, Color(1.0, 0.93, 0.35))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(head)
+	var meta := _label("%s   %s   %s" % [String(tr.get("format", "3-lap circuit")), String(tr.get("target_lap", "")), String(tr.get("skill", ""))], 14, Color(0.6, 0.6, 0.6))
+	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(meta)
+	var sent := _label(String(tr.get("sentence", "")), 15, Color(0.85, 0.85, 0.85))
+	sent.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sent.custom_minimum_size = Vector2(410, 0)
+	sent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(sent)
+	if bool(tr.get("spoiler", false)):
+		var sp := _label("late-game location", 13, Color(1.0, 0.5, 0.6))
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(sp)
+	b.add_child(vb)
+	return b
+
+
+func _start_course(key: String) -> void:
+	Campaign.new_run()
+	Campaign.level = maxi(1, Shared.track_order.find(key) + 1)
+	Campaign.next_track = key
+	Campaign.race_type = race_type
+	if Players.count() > 1:
+		Campaign.race_type = "party"
+		Players.joins_enabled = false
+	get_tree().change_scene_to_file(RACE_SCENE)
 
 
 # ---------------------------------------------------------------- local multiplayer lobby
@@ -429,6 +532,9 @@ func _refresh_lobby() -> void:
 func _physics_process(_dt: float) -> void:
 	if page == "online" and Net.available and Engine.get_physics_frames() % 300 == 0:
 		Net.refresh()   # the list goes stale fast; poll while the page is open
+	if page == "racers":
+		_drive_racer_select()
+		return
 	if page != "lobby" or seat_cards.is_empty():
 		return
 	var skins := Wardrobe.skins()

@@ -59,15 +59,53 @@ import qud_palette  # noqa: E402
 SCALE = 3                    # Qud tiles are 16x24; the engine was built around 60px wizards
 FRAME_H = 24 * SCALE
 
-# engine tileset name -> (Qud floor tile, main, detail, wall family stem)
+# Qud biome tilesets for the courses (shared/tracks.json tileset / offroad): the floor
+# tile painted in two palette letters. Liquids and voids use the animated liquid tile.
 TILESETS = {
-    "brick":   ("Tiles/sw_floor_brick1.bmp",  "w", "y", "wall_brick"),
-    "volcano": ("Tiles/sw_floor_chunk1.bmp",  "r", "R", "wall_rock"),
-    "ice":     ("Tiles/sw_floor_diamonds.bmp", "C", "Y", "wall_crystal1"),
-    "stone":   ("Tiles/sw_floor_brickb1.bmp", "y", "K", "wall_marble"),
-    "moss":    ("Tiles/sw_floor_dirty1.bmp",  "g", "G", "wall_mud"),
+    "brick":       ("Tiles/sw_floor_brick1.bmp",   "w", "y"),
+    "volcano":     ("Tiles/sw_floor_chunk1.bmp",   "r", "R"),
+    "ice":         ("Tiles/sw_floor_diamonds.bmp", "C", "Y"),
+    "stone":       ("Tiles/sw_floor_brickb1.bmp",  "y", "K"),
+    "moss":        ("Tiles/sw_floor_dirty1.bmp",   "g", "G"),
+    "watervine":   ("Tiles/sw_watervine1.bmp",     "g", "G"),
+    "salt":        ("Tiles/sw_floor_dots1.bmp",    "Y", "y"),
+    "dune":        ("Terrain/sw_ground_dune_1.bmp", "W", "w"),
+    "desert":      ("Terrain/sw_ground_desert_1.bmp", "w", "W"),
+    "canyon":      ("Tiles/sw_floor_rocks1.bmp",   "r", "R"),
+    "rust":        ("Tiles/sw_floor_tech1.bmp",    "o", "O"),
+    "chrome":      ("Tiles/sw_floor_tech1.bmp",    "y", "Y"),
+    "ruin":        ("Tiles/sw_floor_brickb2.bmp",  "w", "y"),
+    "asphalt":     ("Tiles/sw_floor_dots.bmp",     "K", "k"),
+    "bone":        ("Tiles/sw_floor_chunk2.bmp",   "y", "Y"),
+    "bile":        ("Tiles/sw_floor_dirty2.bmp",   "g", "w"),
+    "jungle":      ("Tiles/sw_floor_grass1.bmp",   "g", "G"),
+    "leaf":        ("Tiles/sw_floor_grass3.bmp",   "G", "g"),
+    "mushroom":    ("Tiles/sw_floor_chunk3.bmp",   "w", "W"),
+    "fungus":      ("Tiles/sw_floor_dirty3.bmp",   "m", "M"),
+    "crystal":     ("Tiles/sw_floor_diamonds.bmp", "C", "Y"),
+    "marble":      ("Tiles/sw_floor_brickb1.bmp",  "y", "Y"),
+    "blackmarble": ("Tiles/sw_floor_brickb3.bmp",  "K", "y"),
+    "esh":         ("Tiles/sw_floor_brickb4.bmp",  "Y", "y"),
+    "reef":        ("Tiles/sw_floor_dots2.bmp",    "m", "C"),
+    "sponge":      ("Tiles/sw_floor_dots3.bmp",    "w", "O"),
+    "pipe":        ("Tiles/sw_floor_tech1.bmp",    "b", "B"),
+    "lily":        ("Tiles/sw_floor_grass5.bmp",   "G", "W"),
+    "banana":      ("Tiles/sw_floor_grass7.bmp",   "g", "W"),
+    "sultan":      ("Tiles/sw_floor_brick3.bmp",   "W", "w"),
+    "hologram":    ("Tiles/sw_floor_squares.bmp",  "C", "B"),
+    "void":        ("Water/sw_liquid_1.bmp",       "k", "K"),
+    "water":       ("Water/sw_liquid_1.bmp",       "B", "b"),
+    "soup":        ("Water/sw_liquid_2.bmp",       "m", "M"),
+    "lava":        ("Water/sw_liquid_3.bmp",       "R", "O"),
 }
-CHASMS = {"lava": ("Tiles/sw_floor_dirty2.bmp", "R", "r"), "water": ("Tiles/sw_floor_dirty3.bmp", "B", "b")}
+CHASMS = {"lava": TILESETS["lava"], "water": TILESETS["water"]}
+
+
+def wall_family(wallset):
+    """'brinestalk' -> 'wall_brinestalk'; a stem that already names a family passes through."""
+    return wallset if wallset.startswith("wall") else "wall_" + wallset
+
+
 ITEM_TILES = {
     "item_mana_orb": ("Items/ms_smooth_gemstone.bmp", "B", "C"),
     "item_spell_scroll": ("Items/sw_book_1.bmp", "w", "Y"),
@@ -183,7 +221,9 @@ def _fx_frame(tile, main, detail, ops, size):
         return None
     img = scaled(paint(img, main, detail))
     for op in ops:
-        if op[0] == "flip":
+        if op[0] == "crop16":
+            img = img.crop((0, 4 * SCALE, img.width, 20 * SCALE))
+        elif op[0] == "flip":
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
         elif op[0] == "rot":
             img = img.rotate(op[1], resample=Image.NEAREST, expand=False)
@@ -232,7 +272,7 @@ EFFECTS_QUD = {
     "fire": [(FIRE, "R", "W", [("a", 1)]), (FIRE2, "R", "W", [("a", 1)]), (FIRE, "R", "W", [("flip",)]),
              (FIRE2, "R", "W", [("flip",)]), (FIRE, "r", "R", [("a", 0.7)]), (FIRE2, "r", "R", [("a", 0.4)])],
     "ice": _pulse("Mutations/freezing_ray.bmp", "C", "Y"),
-    "lightning_0": [("Mutations/electrical_generation.bmp", "W", "Y", [("flip",)] if i % 2 else []) for i in range(6)],
+    "lightning_0": [("Mutations/electrical_generation.bmp", "W", "Y", [("scale", 0.5), ("a", 0.75)] + ([("flip",)] if i % 2 else [])) for i in range(6)],
     "translocation": _pulse("Tiles2/status_phase_change.bmp", "M", "m", ks=(1.0,) * 6, rot=60),
     "blood": [("Water/sw_liquid_%d.bmp" % (i + 1), "r", "R", [("a", 1.0 - 0.1 * i)]) for i in range(6)],
     "dark": _pulse("Deaths/death_spacetime.bmp", "m", "K", ks=(0.8, 0.9, 1.0, 1.05, 1.0, 0.9)),
@@ -281,7 +321,9 @@ def export_effects(out, proj_tiles):
     os.makedirs(tdir, exist_ok=True)
     scaled(tile_or_blank(*PORTAL_TILE)).save(os.path.join(tdir, "portal_dormant_portal.png"))
     for cloud, (m, d) in CLOUDS_QUD.items():
-        strip = fx_strip([(GAS[i], m, d, []) for i in range(4)], size=(48, 72))
+        # square frames: a hazard field tiles one frame per 90 px cell, so the 16x24 gas
+        # tile is cropped to its middle 16 rows
+        strip = fx_strip([(GAS[i], m, d, [("crop16",)]) for i in range(4)], size=(48, 48))
         if strip is not None:
             strip.save(os.path.join(tdir, "cloud_%s_cloud.png" % cloud))
     os.makedirs(os.path.join(out, "icons"), exist_ok=True)
@@ -442,6 +484,15 @@ def wall_faces(family, main, detail, tiles_dir):
     return out
 
 
+def _biome(t, key, legacy_key, default):
+    """A track's biome name: the new field, else the third element of the legacy path list."""
+    v = t.get(key)
+    if isinstance(v, str) and v:
+        return v
+    arr = t.get(legacy_key, [])
+    return arr[2] if isinstance(arr, list) and len(arr) > 2 else default
+
+
 def export_track_tiles(out, manifest, tiles_dir):
     tdir = os.path.join(out, "tiles")
     os.makedirs(tdir, exist_ok=True)
@@ -449,32 +500,28 @@ def export_track_tiles(out, manifest, tiles_dir):
         tracks = json.load(f)["tracks"]
     manifest["track_tiles"] = {}
     manifest["tiles"] = []
+    manifest["wall_families"] = {}
     done_walls = set()
     for t in tracks:
         key = t["key"]
-        ts = t["floor"][2] if len(t.get("floor", [])) > 2 else "brick"
-        floor_q, fm, fd, fam = TILESETS.get(ts, TILESETS["brick"])
-        floor = tile_or_blank(floor_q, fm, fd)
-        tileable(floor, t.get("road_color", [80, 76, 70])).save(os.path.join(tdir, "track_%s_road.png" % key))
-        off = t.get("offroad", [])
-        if len(off) > 2 and off[1] == "chasm":
-            ch = off[2].replace("chasm_", "")
-            oq, om, od = CHASMS.get(ch, CHASMS["water"])
-        else:
-            ots = off[2] if len(off) > 2 else "moss"
-            oq, om, od, _ = TILESETS.get(ots, TILESETS["moss"])
-        ground = tile_or_blank(oq, om, od)
-        tileable(ground, t.get("ground", [8, 12, 6])).save(os.path.join(tdir, "track_%s_ground.png" % key))
+        ts = _biome(t, "tileset", "floor", "brick")
+        q, fm, fd = TILESETS.get(ts, TILESETS["brick"])
+        tileable(tile_or_blank(q, fm, fd), t.get("road_color", [80, 76, 70])).save(os.path.join(tdir, "track_%s_road.png" % key))
+        off = _biome(t, "offroad", "offroad", "moss").replace("chasm_", "")
+        oq, om, od = TILESETS.get(off, TILESETS["moss"])
+        tileable(tile_or_blank(oq, om, od), t.get("ground", [8, 12, 6])).save(os.path.join(tdir, "track_%s_ground.png" % key))
         manifest["track_tiles"][key] = {"road": "track_%s_road.png" % key, "ground": "track_%s_ground.png" % key, "tile_px": 96}
-        wts = t["walls"][2] if len(t.get("walls", [])) > 2 else ts
-        if wts not in done_walls:
-            done_walls.add(wts)
-            _, wm, wd, wfam = TILESETS.get(wts, TILESETS["brick"])
-            faces = wall_faces(wfam, wm, wd, tiles_dir)
+        ws = _biome(t, "wallset", "walls", ts)
+        fam = wall_family(ws)
+        manifest["wall_families"][ws] = fam
+        if ws not in done_walls:
+            done_walls.add(ws)
+            wm, wd = (TILESETS.get(ws) or TILESETS.get(ts) or TILESETS["brick"])[1:3]
+            faces = wall_faces(fam, wm, wd, tiles_dir)
             for i, face in enumerate(faces):
-                face.save(os.path.join(tdir, "%s_wall_%d.png" % (wts, i + 1)))
-                manifest["tiles"].append({"file": "%s_wall_%d.png" % (wts, i + 1), "tileset": wts, "kind": "wall"})
-    for ts, (q, m, d, _) in TILESETS.items():
+                face.save(os.path.join(tdir, "%s_wall_%d.png" % (ws, i + 1)))
+                manifest["tiles"].append({"file": "%s_wall_%d.png" % (ws, i + 1), "tileset": ws, "kind": "wall"})
+    for ts, (q, m, d) in TILESETS.items():
         tileable(tile_or_blank(q, m, d), (44, 42, 48)).save(os.path.join(tdir, "floor_%s.png" % ts))
     for ch, (q, m, d) in CHASMS.items():
         tileable(tile_or_blank(q, m, d), (0, 0, 0)).save(os.path.join(tdir, "chasm_%s.png" % ch))
@@ -641,6 +688,13 @@ def main(argv=None):
     log("units:   %d creatures + player + %d castes" % (n_units, n_players))
     with open(os.path.join(out, "data", "monsters.json"), "w", encoding="utf-8") as f:
         json.dump(monsters, f, indent=0)
+    import qud_racers
+    castes = [(u, u[len("player_"):].replace("_", " ").title()) for u in sorted(manifest["units"]) if u.startswith("player_")]
+    catalogue = qud_racers.build(bp, monsters, castes)
+    with open(os.path.join(out, "data", "racers.json"), "w", encoding="utf-8") as f:
+        json.dump(catalogue, f, indent=0)
+    log("racers:  %d racers in %d collections (%s)" % (len(catalogue["racers"]), len(catalogue["collections"]),
+        ", ".join("%s %d" % (c["name"], len(c["racers"])) for c in catalogue["collections"] if not c.get("utility"))))
     armed = sum(1 for m in monsters if any(sp["stats"].get("damage", 0) > 0 for sp in m["spells"]))
     log("abilities: %d creatures armed (%d mutations, %d weapons), %d mutation icons" % (
         armed, sum(1 for m in monsters for sp in m["spells"] if "Mutation" in sp["tags"]),
@@ -680,7 +734,6 @@ def main(argv=None):
         log("walls:   linked (%d models)" % len([f for f in os.listdir(walls_src) if f.endswith(".json")]))
     else:
         log("walls:   none (run tools/wall2vox.py for voxel barriers)")
-    manifest["wall_families"] = {ts: v[3] for ts, v in TILESETS.items()}
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=1)
     with open(os.path.join(out, "README.txt"), "w") as f:

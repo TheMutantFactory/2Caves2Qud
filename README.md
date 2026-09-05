@@ -116,6 +116,25 @@ throw and then its detonation where it falls, a long sword swings with steel, a 
 musket sounds like a musket. `--sfx-log` prints every cue played, which is how this is
 tested.
 
+## The courses and the racer select
+
+The twenty courses of the Track Design Bible (`mutant-plan/strategy/2caves2qud-tracks`) are
+engine data in `tools/qud_tracks.py`: a loop drawn from each Route, a Qud biome for road,
+ground and walls, the surface hazards the course is about (pond water in Joppa, oil and lava
+in the Asphalt Mines, ice in Bethesda Susa, warm static on the Moon Stair), laps, items and
+the roster line the Courses page shows. Five cups, easiest first; the Grand Prix runs them in
+order. What the bible asks for that the engine cannot build yet (section races, timed gates,
+jumps, lap-by-lap change, parallel rooms) is recorded per course as `gaps`. See
+[docs/tracks.md](docs/tracks.md).
+
+Racer select follows the large-roster design: a shared grid of fourteen collections in the
+centre (Favorites, Recent, All, Random, then Castes, Legendary, Villagers, Snapjaws & Kin,
+Robots, Bugs & Oozes, Beasts & Birds, Plants & Fungi, Cherubim, Crystals), and four seat
+quadrants that browse privately: join, choose a collection, page a 2×5 browser, pick a
+variant, ready. 908 racers, numbered siblings folded into variants, favorites and recent per
+seat, and a start that goes to the Courses page as a split-screen party when more than one
+seat is in. See [docs/racer-select.md](docs/racer-select.md).
+
 ## Mutations as the monsters' abilities
 
 In the Monster Campaign the field is Qud's creatures, and each one attacks with what its

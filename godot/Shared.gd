@@ -3,6 +3,8 @@
 extends Node
 
 var tracks := {}
+var track_order: Array = []   # course keys in cup order (shared/tracks.json cups + cup_index)
+var cups: Array = []
 var tuning := {}
 var overrides := {}   # shared/overrides.json: hand-written mappings by spell/artifact name (see docs/rulebook.md)
 var realms := []      # qud/levels/index.json: the game's generated realm dumps (tools/extract_levels.py)
@@ -14,11 +16,32 @@ func _ready() -> void:
 	var t := load_json("res://qud/shared/tracks.json")
 	for tr in t.get("tracks", []):
 		tracks[tr["key"]] = tr
+	cups = t.get("cups", [])
+	var ordered: Array = t.get("tracks", []).duplicate()
+	ordered.sort_custom(func(a, b): return int(a.get("cup_index", 99)) < int(b.get("cup_index", 99)))
+	for tr in ordered:
+		if not tr.has("city"):
+			track_order.append(tr["key"])
 	if tuning.is_empty() or tracks.is_empty():
 		push_error("Drift Wizard 3: qud/shared is missing. Run tools/export_godot_assets.py")
 	var idx = load_json_any("res://qud/levels/index.json")
 	if idx is Array:
 		realms = idx
+
+
+# The course a Grand Prix level races: level N is the Nth course in cup order.
+func track_for_level(level: int) -> String:
+	if track_order.is_empty():
+		return "brick"
+	return track_order[clampi(level - 1, 0, track_order.size() - 1)]
+
+
+func cup_tracks(cup: String) -> Array:
+	var out := []
+	for k in track_order:
+		if String(tracks[k].get("cup", "")) == cup:
+			out.append(tracks[k])
+	return out
 
 
 func load_json_any(path: String):

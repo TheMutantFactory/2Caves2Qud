@@ -226,7 +226,7 @@ func _ready() -> void:
 	if key == "realm":
 		level = Campaign.current_realm()
 	if level.is_empty() and not Shared.tracks.has(key):
-		key = "brick"
+		key = Shared.track_for_level(Campaign.level)   # the Grand Prix runs the cups in order
 	track = Track.new()
 	add_child(track)
 	if not level.is_empty():
@@ -234,6 +234,7 @@ func _ready() -> void:
 	else:
 		track.setup(key, rng)
 	track_spells = track.spec.get("spells", [])
+	laps = int(track.spec.get("laps", laps))
 
 	_build_environment()
 	_build_shadow_mesh()
@@ -259,6 +260,7 @@ func _ready() -> void:
 	else:
 		_spawn_racers(int(Shared.t(["race", "racers"], 8)))
 		_spawn_item_boxes()
+		_spawn_track_hazards()
 		if level.is_empty():
 			_spawn_mobs()
 		else:
@@ -651,6 +653,41 @@ func _full_spells(compact: Array) -> Array:
 			"range": float(sp.get("range", 1.5)), "melee": bool(sp.get("melee", false)), "max_charges": 0,
 			"stats": {"damage": float(sp.get("damage", 0))}, "asset": []})
 	return out
+
+
+# The course's own surface: ice that slides, fire and gas that hurt, water and oil and
+# slime that slow (a slip), warm static that stuns — fixed patches from tracks.json.
+const HAZARD_KINDS := {
+	"ice": {"cloud": "ice", "dtype": "Ice", "damage": 0.0, "slip": true, "tint": Color(0.8, 0.95, 1.0)},
+	"fire": {"cloud": "thunder", "dtype": "Fire", "damage": 4.0, "slip": false, "tint": Color(1.0, 0.45, 0.2)},
+	"poison": {"cloud": "rainstorm", "dtype": "Poison", "damage": 2.5, "slip": false, "tint": Color(0.4, 0.9, 0.3)},
+	"water": {"cloud": "rainstorm", "dtype": "Ice", "damage": 0.0, "slip": true, "tint": Color(0.3, 0.6, 1.0)},
+	"oil": {"cloud": "thunder", "dtype": "Physical", "damage": 0.0, "slip": true, "tint": Color(0.35, 0.3, 0.45)},
+	"slime": {"cloud": "rainstorm", "dtype": "Poison", "damage": 1.5, "slip": true, "tint": Color(0.5, 0.8, 0.2)},
+	"static": {"cloud": "ice", "dtype": "Arcane", "damage": 1.0, "slip": false, "tint": Color(0.9, 0.5, 1.0)},
+}
+
+
+func _spawn_track_hazards() -> void:
+	var n := 0
+	for spot in track.hazard_spots():
+		var spec: Dictionary = HAZARD_KINDS.get(String(spot["kind"]), HAZARD_KINDS["fire"])
+		var h := Items.Hazard.new()
+		h.pos = spot["pos"]
+		h.radius = float(spot["radius"])
+		h.damage = float(spec["damage"])
+		h.dtype = String(spec["dtype"])
+		h.slip = bool(spec["slip"])
+		h.tick = 0.7
+		h.life = 1.0e9      # the course's own, for the whole race
+		h.owner_kart = null
+		h.position = track.to3(h.pos, 3.0)
+		h.build(QUD.texture("tiles/cloud_%s_cloud.png" % String(spec["cloud"])), 4, spec["tint"], track)
+		add_child(h)
+		hazards.append(h)
+		n += 1
+	if n > 0:
+		print("hazards: %d course patches (%s)" % [n, track.key])
 
 
 # The realm's lairs stand by the road and let out their monster every so often.

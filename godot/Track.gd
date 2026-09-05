@@ -78,7 +78,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	for i in n:
 		seg_len[i] = maxf(1.0, points[(i + 1) % n].distance_to(points[i]))
 
-	elev_amp = float(Shared.t(["godot", "elevation_px"], 60.0))
+	elev_amp = float(spec.get("elevation", Shared.t(["godot", "elevation_px"], 60.0)))
 	noise.seed = rng.randi()
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	noise.frequency = float(Shared.t(["godot", "elevation_freq"], 0.0006))
@@ -681,6 +681,21 @@ func start_positions(count: int) -> Array:
 		var row := i / 2
 		var col := i % 2
 		out.append({"pos": base - d * (110.0 + row * 95.0) + nrm * (col * 84.0 - 42.0), "heading": heading})
+	return out
+
+
+# The course's fixed surface hazards (shared/tracks.json "hazards": kind, at = fraction
+# of the loop, side = -1..1 across the road, radius px) as world positions.
+func hazard_spots() -> Array:
+	var out := []
+	if n == 0:
+		return out
+	for h in spec.get("hazards", []):
+		var i := int(floor(float(h.get("at", 0.0)) * n)) % n
+		var d := direction_at(i)
+		var nrm := Vector2(-d.y, d.x)
+		out.append({"kind": String(h.get("kind", "fire")), "pos": points[i] + nrm * float(h.get("side", 0.0)) * width * 0.5,
+			"radius": float(h.get("radius", 150.0))})
 	return out
 
 
