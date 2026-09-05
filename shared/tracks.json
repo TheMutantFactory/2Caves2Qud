@@ -1,5 +1,5 @@
 {
- "_comment": "Track definitions shared by the Mode-7 mod (mod/) and the Godot build (godot/). Coordinates are unscaled world px; both paths apply tuning.race.track_scale. Asset lists follow the game's rl_data layout. City tracks carry a 'city' key naming a shared/maps/<city>.json (OpenStreetMap, ODbL); their loop is a random route through the street grid instead of the control points. Each track's 'spells' are the scrolls that appear on it; running over one adds the spell to the action bar.",
+ "_comment": "Track definitions shared by the Mode-7 mod (mod/) and the Godot build (godot/). Coordinates are unscaled world px; both paths apply tuning.race.track_scale. Asset lists follow the game's rl_data layout. City tracks carry a 'city' key naming a shared/maps/<city>.json (OpenStreetMap, ODbL); their loop is a random route through the street grid instead of the control points. Each track's 'spells' are the Qud ITEMS (names from qud/data/spells.json, see tools/qud_items.py) that appear on it as scrolls; running over one adds it to the action bar.",
  "tracks": [
   {
    "key": "brick",
@@ -86,16 +86,16 @@
     ]
    ],
    "spells": [
-    "Magic Missile",
-    "Wolf",
-    "Summon Blade",
-    "Poison Sting",
-    "Blink",
-    "Arcane Warding",
-    "Healing Light",
-    "Giant Bear",
-    "Void Beam",
-    "Petrify"
+    "Bronze Dagger",
+    "Steel Dagger",
+    "Chrome Revolver",
+    "Short Bow",
+    "Salve Injector",
+    "High Explosive Grenade Mk I",
+    "Stun Gas Grenade Mk I",
+    "Carbine",
+    "Rubbergum Injector",
+    "Pump Shotgun"
    ]
   },
   {
@@ -173,16 +173,16 @@
     ]
    ],
    "spells": [
-    "Fireball",
-    "Immolate",
-    "Melt",
-    "Fan of Flames",
-    "Dragon Breath",
-    "Invoke Savagery",
-    "Shrapnel Blast",
-    "Fire Drake",
-    "Flame Burst",
-    "Pillar of Fire"
+    "High Explosive Grenade Mk I",
+    "Thermal Grenade Mk I",
+    "Flamethrower",
+    "Laser Pistol",
+    "Plasma Grenade Mk I",
+    "Blaze Injector",
+    "Laser Rifle",
+    "Missile Launcher",
+    "High Explosive Grenade Mk II",
+    "Di-thermo Beam"
    ]
   },
   {
@@ -264,16 +264,16 @@
     ]
    ],
    "spells": [
-    "Icicle",
-    "Iceball",
-    "Freeze",
-    "Lightning Bolt",
-    "Death Chill",
-    "Ice Vortex",
-    "Chain Lightning",
-    "Blizzard",
-    "Ice Drake",
-    "Lightning Form"
+    "Freeze Grenade Mk I",
+    "Freeze Ray",
+    "Arc Winder",
+    "Sleep Gas Grenade Mk I",
+    "Eigenpistol",
+    "Skulk Injector",
+    "Chain Laser",
+    "Time Dilation Grenade Mk I",
+    "Freeze Grenade Mk II",
+    "Shade Oil Injector"
    ]
   },
   {
@@ -326,16 +326,16 @@
     ]
    ],
    "spells": [
-    "Lightning Bolt",
-    "Fireball",
-    "Wolf",
-    "Blink",
-    "Healing Light",
-    "Arcane Warding",
-    "Chain Lightning",
-    "Death Bolt",
-    "Freeze",
-    "Magic Missile"
+    "Semi-automatic Pistol",
+    "Chain Pistol",
+    "Combat Shotgun",
+    "Sniper Rifle",
+    "Chaingun",
+    "Flashbang Grenade Mk I",
+    "Grenade Launcher",
+    "Salve Injector",
+    "EMP Grenade Mk I",
+    "Hulk Honey Injector"
    ]
   }
  ]

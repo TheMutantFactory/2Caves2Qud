@@ -1,5 +1,7 @@
-# Autoload: the game's 186 player spells (qud/data/spells.json) and the rule
-# that turns each one into a kart effect. See docs/campaign.md.
+# Autoload: the action-bar items — Caves of Qud's grenades, guns, thrown and melee
+# weapons and tonics (qud/data/spells.json, from tools/qud_items.py) in the spell-record
+# shape this engine was built around — and the rule that turns each one into a kart
+# effect. See docs/campaign.md.
 extends Node
 
 const TILE_PX := 90.0
@@ -125,7 +127,13 @@ func effect_for(spell: Dictionary) -> Dictionary:
 		e["distance"] = maxf(300.0, rng * TILE_PX)
 	elif st.has("duration"):
 		e["kind"] = "hex"
-	# hand-written overrides win over the rules above (shared/overrides.json, "spells": {name: {...}})
+	# a record's own "kart" dict (tools/qud_items.py: kinds the rules cannot reach — patch,
+	# burst, shield, empower, stun, shove, count) is applied over the rules...
+	var hint = spell.get("kart", {})
+	if hint is Dictionary:
+		for k in hint:
+			e[k] = hint[k]
+	# ...and hand-written overrides win over both (shared/overrides.json, "spells": {name: {...}})
 	var ov: Dictionary = Shared.overrides.get("spells", {}).get(name, {})
 	for k in ov:
 		if k != "notes":
@@ -156,7 +164,12 @@ func summon_unit(spell: Dictionary) -> String:
 	for tag in spell.get("tags", []):
 		if SUMMON_BY_TAG.has(tag) and QUD.has_unit(SUMMON_BY_TAG[tag]):
 			return SUMMON_BY_TAG[tag]
-	return "wolf"
+	return default_summon()
+
+
+# The creature a summon produces when nothing names one (tuning items.summon_unit).
+static func default_summon() -> String:
+	return String(Shared.t(["items", "summon_unit"], "wolf"))
 
 
 # ---------------------------------------------------------------- the game's named upgrades

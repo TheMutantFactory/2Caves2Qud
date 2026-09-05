@@ -69,9 +69,29 @@ GodotSteam extension (online stays off until `tools/get_godotsteam.py` fetches i
 blueprint with a tile becomes a racer (its `Level` sets the difficulty band, `Hitpoints` the
 weight), the player castes from `Subtypes.xml` are the wardrobe skins, track road and ground
 are Qud floor tiles over the track colours, barricades are wall-family faces, the engine's
-sound cues map onto Qud clips and its twelve battle themes onto Qud's soundtrack. Effects,
-projectiles and item pickups are procedural placeholders in Qud colours until Qud's own
-items and mutations take their place; spells and equipment are empty lists for now.
+sound cues map onto Qud clips and its twelve battle themes onto Qud's soundtrack. Effects
+and projectiles are procedural placeholders in Qud colours for now; equipment is an empty
+list until Qud's artifacts come in.
+
+## Qud items as the weapons
+
+The engine's action bar, road scrolls and shop were built around Rift Wizard's spells:
+records with a level, tags, damage type, range, charges and stats that `SpellDB.gd` maps
+onto kart effect kinds (bolt, beam, blast, patch, burst, hex, heal, buff, shield, summon…).
+`tools/qud_items.py` builds those records from Qud's `Items.xml` instead, so what you pick
+up and fire is Qud's arsenal: 49 grenades (HE and thermal blast, cryo blasts that freeze,
+poison and acid gas lay a field, sleep and stun gas and flashbangs stun, gravity pulls),
+50 missile weapons (pistols, rifles, bows and dart guns as bolts with the magazine as
+charges; lasers, rails, eigen and spaser weapons and the freeze ray as beams; chain weapons
+multi-shot, shotguns three short bolts, the flamethrower and gas pumps lay patches,
+launchers and cannons blast), 12 thrown daggers, 99 melee weapons (unlimited swings) and
+10 tonics (salve and ubernostrum heal, blaze and sphynx salt boost, hulk honey empowers,
+rubbergum and shade oil shield). Damage is the mean of the blueprint's dice scaled to the
+kart game's numbers, the level comes from Qud's tier and mark, icons are the items' own
+tiles, and each record carries a `kart` hint for the kinds the automatic rules cannot
+reach; `shared/overrides.json` still has the last word by name. The six arcade item-box
+pickups are the same engine behaviours wearing Qud items: HE grenade, laser rifle,
+recoiler, blaze injector, cryo grenade and a snapjaw pack.
 
 ## Wall voxels
 

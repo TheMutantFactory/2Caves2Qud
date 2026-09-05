@@ -11,7 +11,10 @@ and sound without any of it entering the repo.
     manifest.json               units -> {frame_size, idle_frames, ...}
     data/monsters.json          racers: name, unit, hp, band, flying (from the
                                 blueprints' Level and Hitpoints stats)
-    data/spells.json, equipment.json   empty for now (Qud items/mutations later)
+    data/spells.json            Qud's grenades, guns, thrown/melee weapons and tonics
+                                as the engine's action-bar records (tools/qud_items.py)
+    icons/<stem>.png            their tiles, plus the six arcade pickup icons
+    data/equipment.json         empty for now (artifacts later)
     tiles/track_<key>_road.png, track_<key>_ground.png   opaque tileable ground
                                 per shared/tracks.json track, Qud floor tiles
                                 composited on the track colours
@@ -274,6 +277,39 @@ def export_players(data_dir, out, manifest):
     return len(subs)
 
 
+# ---------------------------------------------------------------- items
+
+# The arcade pickups (Items.KINDS keys) wear these Qud tiles as icons.
+PICKUP_ICONS = {
+    "fireball": ("Items/sw_grenade_mki.bmp", "W", "Y"),
+    "lightning_bolt": ("items/sw_techrifle_1.bmp", "C", "Y"),
+    "blink": ("Items/sw_recoiler.bmp", "c", "C"),
+    "lightning_form": ("Items/sw_injector.bmp", "R", "Y"),
+    "freeze": ("Items/sw_grenade_mki.bmp", "C", "Y"),
+    "wolf": ("Creatures/sw_snapjaw.bmp", "w", "R"),
+}
+
+
+def export_items(bp, out):
+    import qud_items
+    ib = qud_items.ItemBuilder(bp, lambda t: qud_assets.tile_file(t) is not None)
+    recs = ib.build()
+    with open(os.path.join(out, "data", "spells.json"), "w", encoding="utf-8") as f:
+        json.dump(recs, f, indent=0)
+    icons_dir = os.path.join(out, "icons")
+    os.makedirs(icons_dir, exist_ok=True)
+    n = 0
+    for stem, (tile, main, detail) in ib.icons.items():
+        img = load_tile(tile)
+        if img is None:
+            continue
+        scaled(paint(img, main, detail)).save(os.path.join(icons_dir, stem + ".png"))
+        n += 1
+    for key, (tile, main, detail) in PICKUP_ICONS.items():
+        scaled(tile_or_blank(tile, main, detail)).save(os.path.join(icons_dir, key + ".png"))
+    return len(recs), n
+
+
 # ---------------------------------------------------------------- tiles
 
 def wall_faces(family, main, detail, tiles_dir):
@@ -461,9 +497,10 @@ def main(argv=None):
     os.makedirs(os.path.join(out, "data"), exist_ok=True)
     with open(os.path.join(out, "data", "monsters.json"), "w", encoding="utf-8") as f:
         json.dump(monsters, f, indent=0)
-    for fn in ("spells.json", "equipment.json"):
-        with open(os.path.join(out, "data", fn), "w", encoding="utf-8") as f:
-            f.write("[]\n")
+    n_items, n_icons = export_items(bp, out)
+    log("items:   %d as action-bar spells, %d icons" % (n_items, n_icons))
+    with open(os.path.join(out, "data", "equipment.json"), "w", encoding="utf-8") as f:
+        f.write("[]\n")
     log("tracks:  %d" % export_track_tiles(out, manifest, qud_assets.path("tiles")))
     log("effects: %d" % export_effects(out))
     mapping = export_sounds(out)

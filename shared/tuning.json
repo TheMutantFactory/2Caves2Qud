@@ -172,7 +172,8 @@
       ]
     },
     "lightning_form_strength": 0.5,
-    "lightning_form_time": 2.4
+    "lightning_form_time": 2.4,
+    "summon_unit": "snapjaw"
   },
   "mode7": {
     "cam_height": 120,

@@ -110,11 +110,20 @@ and `-end-east` (`00000010`), mirroring one from the other if a family ships onl
 ship both). `QudVox.run_variant(k, count, along, facing)` picks isolated / end / run per block;
 a block's east is `facing` turned a quarter clockwise, `(facing.y, -facing.x)` in world px.
 
+Qud ITEMS as the weapons (2026-09-05): `tools/qud_items.py` → `data/spells.json` (220
+records: 49 grenades, 50 missile, 12 thrown, 99 melee, 10 tonics) + `icons/` from item
+tiles. Each record's `kart` dict is applied in `SpellDB.effect_for` after the rules and
+before `shared/overrides.json`. Arcade pickups (`Items.KINDS`) keep their six behaviours
+under Qud names/icons; summons use `tuning.items.summon_unit` (snapjaw). Verified with the
+test rig: `--rig=ahead:220 --learn="Laser Rifle,..." --cast="Laser Rifle@2,..." --report=x.json`
+prints `rig cast: <name> ok=true kind=<kind>` per cast and the report carries damage dealt.
+Gotchas: Qud DisplayName markup NESTS (`{{crysteel|{{crysteel|crysteel}} dagger}}`), strip in a
+loop; melee Physics Category is "Melee Weapons" (plural); thrown junk (corpses, husks,
+injectors) needs the Tier tag filter.
+
 Next, in order:
-1. Qud items as the pickups/weapons: `Items.xml` blueprints (grenades, guns, tonics) in place
-   of the RW3 spell list — `data/spells.json` is `[]` today, so item boxes give nothing.
-2. Mutations as monster abilities (`Mutations.xml`), `Sounds.xml` event→clip mapping for the
+1. Mutations as monster abilities (`Mutations.xml`), `Sounds.xml` event→clip mapping for the
    cues that are still regex guesses (see `<store>/godot/sfx/mapping.json`).
-3. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
-4. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
+2. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
+3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

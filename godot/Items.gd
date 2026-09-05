@@ -2,13 +2,15 @@
 class_name Items
 extends RefCounted
 
+# The arcade pickups (item boxes): the keys are the engine's six behaviours and the
+# tuning odds table; the labels and icons are the Qud items they play as.
 const KINDS := {
-	"fireball": "Fireball",
-	"lightning_bolt": "Lightning Bolt",
-	"blink": "Blink",
-	"lightning_form": "Lightning Form",
-	"freeze": "Freeze",
-	"wolf": "Summon Wolf",
+	"fireball": "HE Grenade",
+	"lightning_bolt": "Laser Rifle",
+	"blink": "Recoiler",
+	"lightning_form": "Blaze Injector",
+	"freeze": "Cryo Grenade",
+	"wolf": "Snapjaw Pack",
 }
 
 const TYPE_COLORS := {
@@ -257,7 +259,7 @@ static func spawn_projectile(race, kart: Kart, tex: Texture2D, speed: float, dam
 
 
 static func spawn_summon(race, kart: Kart, unit: String, damage: float, duration: float, tint := Color.WHITE) -> Escort:
-	var u := unit if QUD.has_unit(unit) else "wolf"
+	var u := unit if QUD.has_unit(unit) else SpellDB.default_summon()
 	var w := Escort.new()
 	var info: Dictionary = QUD.unit_info(u)
 	var fs := int(info.get("frame_size", 60))
@@ -375,7 +377,7 @@ static func use(race, kart: Kart) -> bool:
 			race.patches.append(ice)
 			race.play("sorcery")
 		"wolf":
-			spawn_summon(race, kart, "wolf", float(Shared.t(["campaign", "wolf_damage"], 5)), 7.0)
+			spawn_summon(race, kart, SpellDB.default_summon(), float(Shared.t(["campaign", "wolf_damage"], 5)), 7.0)
 			race.play("enemy")
 	return true
 

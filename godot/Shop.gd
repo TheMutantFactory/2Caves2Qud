@@ -73,7 +73,7 @@ func _build() -> void:
 	tags.position = Vector2(60, 250)
 	tags.add_theme_constant_override("separation", 6)
 	add_child(tags)
-	for tag in ["All", "Fire", "Lightning", "Ice", "Nature", "Arcane", "Dark", "Holy", "Sorcery", "Conjuration", "Enchantment"]:
+	for tag in ["All", "Grenade", "Missile", "Thrown", "Melee", "Tonic", "Fire", "Ice", "Lightning", "Poison", "Physical"]:
 		var b := Button.new()
 		b.text = tag
 		_font(b, 18)
