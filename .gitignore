@@ -1,0 +1,17 @@
+# local python env
+.venv/
+__pycache__/
+*.pyc
+
+# Caves of Qud content is NEVER committed. The extractor writes it to a per-user
+# directory OUTSIDE the repo (tools/qud_assets.py says where); anything that
+# leaks in here by accident is ignored too.
+extracted/
+godot/qud/
+godot/.godot/
+
+# editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

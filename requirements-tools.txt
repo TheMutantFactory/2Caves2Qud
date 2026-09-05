@@ -1,0 +1,6 @@
+# Python deps for tools/ (the extractor and the wall voxeliser). Nothing here
+# ships with the game; make a venv and `pip install -r requirements-tools.txt`.
+UnityPy>=1.25          # reads Unity's resources.assets: tile atlases + AudioClips (bundles pyfmodex)
+pillow>=10.0           # tile crops, wall previews
+soundfile>=0.13        # writes the decoded clips as OGG Vorbis (bundles libsndfile)
+numpy>=1.26            # soundfile's sample buffers
