@@ -76,9 +76,24 @@ static func mesh(stem: String, variant := "") -> ArrayMesh:
 		if d is Dictionary and d.has("layers"):
 			m = build(d)
 	elif variant != "":
-		m = mesh(stem)      # no isolated variant: the run model stands in
+		m = mesh(stem)      # no such variant: the run model stands in
 	_meshes[key] = m
 	return m
+
+
+# The variant for block k of a run of `count` laid along `along` (world px), whose
+# front faces `facing`: end pieces wear their posts on the open side. The block's
+# own east is `facing` turned a quarter clockwise, so which end is "east" depends on
+# how the run lies against its facing.
+static func run_variant(k: int, count: int, along: Vector2, facing: Vector2) -> String:
+	if count <= 1:
+		return "-isolated"
+	if k > 0 and k < count - 1:
+		return ""
+	var east := Vector2(facing.y, -facing.x)
+	var toward_east := along.dot(east) > 0.0
+	var last := k == count - 1
+	return "-end-east" if (last == toward_east) else "-end-west"
 
 
 static func build(d: Dictionary) -> ArrayMesh:

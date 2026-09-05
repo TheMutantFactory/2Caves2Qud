@@ -30,6 +30,9 @@ Outputs, under <store>/walls/ (a derivative of Qud's art: never committed):
   <name>.vox            MagicaVoxel, palette 1/2/3 = the family's blueprint
                         colours (main / detail / darkened main)
   <name>-isolated.vox   the lone-block variant, when the family has one
+  <name>-end-west.vox / -end-east.vox   the run's end pieces (single-neighbour
+                        tiles 00100000 / 00000010; one mirrored from the other
+                        when a family ships only one, "mirrored": true in the JSON)
   <name>.json           dims, sources, colours, and the grid as z-layers of
                         16 strings ('.' air, '1' '2' '3' materials) — what the
                         Godot loader reads; no .vox parser needed there
@@ -49,7 +52,7 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import qud_assets  # noqa: E402
@@ -62,6 +65,8 @@ CARVE = 2                     # face gaps recess this many voxels
 CAP_CARVE = 1                 # roof gaps recess this many voxels
 RUN_BITS = "00100010"
 ISOLATED_BITS = "00000000"
+END_WEST_BITS = "00100000"    # a wall to the EAST only: this block is the run's west end
+END_EAST_BITS = "00000010"    # a wall to the WEST only: the east end
 WALL_FOLDERS = ("Walls", "Walls2", "Tiles", "Tiles2")
 AIR, MAIN, DETAIL, CORE = 0, 1, 2, 3
 TILE_RE = re.compile(r"^(?P<stem>.+)-(?P<bits>[01]{8})\.png$")
@@ -336,6 +341,17 @@ def main(argv=None):
                 sources[""] = (south_free[0], variants[south_free[0]])
         if ISOLATED_BITS in variants and sources.get("", (None,))[0] != ISOLATED_BITS:
             sources["-isolated"] = (ISOLATED_BITS, variants[ISOLATED_BITS])
+        # END PIECES: the single-neighbour tiles. A family that ships only one of the
+        # two gets the other by MIRRORING the art on x (a west end is an east end seen
+        # from behind), flagged so the record says which is real.
+        ends = {"-end-west": END_WEST_BITS, "-end-east": END_EAST_BITS}
+        have = {suf: bits for suf, bits in ends.items() if bits in variants}
+        for suf, bits in ends.items():
+            if bits in variants:
+                sources[suf] = (bits, variants[bits])
+            elif have:
+                other = next(iter(have.values()))
+                sources[suf] = (bits, ("mirror", variants[other]))
         if not sources:
             skipped.append((key, "no south-facing tile among %d variants" % len(variants)))
             continue
@@ -349,7 +365,12 @@ def main(argv=None):
                              "main_rgb": main_rgb, "detail_rgb": detail_rgb},
                  "blueprints": col["blueprints"][:12], "models": {}}
         for suffix, (bits, path) in sources.items():
+            mirrored = isinstance(path, tuple)
+            if mirrored:
+                path = path[1]
             img = Image.open(path)
+            if mirrored:
+                img = ImageOps.mirror(img.convert("RGBA"))
             if img.width != W:
                 skipped.append((key, "tile is %dx%d, not %d wide" % (img.width, img.height, W)))
                 continue
@@ -363,7 +384,7 @@ def main(argv=None):
             base = os.path.join(out_dir, name + suffix)
             n = write_vox(base + ".vox", grid, palette)
             preview(base + ".png", grid, palette)
-            model = {"source": os.path.relpath(path, tiles_dir), "bits": bits,
+            model = {"source": os.path.relpath(path, tiles_dir), "bits": bits, "mirrored": mirrored,
                      "tile_size": [img.width, img.height], "cap_rows": len(cap),
                      "face_rows": len(face), "odd_pixels": odd, "voxels": n,
                      "size": [W, D, H], "layers": layers(grid)}

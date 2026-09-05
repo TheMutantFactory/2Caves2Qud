@@ -85,7 +85,10 @@ colour, white = detail colour).
 face shows; walls east and west, so no end posts) and builds a 16×16×10 voxel block: the
 face carves the south side (and, mirrored, the north), the roof carves the top, background
 pixels recess and everything else stays flush — the raves-of-qud "flush-and-carve" model. The
-isolated tile (`00000000`) gives a `-isolated` variant with the end posts for a lone block.
+isolated tile (`00000000`) gives a `-isolated` variant with the end posts for a lone block,
+and the single-neighbour tiles (`00100000`, `00000010`) give `-end-west` / `-end-east` pieces
+with a post on the open side, so a run of blocks in the game reads as one wall with proper
+ends.
 Colours come from the blueprints that paint with that family (`PaintedWall` tag → `TileColor`
 / `DetailColor`). Each model is also written as JSON layers so the Godot side needs no `.vox`
 parser, plus a front/top/back preview PNG. A self-check re-reads the elevation off the

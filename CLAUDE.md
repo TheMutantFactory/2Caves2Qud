@@ -105,13 +105,16 @@ model, `vertex_color_is_srgb`) + `Track._build_barricades` / `_build_scenery` pl
 The race log prints `walls: N voxel ... blocks (<family>)` — read that, not the screenshot,
 to know the voxel path ran (the sprite fallback prints nothing). Verified brick + chicago_loop.
 
+End pieces (2026-09-05): wall2vox exports `-end-west` (`00100000`, wall to the east only)
+and `-end-east` (`00000010`), mirroring one from the other if a family ships only one (all 80
+ship both). `QudVox.run_variant(k, count, along, facing)` picks isolated / end / run per block;
+a block's east is `facing` turned a quarter clockwise, `(facing.y, -facing.x)` in world px.
+
 Next, in order:
-1. Wall END pieces: wall2vox only exports the run (`00100010`) and isolated models, so a
-   barricade's end blocks show open ends; export `00100000`/`00000010` and use them at run ends.
-2. Qud items as the pickups/weapons: `Items.xml` blueprints (grenades, guns, tonics) in place
+1. Qud items as the pickups/weapons: `Items.xml` blueprints (grenades, guns, tonics) in place
    of the RW3 spell list — `data/spells.json` is `[]` today, so item boxes give nothing.
-3. Mutations as monster abilities (`Mutations.xml`), `Sounds.xml` event→clip mapping for the
+2. Mutations as monster abilities (`Mutations.xml`), `Sounds.xml` event→clip mapping for the
    cues that are still regex guesses (see `<store>/godot/sfx/mapping.json`).
-4. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
-5. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
+3. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
+4. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

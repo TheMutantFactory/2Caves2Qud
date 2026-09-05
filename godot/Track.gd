@@ -397,8 +397,9 @@ func _build_barricades() -> void:
 			var off := (k - (count - 1) * 0.5) * WALL_PX
 			var p := pos + nrm * off
 			if fam != "":
-				# a run of blocks across the street, faces toward the route (the way the kart comes)
-				if _wall_block(fam, "", p, -dir, holder):
+				# a run of blocks across the street, faces toward the route (the way the
+				# kart comes), end pieces with their posts at both ends
+				if _wall_block(fam, QudVox.run_variant(k, count, nrm, -dir), p, -dir, holder):
 					blocks += 1
 				continue
 			var s := Sprite3D.new()
@@ -627,7 +628,7 @@ func _build_scenery(rng: RandomNumberGenerator) -> void:
 				facing = -facing
 			var start := p - along * (len_b - 1) * 0.5 * WALL_PX
 			for k in len_b:
-				if _wall_block(fam, "-isolated" if len_b == 1 else "", start + along * k * WALL_PX, facing, holder):
+				if _wall_block(fam, QudVox.run_variant(k, len_b, along, facing), start + along * k * WALL_PX, facing, holder):
 					placed += 1
 			continue
 		var s := Sprite3D.new()
