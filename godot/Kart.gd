@@ -41,6 +41,8 @@ var net_age := -1.0
 var net_heading := 0.0
 var stun_t := 0.0
 var slip_t := 0.0
+var air_t := 0.0          # a jump pad's hop: no off-road drag, drawn lifted on an arc
+var air_len := 0.0
 var hit_flash := 0.0
 var spin := 0.0
 var speed_scale := 1.0
@@ -258,6 +260,20 @@ func stun(duration: float) -> void:
 	_end_drift(false)
 
 
+# A jump pad's launch: a hop for `seconds` with a boost for the same time.
+func launch(seconds: float, strength: float) -> void:
+	air_t = seconds
+	air_len = seconds
+	slip_t = 0.0
+	add_boost("jump", strength, seconds)
+
+
+func lift_px() -> float:
+	if air_t <= 0.0 or air_len <= 0.0:
+		return 0.0
+	return sin(PI * (1.0 - air_t / air_len)) * 55.0
+
+
 func add_boost(name: String, strength: float, time: float) -> void:
 	if boosts.has(name):
 		var cur: Array = boosts[name]
@@ -302,6 +318,9 @@ func _end_drift(release: bool) -> void:
 
 func apply_control(dt: float, throttle: float, steer: float, drift: bool, track: Track) -> void:
 	var on_road := track.on_road(pos, next_wp)
+	if air_t > 0.0:
+		air_t = maxf(0.0, air_t - dt)
+		on_road = true             # airborne: whatever is below does not slow the kart
 	var stunned := stun_t > 0.0
 	if stunned:
 		throttle = 0.0
@@ -533,6 +552,10 @@ func rig_control(dt: float, track: Track, player: Kart, R: Dictionary) -> Dictio
 
 func update_visual(track: Track, cam_right: Vector2, t: float) -> void:
 	position = track.to3(pos)
+	var lift := lift_px() * Track.U
+	sprite.position.y = frame_size * Track.U * 0.5 + lift
+	shadow.position.y = 0.5 * Track.U
+	shadow.scale = Vector3.ONE * (1.0 - 0.35 * (lift_px() / 55.0))
 	sprite.frame = int(anim_t / 0.2) % idle_frames
 	if not is_player:
 		label.text = "%s  %d" % [display_name, int(ceil(hp))]

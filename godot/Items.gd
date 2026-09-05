@@ -139,9 +139,13 @@ class Hazard extends Node3D:
 	var life := 6.0
 	var dtype := "Fire"
 	var slip := false
+	var stun := 0.0          # seconds of stun on a tick (barriers, warm static)
+	var active := true       # a cycling course hazard is only live part of its period
+	var cue := 0.0           # 0..1 in the second before it goes live: the amber warning
 	var t := 0.0
 	var next_tick := 0.0
 	var tiles: Array = []
+	var base_tint := Color.WHITE
 
 	# one animated tile per 90 px cell inside the radius, like the game's cloud fields
 	func build(tex: Texture2D, frames: int, tint: Color, track: Track) -> void:
@@ -160,6 +164,7 @@ class Hazard extends Node3D:
 				s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 				s.axis = Vector3.AXIS_Y
 				s.modulate = tint
+				base_tint = tint
 				s.position = track.to3(pos + off, 3.0) - track.to3(pos, 3.0)
 				add_child(s)
 				tiles.append(s)
@@ -190,9 +195,15 @@ class Hazard extends Node3D:
 		life -= dt
 		next_tick -= dt
 		var a := clampf(life / 1.5, 0.0, 1.0)
+		if not active:
+			a *= 0.22 + 0.3 * cue      # dormant: faint; the cue brightens it toward amber
+		var tint := base_tint if base_tint != Color.WHITE else Color(1, 1, 1)
+		if cue > 0.0 and not active:
+			tint = tint.lerp(Color(1.0, 0.75, 0.2), 0.5 + 0.5 * sin(t * 18.0) * 0.5)
 		for i in tiles.size():
 			var s: Sprite3D = tiles[i]
 			s.frame = (int(t / 0.14) + i) % maxi(1, s.hframes)
+			s.modulate = tint
 			s.modulate.a = a
 		return life > 0.0
 

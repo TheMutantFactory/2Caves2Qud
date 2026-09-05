@@ -320,6 +320,12 @@ def export_effects(out, proj_tiles):
     tdir = os.path.join(out, "tiles")
     os.makedirs(tdir, exist_ok=True)
     scaled(tile_or_blank(*PORTAL_TILE)).save(os.path.join(tdir, "portal_dormant_portal.png"))
+    # jump pad (Qud's 360 arrow) and force barrier (a force-field tile) as 4-frame pulses
+    pads = {"pad_jump": ("Combat3C/arrow_360.png", "W", "Y"), "pad_barrier": ("Tiles2/force_field_1_ns.png", "B", "C")}
+    for name, (tile, m, d) in pads.items():
+        strip = fx_strip([(tile, m, d, [("crop16",), ("scale", 0.8 + 0.1 * (i % 2))]) for i in range(4)], size=(48, 48))
+        if strip is not None:
+            strip.save(os.path.join(tdir, name + ".png"))
     for cloud, (m, d) in CLOUDS_QUD.items():
         # square frames: a hazard field tiles one frame per 90 px cell, so the 16x24 gas
         # tile is cropped to its middle 16 rows
@@ -610,6 +616,9 @@ def export_sound_takes(out, sounds, items, monsters):
         b = sounds.first(*cands)
         if b:
             names["pickup_" + kind] = b
+    for b in ("sfx_ability_jump", "sfx_ability_forcefield_create"):     # course hazards
+        if sounds.has(b):
+            names[b] = b
     variants = {}
     linked = set()
     for name, base in names.items():

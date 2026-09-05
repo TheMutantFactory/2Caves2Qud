@@ -32,8 +32,48 @@ def ellipse(cx, cy, rx, ry, n=10, start=0.0, wobble=None):
     return pts
 
 
-def haz(kind, at, side=0.0, radius=150):
-    return {"kind": kind, "at": at, "side": side, "radius": radius}
+def haz(kind, at, side=0.0, radius=150, period=0.0, duty=0.5, phase=0.0):
+    """A surface patch at a fraction of the loop. period > 0 makes it CYCLE: live for
+    `duty` of every `period` seconds (offset by `phase`), with an amber cue the second
+    before it goes live. kind "jump" is a pad that lofts karts crossing it while live."""
+    h = {"kind": kind, "at": at, "side": side, "radius": radius}
+    if period > 0:
+        h.update({"period": period, "duty": duty, "phase": phase})
+    return h
+
+
+# The bible's timed and moving hazards and its jumps, per course, as cycling patches and
+# jump pads (the two engine features added for them). Appended to the course's hazards.
+TIMED = {
+    "joppa": [haz("wheel", 0.92, 0.0, 150, period=4.0, duty=0.45), haz("jump", 0.60, -0.45, 110)],
+    "redrock": [haz("static", 0.20, 0.45, 120, period=5.0, duty=0.2), haz("static", 0.26, -0.45, 120, period=5.0, duty=0.2, phase=2.5),
+                haz("jump", 0.97, 0.0, 140)],
+    "rustwells": [haz("slime", 0.20, -0.4, 150, period=6.0, duty=0.4), haz("slime", 0.55, 0.4, 150, period=6.0, duty=0.4, phase=2.0),
+                  haz("slime", 0.85, -0.3, 140, period=6.0, duty=0.4, phase=4.0), haz("jump", 0.33, 0.0, 120)],
+    "stilt": [haz("cart", 0.45, -0.4, 150, period=8.0, duty=0.35), haz("cart", 0.52, 0.4, 150, period=8.0, duty=0.35, phase=4.0)],
+    "gritgate": [haz("barrier", 0.36, 0.0, 140, period=6.0, duty=0.5), haz("barrier", 0.62, 0.0, 140, period=6.0, duty=0.5, phase=3.0)],
+    "asphalt": [haz("fire", 0.58, -0.4, 140, period=5.0, duty=0.35), haz("fire", 0.61, 0.4, 140, period=5.0, duty=0.35, phase=2.5)],
+    "golgotha": [haz("poison", 0.36, 0.0, 170, period=4.0, duty=0.4), haz("poison", 0.60, -0.3, 160, period=4.0, duty=0.4, phase=2.0),
+                 haz("jump", 0.42, 0.0, 150), haz("jump", 0.66, 0.0, 150)],
+    "bethesda": [haz("ice", 0.65, 0.3, 160, period=7.0, duty=0.5, phase=3.0), haz("jump", 0.38, 0.0, 130)],
+    "kyakukya": [haz("jump", 0.55, 0.0, 130, period=2.0, duty=0.5), haz("jump", 0.60, 0.0, 130, period=2.0, duty=0.5, phase=1.0),
+                 haz("jump", 0.65, 0.0, 130, period=2.0, duty=0.5)],
+    "chavvah": [haz("jump", 0.30, 0.0, 130), haz("jump", 0.55, 0.0, 130), haz("jump", 0.62, 0.0, 130), haz("jump", 0.69, 0.0, 130)],
+    "eynroj": [haz("jump", 0.80, 0.0, 130), haz("jump", 0.86, 0.0, 130)],
+    "hinnom": [haz("jump", 0.50, -0.2, 140, period=4.0, duty=0.5), haz("jump", 0.53, 0.3, 140, period=4.0, duty=0.5, phase=2.0)],
+    "palladium": [haz("jump", 0.60, 0.0, 130)],
+    "ydfreehold": [haz("barrier", 0.30, 0.3, 130, period=6.0, duty=0.45), haz("jump", 0.75, 0.0, 130)],
+    "moonstair": [haz("jump", 0.40, 0.0, 130), haz("jump", 0.70, 0.0, 130)],
+    "hydropon": [haz("jump", 0.60, 0.0, 120, period=3.0, duty=0.6)],
+    "omonporch": [haz("jump", 0.62, 0.0, 160, period=6.0, duty=0.6)],
+    "tomb": [haz("jump", 0.15, 0.0, 130), haz("barrier", 0.42, -0.3, 130, period=5.0, duty=0.4), haz("barrier", 0.50, 0.3, 130, period=5.0, duty=0.4, phase=2.5),
+             haz("bell", 0.50, 0.0, 900, period=14.0, duty=0.1)],
+    "thinworld": [haz("jump", 0.35, 0.0, 130), haz("jump", 0.85, 0.0, 140)],
+}
+# hazards a timed entry REPLACES (the same idea, now cycling)
+REPLACED = {
+    "rustwells": "slime", "gritgate": "static", "omonporch": "static",
+}
 
 
 # --- the courses ------------------------------------------------------------
@@ -140,7 +180,8 @@ COURSES = [
          width=230, elevation=60, laps=3,
          control=ellipse(900, 700, 600, 450, 5, start=math.pi * 0.8) + ellipse(2700, 700, 650, 450, 5, start=math.pi * 1.2)
                  + ellipse(1800, 1800, 900, 500, 6, start=-math.pi * 0.35),
-         hazards=[haz("slime", 0.16, 0.0, 180), haz("slime", 0.5, 0.0, 180), haz("slime", 0.83, 0.0, 180)],
+         hazards=[haz("slime", 0.16, 0.0, 180, period=9.0, duty=0.5), haz("slime", 0.5, 0.0, 180, period=9.0, duty=0.5, phase=3.0),
+                  haz("slime", 0.83, 0.0, 180, period=9.0, duty=0.5, phase=6.0)],
          spells=["Acid Gas Grenade Mk I", "Poison Gas Grenade Mk I", "Salve Injector", "Dart Gun", "Sphynx Salt Injector", "Gaslight Kris", "Freeze Grenade Mk I", "Compound Bow"],
          gaps=["colored weeps mixing into soup rivers", "temporary sludge slaloms per lap"]),
     dict(key="chavvah", name="Chavvah Canopy Climb", cup="Canopy Cup", cup_index=11, difficulty=3.5,
@@ -159,7 +200,7 @@ COURSES = [
          width=220, elevation=170, laps=3,
          control=[[400, 1200], [900, 600], [1700, 400], [2500, 700], [2100, 1200], [2800, 1500], [3300, 1100],
                   [3200, 1900], [2400, 2200], [1600, 1900], [900, 2100], [500, 1700]],
-         hazards=[haz("static", 0.45, 0.0, 150), haz("static", 0.7, 0.3, 140)],
+         hazards=[haz("static", 0.45, 0.0, 150, period=5.0, duty=0.4), haz("static", 0.7, 0.3, 140, period=5.0, duty=0.4, phase=2.5)],
          spells=["Sunder Mind" if False else "Eigenpistol", "Stasis Grenade Mk I", "Salve Injector", "Nullray Pistol", "Skulk Injector", "Normality Gas Grenade Mk I", "Vibro Dagger", "Ubernostrum Injector"],
          gaps=["psychic overlays (doubled edges, false silhouettes, ghost racers)", "root helix descent + trunk ascent", "rhythm rock haptics"]),
 
@@ -180,7 +221,7 @@ COURSES = [
          width=210, elevation=90, laps=3,
          control=[[300, 400], [1000, 300], [1500, 700], [1100, 1100], [1700, 1400], [2400, 1000], [2900, 400],
                   [3300, 900], [3000, 1500], [3300, 2000], [2400, 2200], [1600, 1900], [900, 2100], [300, 1600]],
-         hazards=[haz("static", 0.3, -0.3, 130), haz("static", 0.55, 0.3, 130), haz("water", 0.7, 0.0, 200)],
+         hazards=[haz("static", 0.3, -0.3, 130, period=5.0, duty=0.3), haz("static", 0.55, 0.3, 130, period=5.0, duty=0.3, phase=2.5), haz("water", 0.7, 0.0, 200)],
          spells=["Laser Rifle", "Arc Winder", "Salve Injector", "Eigenrifle", "Sphynx Salt Injector", "Plasma Grenade Mk I", "Hand Rail", "Rubbergum Injector"],
          gaps=["translucent struts hiding apexes", "plasma jellies venting", "sunslag polyp boost pockets per lap"]),
     dict(key="ydfreehold", name="Yd Freehold Pipeworks", cup="Reef Cup", cup_index=15, difficulty=3.5,
@@ -260,6 +301,8 @@ def build():
         t["floor"] = ["tiles", "tilesets", t["tileset"], t["tileset"] + " floor", "floor"]
         t["walls"] = ["tiles", "tilesets", t["wallset"], t["wallset"] + " wall"]
         t["road_color"] = t.pop("road")
+        fixed = [h for h in t.get("hazards", []) if h["kind"] != REPLACED.get(t["key"])]
+        t["hazards"] = fixed + TIMED.get(t["key"], [])
         t["control"] = [[int(x), int(y)] for x, y in t["control"]]
         tracks.append(t)
     return tracks

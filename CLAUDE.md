@@ -159,9 +159,15 @@ race log; `--mode=racers --party=N --select_demo=...` + `--select_autostart` →
 players=N`. GOTCHA: a bad python splice duplicated a block of the exporter once — after editing
 by index, `grep -c "^def name"` for duplicates.
 
+CYCLING HAZARDS + JUMP PADS (2026-09-05): hazard entries carry `period/duty/phase` (Track
+`hazard_spots` must pass them — it dropped them once and every course reported "0 cycling");
+`Race._update_course_hazards` sets `Hazard.active/cue`, kinds `barrier/wheel/cart/bell/jump`
+in `HAZARD_KINDS` (`stun` per kind), pads call `Kart.launch` (air_t: no off-road drag, arc
+lift in `update_visual`). `tools/qud_tracks.py` `TIMED` table adds them per course. Probe:
+`--hazard-log` prints `hazard: <kind> on|off t=` and `jump: <kart> t=`.
+
 Next, in order:
-1. Engine features the courses need most: cycling hazards (period + cue), a jump-pad patch,
-   per-lap hazard sets, then section races (docs/tracks.md).
+1. Per-lap hazard sets and a second road for parallel routes, then section races (docs/tracks.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

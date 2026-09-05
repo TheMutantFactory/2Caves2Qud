@@ -92,6 +92,21 @@
      "at": 0.63,
      "side": 0.4,
      "radius": 150
+    },
+    {
+     "kind": "wheel",
+     "at": 0.92,
+     "side": 0.0,
+     "radius": 150,
+     "period": 4.0,
+     "duty": 0.45,
+     "phase": 0.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.6,
+     "side": -0.45,
+     "radius": 110
     }
    ],
    "spells": [
@@ -216,6 +231,30 @@
      "at": 0.47,
      "side": 0.3,
      "radius": 160
+    },
+    {
+     "kind": "static",
+     "at": 0.2,
+     "side": 0.45,
+     "radius": 120,
+     "period": 5.0,
+     "duty": 0.2,
+     "phase": 0.0
+    },
+    {
+     "kind": "static",
+     "at": 0.26,
+     "side": -0.45,
+     "radius": 120,
+     "period": 5.0,
+     "duty": 0.2,
+     "phase": 2.5
+    },
+    {
+     "kind": "jump",
+     "at": 0.97,
+     "side": 0.0,
+     "radius": 140
     }
    ],
    "spells": [
@@ -353,19 +392,34 @@
      "kind": "slime",
      "at": 0.2,
      "side": -0.4,
-     "radius": 150
+     "radius": 150,
+     "period": 6.0,
+     "duty": 0.4,
+     "phase": 0.0
     },
     {
      "kind": "slime",
      "at": 0.55,
      "side": 0.4,
-     "radius": 150
+     "radius": 150,
+     "period": 6.0,
+     "duty": 0.4,
+     "phase": 2.0
     },
     {
      "kind": "slime",
      "at": 0.85,
      "side": -0.3,
-     "radius": 140
+     "radius": 140,
+     "period": 6.0,
+     "duty": 0.4,
+     "phase": 4.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.33,
+     "side": 0.0,
+     "radius": 120
     }
    ],
    "spells": [
@@ -474,7 +528,26 @@
      1800
     ]
    ],
-   "hazards": [],
+   "hazards": [
+    {
+     "kind": "cart",
+     "at": 0.45,
+     "side": -0.4,
+     "radius": 150,
+     "period": 8.0,
+     "duty": 0.35,
+     "phase": 0.0
+    },
+    {
+     "kind": "cart",
+     "at": 0.52,
+     "side": 0.4,
+     "radius": 150,
+     "period": 8.0,
+     "duty": 0.35,
+     "phase": 4.0
+    }
+   ],
    "spells": [
     "Bronze Dagger",
     "Short Bow",
@@ -587,16 +660,22 @@
    ],
    "hazards": [
     {
-     "kind": "static",
+     "kind": "barrier",
      "at": 0.36,
      "side": 0.0,
-     "radius": 130
+     "radius": 140,
+     "period": 6.0,
+     "duty": 0.5,
+     "phase": 0.0
     },
     {
-     "kind": "static",
+     "kind": "barrier",
      "at": 0.62,
      "side": 0.0,
-     "radius": 130
+     "radius": 140,
+     "period": 6.0,
+     "duty": 0.5,
+     "phase": 3.0
     }
    ],
    "spells": [
@@ -738,6 +817,24 @@
      "at": 0.88,
      "side": -0.2,
      "radius": 160
+    },
+    {
+     "kind": "fire",
+     "at": 0.58,
+     "side": -0.4,
+     "radius": 140,
+     "period": 5.0,
+     "duty": 0.35,
+     "phase": 0.0
+    },
+    {
+     "kind": "fire",
+     "at": 0.61,
+     "side": 0.4,
+     "radius": 140,
+     "period": 5.0,
+     "duty": 0.35,
+     "phase": 2.5
     }
    ],
    "spells": [
@@ -879,6 +976,36 @@
      "at": 0.9,
      "side": 0.35,
      "radius": 150
+    },
+    {
+     "kind": "poison",
+     "at": 0.36,
+     "side": 0.0,
+     "radius": 170,
+     "period": 4.0,
+     "duty": 0.4,
+     "phase": 0.0
+    },
+    {
+     "kind": "poison",
+     "at": 0.6,
+     "side": -0.3,
+     "radius": 160,
+     "period": 4.0,
+     "duty": 0.4,
+     "phase": 2.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.42,
+     "side": 0.0,
+     "radius": 150
+    },
+    {
+     "kind": "jump",
+     "at": 0.66,
+     "side": 0.0,
+     "radius": 150
     }
    ],
    "spells": [
@@ -1018,6 +1145,21 @@
      "at": 0.8,
      "side": -0.35,
      "radius": 170
+    },
+    {
+     "kind": "ice",
+     "at": 0.65,
+     "side": 0.3,
+     "radius": 160,
+     "period": 7.0,
+     "duty": 0.5,
+     "phase": 3.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.38,
+     "side": 0.0,
+     "radius": 130
     }
    ],
    "spells": [
@@ -1143,6 +1285,33 @@
      "at": 0.36,
      "side": 0.3,
      "radius": 150
+    },
+    {
+     "kind": "jump",
+     "at": 0.55,
+     "side": 0.0,
+     "radius": 130,
+     "period": 2.0,
+     "duty": 0.5,
+     "phase": 0.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.6,
+     "side": 0.0,
+     "radius": 130,
+     "period": 2.0,
+     "duty": 0.5,
+     "phase": 1.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.65,
+     "side": 0.0,
+     "radius": 130,
+     "period": 2.0,
+     "duty": 0.5,
+     "phase": 0.0
     }
    ],
    "spells": [
@@ -1276,19 +1445,28 @@
      "kind": "slime",
      "at": 0.16,
      "side": 0.0,
-     "radius": 180
+     "radius": 180,
+     "period": 9.0,
+     "duty": 0.5,
+     "phase": 0.0
     },
     {
      "kind": "slime",
      "at": 0.5,
      "side": 0.0,
-     "radius": 180
+     "radius": 180,
+     "period": 9.0,
+     "duty": 0.5,
+     "phase": 3.0
     },
     {
      "kind": "slime",
      "at": 0.83,
      "side": 0.0,
-     "radius": 180
+     "radius": 180,
+     "period": 9.0,
+     "duty": 0.5,
+     "phase": 6.0
     }
    ],
    "spells": [
@@ -1400,7 +1578,32 @@
      1569
     ]
    ],
-   "hazards": [],
+   "hazards": [
+    {
+     "kind": "jump",
+     "at": 0.3,
+     "side": 0.0,
+     "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.55,
+     "side": 0.0,
+     "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.62,
+     "side": 0.0,
+     "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.69,
+     "side": 0.0,
+     "radius": 130
+    }
+   ],
    "spells": [
     "Crysteel Dagger",
     "Turbow",
@@ -1516,13 +1719,31 @@
      "kind": "static",
      "at": 0.45,
      "side": 0.0,
-     "radius": 150
+     "radius": 150,
+     "period": 5.0,
+     "duty": 0.4,
+     "phase": 0.0
     },
     {
      "kind": "static",
      "at": 0.7,
      "side": 0.3,
-     "radius": 140
+     "radius": 140,
+     "period": 5.0,
+     "duty": 0.4,
+     "phase": 2.5
+    },
+    {
+     "kind": "jump",
+     "at": 0.8,
+     "side": 0.0,
+     "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.86,
+     "side": 0.0,
+     "radius": 130
     }
    ],
    "spells": [
@@ -1651,6 +1872,24 @@
      "at": 0.9,
      "side": 0.3,
      "radius": 160
+    },
+    {
+     "kind": "jump",
+     "at": 0.5,
+     "side": -0.2,
+     "radius": 140,
+     "period": 4.0,
+     "duty": 0.5,
+     "phase": 0.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.53,
+     "side": 0.3,
+     "radius": 140,
+     "period": 4.0,
+     "duty": 0.5,
+     "phase": 2.0
     }
    ],
    "spells": [
@@ -1776,19 +2015,31 @@
      "kind": "static",
      "at": 0.3,
      "side": -0.3,
-     "radius": 130
+     "radius": 130,
+     "period": 5.0,
+     "duty": 0.3,
+     "phase": 0.0
     },
     {
      "kind": "static",
      "at": 0.55,
      "side": 0.3,
-     "radius": 130
+     "radius": 130,
+     "period": 5.0,
+     "duty": 0.3,
+     "phase": 2.5
     },
     {
      "kind": "water",
      "at": 0.7,
      "side": 0.0,
      "radius": 200
+    },
+    {
+     "kind": "jump",
+     "at": 0.6,
+     "side": 0.0,
+     "radius": 130
     }
    ],
    "spells": [
@@ -1913,6 +2164,21 @@
      "at": 0.6,
      "side": -0.3,
      "radius": 140
+    },
+    {
+     "kind": "barrier",
+     "at": 0.3,
+     "side": 0.3,
+     "radius": 130,
+     "period": 6.0,
+     "duty": 0.45,
+     "phase": 0.0
+    },
+    {
+     "kind": "jump",
+     "at": 0.75,
+     "side": 0.0,
+     "radius": 130
     }
    ],
    "spells": [
@@ -2049,6 +2315,18 @@
      "at": 0.85,
      "side": 0.0,
      "radius": 180
+    },
+    {
+     "kind": "jump",
+     "at": 0.4,
+     "side": 0.0,
+     "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.7,
+     "side": 0.0,
+     "radius": 130
     }
    ],
    "spells": [
@@ -2161,6 +2439,15 @@
      "at": 0.8,
      "side": 0.3,
      "radius": 150
+    },
+    {
+     "kind": "jump",
+     "at": 0.6,
+     "side": 0.0,
+     "radius": 120,
+     "period": 3.0,
+     "duty": 0.6,
+     "phase": 0.0
     }
    ],
    "spells": [
@@ -2268,10 +2555,13 @@
    ],
    "hazards": [
     {
-     "kind": "static",
+     "kind": "jump",
      "at": 0.62,
      "side": 0.0,
-     "radius": 200
+     "radius": 160,
+     "period": 6.0,
+     "duty": 0.6,
+     "phase": 0.0
     }
    ],
    "spells": [
@@ -2409,6 +2699,39 @@
      "at": 0.7,
      "side": 0.3,
      "radius": 150
+    },
+    {
+     "kind": "jump",
+     "at": 0.15,
+     "side": 0.0,
+     "radius": 130
+    },
+    {
+     "kind": "barrier",
+     "at": 0.42,
+     "side": -0.3,
+     "radius": 130,
+     "period": 5.0,
+     "duty": 0.4,
+     "phase": 0.0
+    },
+    {
+     "kind": "barrier",
+     "at": 0.5,
+     "side": 0.3,
+     "radius": 130,
+     "period": 5.0,
+     "duty": 0.4,
+     "phase": 2.5
+    },
+    {
+     "kind": "bell",
+     "at": 0.5,
+     "side": 0.0,
+     "radius": 900,
+     "period": 14.0,
+     "duty": 0.1,
+     "phase": 0.0
     }
    ],
    "spells": [
@@ -2539,6 +2862,18 @@
      "at": 0.8,
      "side": 0.3,
      "radius": 170
+    },
+    {
+     "kind": "jump",
+     "at": 0.35,
+     "side": 0.0,
+     "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.85,
+     "side": 0.0,
+     "radius": 140
     }
    ],
    "spells": [

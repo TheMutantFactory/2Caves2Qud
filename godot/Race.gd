@@ -657,37 +657,97 @@ func _full_spells(compact: Array) -> Array:
 
 # The course's own surface: ice that slides, fire and gas that hurt, water and oil and
 # slime that slow (a slip), warm static that stuns — fixed patches from tracks.json.
+# tex: a 4-frame strip under tiles/ (cloud_<x>_cloud or pad_<x>). stun: seconds on a tick.
 const HAZARD_KINDS := {
-	"ice": {"cloud": "ice", "dtype": "Ice", "damage": 0.0, "slip": true, "tint": Color(0.8, 0.95, 1.0)},
-	"fire": {"cloud": "thunder", "dtype": "Fire", "damage": 4.0, "slip": false, "tint": Color(1.0, 0.45, 0.2)},
-	"poison": {"cloud": "rainstorm", "dtype": "Poison", "damage": 2.5, "slip": false, "tint": Color(0.4, 0.9, 0.3)},
-	"water": {"cloud": "rainstorm", "dtype": "Ice", "damage": 0.0, "slip": true, "tint": Color(0.3, 0.6, 1.0)},
-	"oil": {"cloud": "thunder", "dtype": "Physical", "damage": 0.0, "slip": true, "tint": Color(0.35, 0.3, 0.45)},
-	"slime": {"cloud": "rainstorm", "dtype": "Poison", "damage": 1.5, "slip": true, "tint": Color(0.5, 0.8, 0.2)},
-	"static": {"cloud": "ice", "dtype": "Arcane", "damage": 1.0, "slip": false, "tint": Color(0.9, 0.5, 1.0)},
+	"ice": {"tex": "cloud_ice_cloud", "dtype": "Ice", "damage": 0.0, "slip": true, "stun": 0.0, "tint": Color(0.8, 0.95, 1.0)},
+	"fire": {"tex": "cloud_thunder_cloud", "dtype": "Fire", "damage": 4.0, "slip": false, "stun": 0.0, "tint": Color(1.0, 0.45, 0.2)},
+	"poison": {"tex": "cloud_rainstorm_cloud", "dtype": "Poison", "damage": 2.5, "slip": false, "stun": 0.0, "tint": Color(0.4, 0.9, 0.3)},
+	"water": {"tex": "cloud_rainstorm_cloud", "dtype": "Ice", "damage": 0.0, "slip": true, "stun": 0.0, "tint": Color(0.3, 0.6, 1.0)},
+	"oil": {"tex": "cloud_thunder_cloud", "dtype": "Physical", "damage": 0.0, "slip": true, "stun": 0.0, "tint": Color(0.35, 0.3, 0.45)},
+	"slime": {"tex": "cloud_rainstorm_cloud", "dtype": "Poison", "damage": 1.5, "slip": true, "stun": 0.0, "tint": Color(0.5, 0.8, 0.2)},
+	"static": {"tex": "cloud_ice_cloud", "dtype": "Arcane", "damage": 1.0, "slip": false, "stun": 0.5, "tint": Color(0.9, 0.5, 1.0)},
+	"barrier": {"tex": "pad_barrier", "dtype": "Arcane", "damage": 2.0, "slip": false, "stun": 0.9, "tint": Color(0.5, 0.8, 1.0)},
+	"wheel": {"tex": "pad_barrier", "dtype": "Physical", "damage": 1.0, "slip": false, "stun": 0.6, "tint": Color(0.9, 0.85, 0.6)},
+	"cart": {"tex": "cloud_thunder_cloud", "dtype": "Physical", "damage": 1.0, "slip": true, "stun": 0.3, "tint": Color(0.8, 0.65, 0.4)},
+	"bell": {"tex": "cloud_ice_cloud", "dtype": "Arcane", "damage": 0.0, "slip": false, "stun": 0.8, "tint": Color(1.0, 0.85, 0.3)},
+	"jump": {"tex": "pad_jump", "dtype": "Physical", "damage": 0.0, "slip": false, "stun": 0.0, "tint": Color(1.0, 1.0, 1.0)},
 }
+const JUMP_SECONDS := 0.9
+const JUMP_BOOST := 0.35
+
+var course_hazards: Array = []     # [{h, kind, period, duty, phase, on}]
+var hazard_log := false
 
 
 func _spawn_track_hazards() -> void:
 	var n := 0
+	hazard_log = OS.get_cmdline_user_args().has("--hazard-log")
 	for spot in track.hazard_spots():
-		var spec: Dictionary = HAZARD_KINDS.get(String(spot["kind"]), HAZARD_KINDS["fire"])
+		var kind := String(spot["kind"])
+		var spec: Dictionary = HAZARD_KINDS.get(kind, HAZARD_KINDS["fire"])
 		var h := Items.Hazard.new()
 		h.pos = spot["pos"]
 		h.radius = float(spot["radius"])
 		h.damage = float(spec["damage"])
 		h.dtype = String(spec["dtype"])
 		h.slip = bool(spec["slip"])
+		h.stun = float(spec["stun"])
 		h.tick = 0.7
 		h.life = 1.0e9      # the course's own, for the whole race
 		h.owner_kart = null
 		h.position = track.to3(h.pos, 3.0)
-		h.build(QUD.texture("tiles/cloud_%s_cloud.png" % String(spec["cloud"])), 4, spec["tint"], track)
+		h.build(QUD.texture("tiles/%s.png" % String(spec["tex"])), 4, spec["tint"], track)
 		add_child(h)
-		hazards.append(h)
+		if kind != "jump":
+			hazards.append(h)      # damage / slip / stun through the ordinary hazard loop
+		var period := float(spot.get("period", 0.0))
+		course_hazards.append({"h": h, "kind": kind, "period": period, "duty": float(spot.get("duty", 0.5)),
+			"phase": float(spot.get("phase", 0.0)), "on": true})
 		n += 1
 	if n > 0:
-		print("hazards: %d course patches (%s)" % [n, track.key])
+		var cycling := 0
+		var pads := 0
+		for c in course_hazards:
+			if c["period"] > 0.0:
+				cycling += 1
+			if c["kind"] == "jump":
+				pads += 1
+		print("hazards: %d course patches (%s), %d cycling, %d jump pads" % [n, track.key, cycling, pads])
+
+
+# Cycling hazards switch on for `duty` of every `period` seconds, with an amber cue in the
+# second before; jump pads loft any kart that crosses them while live.
+func _update_course_hazards(_dt: float) -> void:
+	for c in course_hazards:
+		var h: Items.Hazard = c["h"]
+		var period: float = c["period"]
+		var on := true
+		var cue := 0.0
+		if period > 0.0:
+			var ph := fposmod(t + float(c["phase"]), period)
+			var live := period * float(c["duty"])
+			on = ph < live
+			if not on:
+				var until := period - ph
+				cue = clampf(1.0 - until, 0.0, 1.0)
+		if on != bool(c["on"]):
+			c["on"] = on
+			if on and player.alive and player.pos.distance_to(h.pos) < 1100.0:
+				play("sfx_ability_forcefield_create" if String(c["kind"]) in ["barrier", "wheel", "bell"] else "start_level", -10.0)
+			if hazard_log:
+				print("hazard: %s %s t=%.2f" % [String(c["kind"]), "on" if on else "off", t])
+		h.active = on
+		h.cue = cue
+		if String(c["kind"]) == "jump" and on:
+			for kart in karts:
+				if not kart.alive or kart.air_t > 0.0:
+					continue
+				if kart.pos.distance_to(h.pos) <= h.radius + kart.RADIUS:
+					kart.launch(JUMP_SECONDS, JUMP_BOOST)
+					if kart.is_player:
+						play("sfx_ability_jump", -4.0)
+					if hazard_log:
+						print("jump: %s t=%.2f" % [kart.display_name, t])
 
 
 # The realm's lairs stand by the road and let out their monster every so often.
@@ -1673,21 +1733,22 @@ func _update_world(dt: float) -> void:
 			projectiles.erase(p)
 			p.queue_free()
 
+	_update_course_hazards(dt)
 	for h in hazards.duplicate():
 		if not h.tick_hazard(dt):
 			hazards.erase(h)
 			h.queue_free()
 			continue
-		if h.next_tick > 0.0:
+		if h.next_tick > 0.0 or not h.active:
 			continue
 		h.next_tick = h.tick
 		for kart in karts.duplicate():
-			if kart == h.owner_kart or not kart.alive:
+			if kart == h.owner_kart or not kart.alive or kart.air_t > 0.0:
 				continue
 			if kart.pos.distance_to(h.pos) > h.radius + kart.RADIUS:
 				continue
-			if h.damage > 0.0:
-				hit_kart(kart, h.damage, h.dtype, h.owner_kart, 0.0, "hazard")
+			if h.damage > 0.0 or h.stun > 0.0:
+				hit_kart(kart, h.damage, h.dtype, h.owner_kart, h.stun, "hazard")
 			if h.slip:
 				kart.slip_t = maxf(kart.slip_t, 1.2)
 

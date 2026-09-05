@@ -695,7 +695,8 @@ func hazard_spots() -> Array:
 		var d := direction_at(i)
 		var nrm := Vector2(-d.y, d.x)
 		out.append({"kind": String(h.get("kind", "fire")), "pos": points[i] + nrm * float(h.get("side", 0.0)) * width * 0.5,
-			"radius": float(h.get("radius", 150.0))})
+			"radius": float(h.get("radius", 150.0)), "period": float(h.get("period", 0.0)),
+			"duty": float(h.get("duty", 0.5)), "phase": float(h.get("phase", 0.0))})
 	return out
 
 

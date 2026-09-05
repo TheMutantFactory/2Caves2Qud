@@ -42,6 +42,23 @@ Single Race and Local Multiplayer pick from the Courses page.
 | 19 | Tomb of the Eaters Bell Run | Spindle | bone / black marble / bone | crematory fire, gas |
 | 20 | Thin World Crossing | Spindle | hologram / void / filigree | holographic static |
 
+## Cycling hazards and jump pads
+
+A hazard entry with `period` cycles: live for `duty` of every `period` seconds, offset by
+`phase`, faint while dormant and pulsing amber for the second before it goes live (the
+bible's "amber tells the player to prepare"). A `barrier` stuns and hurts (Grit Gate's force
+barriers, Yd Freehold's workshop arms, the Tomb's crematory), a `wheel` spins the kart
+(Joppa's waterwheel gate), a `cart` slows and jolts (Stilt market lanes), a `bell` is a wide
+stun pulse (the Tomb), and the surface kinds cycle too (Golgotha's vents, Bethesda's cryo
+chambers, Rainbow Wood's sludges, the Asphalt Mines' fire snouts, Palladium's plasma jellies).
+
+A `jump` pad lofts any kart that crosses it while live: a hop of under a second with a boost,
+drawn on an arc with the shadow shrinking, during which nothing below slows the kart, so a pad
+carries over water or a gap. Chavvah's leaf ramps, Red Rock's arch, Golgotha's shaft drops,
+Eyn Roj's boost roots and the Moon Stair's pads are always live; Kyakukya's caps beat on a
+two-second cycle, Lake Hinnom's clams and the Hydropon's foam pads cycle, and Omonporch's
+magnetic wall pulses. `--hazard-log` prints every switch and every jump.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
@@ -49,14 +66,16 @@ to data. The big ones:
 
 - **Section races.** Golgotha, Bethesda Susa, Eyn Roj and the Tomb are one-way descents or
   ascents; the engine only knows loops, so they run as three-lap circuits of their shape.
-- **Timed and moving hazards**: the waterwheel gate, force-barrier cycles, vent cycles, clam
-  jump pads, the Bell clock, baboon throws, market traffic.
-- **Vertical transfers and jumps**: branch hops, leaf ramps, the magnetic wall, shaft drops.
+- **Moving hazards with a path**: baboon throws aimed at a lane, drillbots cutting walls,
+  reef creatures crossing under the road. Cycling patches stand in for them.
+- **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
+  level; the branch-to-branch transfers and the shaft drops stay on one road.
 - **Lap-by-lap development**: growing lilies, oil ribbons, leaning trees, announced rule
   changes, the thinning road. Hazards are fixed for the race today.
 - **Parallel routes**: Yd Freehold's rooms, Grit Gate's corridor vs tunnel, the Thin World's
   twin portals. Each course is one line.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: a `hazards` entry
-that cycles (on/off with a period and a cue), a jump-pad patch kind, and per-lap hazard sets.
+The next engine features that would unlock the most courses are, in order: per-lap hazard
+sets (Lap 1 teaches, Lap 2 complicates, Lap 3 escalates), a second road for parallel routes,
+and section races.
