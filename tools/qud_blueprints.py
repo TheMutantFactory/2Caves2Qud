@@ -48,7 +48,7 @@ class Blueprints:
                     continue
                 o = self.raw.setdefault(name, {"name": name, "inherits": ob.get("Inherits"),
                                                 "parts": {}, "stats": {}, "tags": {}, "file": fn,
-                                                "removed_parts": set()})
+                                                "removed_parts": set(), "mutations": [], "inventory": []})
                 if ob.get("Inherits"):
                     o["inherits"] = ob.get("Inherits")
                 for el in ob:
@@ -62,6 +62,10 @@ class Blueprints:
                         sn = el.get("Name")
                         if sn:
                             o["stats"][sn] = dict(el.attrib)
+                    elif el.tag == "mutation" and el.get("Name"):
+                        o["mutations"].append({"class": el.get("Name"), "level": el.get("Level", "1")})
+                    elif el.tag == "inventoryobject" and el.get("Blueprint"):
+                        o["inventory"].append(el.get("Blueprint"))
                     elif el.tag in ("tag", "intproperty", "stringproperty", "property"):
                         tn = el.get("Name")
                         if tn:
@@ -84,7 +88,8 @@ class Blueprints:
         """Resolved blueprint: parts/stats/tags merged root-first so the child wins."""
         if name in self._resolved:
             return self._resolved[name]
-        r = {"name": name, "parts": {}, "stats": {}, "tags": {}, "chain": [], "inherits": None}
+        r = {"name": name, "parts": {}, "stats": {}, "tags": {}, "chain": [], "inherits": None,
+             "mutations": [], "inventory": []}
         ch = self.chain(name)
         r["chain"] = [o["name"] for o in ch]
         r["inherits"] = ch[0]["inherits"] if ch else None
@@ -95,6 +100,8 @@ class Blueprints:
                 r["parts"].pop(pn, None)
             for sn, attrs in o["stats"].items():
                 r["stats"].setdefault(sn, {}).update(attrs)
+            r["mutations"] += o["mutations"]      # additive down the chain, like the game
+            r["inventory"] += o["inventory"]
             for tn, tv in o["tags"].items():
                 # Value="*noinherit" marks a tag that applies to THIS object only
                 # (BaseObject on a template whose children are the real spawns)

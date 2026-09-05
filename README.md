@@ -93,6 +93,22 @@ reach; `shared/overrides.json` still has the last word by name. The six arcade i
 pickups are the same engine behaviours wearing Qud items: HE grenade, laser rifle,
 recoiler, blaze injector, cryo grenade and a snapjaw pack.
 
+## Mutations as the monsters' abilities
+
+In the Monster Campaign the field is Qud's creatures, and each one attacks with what its
+blueprint gives it. `tools/qud_mutations.py` turns a creature's `<mutation>` entries into
+ability records in the same shape as the items (flaming and freezing rays and light
+manipulation as beams, pyro- and cryokinesis, gas generation, webs and spore puffs as
+patches, disintegration and breath weapons as blasts, confusion, stunning force and sleep
+gas as stuns, syphon vim drains, temporal fugue and burgeoning summon, quills and horns and
+stingers strike, regeneration heals, force bubble shields, teleportation blinks), scaled by
+the mutation's level, with Qud's mutation tiles as icons; wings mark the creature as flying.
+The weapons in a creature's inventory that are item records come along too, so a snapjaw
+hunter fires its short bow and a chrome pyramid its swarm rack. The engine picks the first
+ranged damaging record as the creature's ability and casts it at you on a cooldown; a
+creature with nothing bites. 284 of the 904 creatures are armed this way. The same list
+arms you when you race as an unlocked monster.
+
 ## Wall voxels
 
 Qud's wall families (`wall_mud`, `wall_rock`, `wall_crystal1`, `wall_brinestalk`, …) are

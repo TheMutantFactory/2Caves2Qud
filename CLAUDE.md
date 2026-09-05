@@ -121,9 +121,19 @@ Gotchas: Qud DisplayName markup NESTS (`{{crysteel|{{crysteel|crysteel}} dagger}
 loop; melee Physics Category is "Melee Weapons" (plural); thrown junk (corpses, husks,
 injectors) needs the Tier tag filter.
 
+MUTATIONS as abilities (2026-09-05): `tools/qud_mutations.py` (class → kind table; creature
+blueprints name mutations by CLASS, Mutations.xml maps class → display name + tile; breathers
+have no Mutations.xml entry) + the creature's inventory weapons that are item records →
+`monsters.json[].spells`, ranged-damaging first (the engine picks the first such). 284/904
+armed. `Race.gd` gained `--type=gp|campaign|single` for CLI tests. Probe: a campaign race's
+`race:` tally — monster abilities land in the `bolt` (projectiles), `hazard` (patches) and
+`wolf` (summons) buckets, not `ability` (that bucket is melee). Realm 12 seed 8 killed the
+auto-driven player: tune `campaign.ability_damage_by_band` in tuning.json if that's too hot.
+
 Next, in order:
-1. Mutations as monster abilities (`Mutations.xml`), `Sounds.xml` event→clip mapping for the
-   cues that are still regex guesses (see `<store>/godot/sfx/mapping.json`).
+1. `Sounds.xml` event→clip mapping for the cues that are still regex guesses (see
+   `<store>/godot/sfx/mapping.json`); per-weapon fire sounds from the blueprints'
+   `MissileFireSound` tags.
 2. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

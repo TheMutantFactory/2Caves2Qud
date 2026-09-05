@@ -10,7 +10,9 @@ and sound without any of it entering the repo.
                                 plus the player castes from Subtypes.xml
     manifest.json               units -> {frame_size, idle_frames, ...}
     data/monsters.json          racers: name, unit, hp, band, flying (from the
-                                blueprints' Level and Hitpoints stats)
+                                blueprints' Level and Hitpoints stats) and their
+                                "spells": mutations + carried weapons as abilities
+                                (tools/qud_mutations.py)
     data/spells.json            Qud's grenades, guns, thrown/melee weapons and tonics
                                 as the engine's action-bar records (tools/qud_items.py)
     icons/<stem>.png            their tiles, plus the six arcade pickup icons
@@ -208,7 +210,7 @@ def projectile(name, letter):
 
 # ---------------------------------------------------------------- units
 
-def export_units(bp, out, manifest):
+def export_units(bp, out, manifest, abilities=None):
     units_dir = os.path.join(out, "units")
     os.makedirs(units_dir, exist_ok=True)
     monsters = []
@@ -241,10 +243,14 @@ def export_units(bp, out, manifest):
         band = max(1, min(9, 1 + (level - 1) // 4))
         lname = name.lower()
         flying = any(h in lname for h in FLYING_HINTS) or "Flying" in o["parts"] or o["tags"].get("Flying") is not None
+        spells = []
+        if abilities is not None:
+            spells, wings = abilities.abilities(name)
+            flying = flying or wings
         monsters.append({"name": name, "asset": ["char", unit], "asset_exists": True,
                          "max_hp": float(hp), "radius": 0, "flying": bool(flying), "level": level,
                          "roles": [{"role": "spawn", "difficulty_band": band, "tier": "easy" if band <= 3 else ("med" if band <= 6 else "hard")}],
-                         "spells": [], "tile": r["Tile"], "colors": [main, detail]})
+                         "spells": spells, "tile": r["Tile"], "colors": [main, detail]})
         n += 1
     return n, monsters
 
@@ -290,24 +296,30 @@ PICKUP_ICONS = {
 }
 
 
-def export_items(bp, out):
-    import qud_items
-    ib = qud_items.ItemBuilder(bp, lambda t: qud_assets.tile_file(t) is not None)
-    recs = ib.build()
-    with open(os.path.join(out, "data", "spells.json"), "w", encoding="utf-8") as f:
-        json.dump(recs, f, indent=0)
+def write_icons(out, icons):
     icons_dir = os.path.join(out, "icons")
     os.makedirs(icons_dir, exist_ok=True)
     n = 0
-    for stem, (tile, main, detail) in ib.icons.items():
+    for stem, (tile, main, detail) in icons.items():
         img = load_tile(tile)
         if img is None:
             continue
         scaled(paint(img, main, detail)).save(os.path.join(icons_dir, stem + ".png"))
         n += 1
+    return n
+
+
+def export_items(bp, out):
+    import qud_items
+    ib = qud_items.ItemBuilder(bp, lambda t: qud_assets.tile_file(t) is not None)
+    recs = ib.build()
+    os.makedirs(os.path.join(out, "data"), exist_ok=True)
+    with open(os.path.join(out, "data", "spells.json"), "w", encoding="utf-8") as f:
+        json.dump(recs, f, indent=0)
+    n = write_icons(out, ib.icons)
     for key, (tile, main, detail) in PICKUP_ICONS.items():
-        scaled(tile_or_blank(tile, main, detail)).save(os.path.join(icons_dir, key + ".png"))
-    return len(recs), n
+        scaled(tile_or_blank(tile, main, detail)).save(os.path.join(out, "icons", key + ".png"))
+    return recs, n
 
 
 # ---------------------------------------------------------------- tiles
@@ -491,14 +503,19 @@ def main(argv=None):
 
     manifest = {"source": store, "units": {}, "icons": [], "effects": [], "status": [], "equipment": []}
     bp = B.Blueprints(qud_assets.path("data"))
-    n_units, monsters = export_units(bp, out, manifest)
+    items, n_icons = export_items(bp, out)
+    log("items:   %d as action-bar spells, %d icons" % (len(items), n_icons))
+    import qud_mutations
+    ab = qud_mutations.AbilityBuilder(bp, {r["qud"]: r for r in items}, lambda t: qud_assets.tile_file(t) is not None)
+    n_units, monsters = export_units(bp, out, manifest, ab)
     n_players = export_players(qud_assets.path("data"), out, manifest)
     log("units:   %d creatures + player + %d castes" % (n_units, n_players))
-    os.makedirs(os.path.join(out, "data"), exist_ok=True)
     with open(os.path.join(out, "data", "monsters.json"), "w", encoding="utf-8") as f:
         json.dump(monsters, f, indent=0)
-    n_items, n_icons = export_items(bp, out)
-    log("items:   %d as action-bar spells, %d icons" % (n_items, n_icons))
+    armed = sum(1 for m in monsters if any(sp["stats"].get("damage", 0) > 0 for sp in m["spells"]))
+    log("abilities: %d creatures armed (%d mutations, %d weapons), %d mutation icons" % (
+        armed, sum(1 for m in monsters for sp in m["spells"] if "Mutation" in sp["tags"]),
+        sum(1 for m in monsters for sp in m["spells"] if "Mutation" not in sp["tags"]), write_icons(out, ab.icons)))
     with open(os.path.join(out, "data", "equipment.json"), "w", encoding="utf-8") as f:
         f.write("[]\n")
     log("tracks:  %d" % export_track_tiles(out, manifest, qud_assets.path("tiles")))

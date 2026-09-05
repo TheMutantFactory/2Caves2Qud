@@ -172,6 +172,8 @@ func _ready() -> void:
 		Engine.time_scale = float(args["timescale"])
 		slow_scale = Engine.time_scale
 	rig_kinematic = bool(R.get("kinematic", true)) and not args.has("drive")
+	if args.has("type"):    # --type=gp|campaign|single: the race type without the menu (tests)
+		Campaign.race_type = String(args["type"])
 	if args.has("party"):   # --party=N: N local humans in a party race (auto-driven with --auto)
 		Players.clear()
 		for i in clampi(int(args["party"]), 1, Players.MAX):
