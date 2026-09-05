@@ -702,28 +702,73 @@ func _spawn_track_hazards() -> void:
 			hazards.append(h)      # damage / slip / stun through the ordinary hazard loop
 		var period := float(spot.get("period", 0.0))
 		course_hazards.append({"h": h, "kind": kind, "period": period, "duty": float(spot.get("duty", 0.5)),
-			"phase": float(spot.get("phase", 0.0)), "on": true})
+			"phase": float(spot.get("phase", 0.0)), "on": true, "laps": spot.get("laps", []),
+			"per_lap": spot.get("per_lap", {}), "base": {"period": period, "duty": float(spot.get("duty", 0.5)), "phase": float(spot.get("phase", 0.0))}})
 		n += 1
 	if n > 0:
 		var cycling := 0
 		var pads := 0
+		var lapped := 0
 		for c in course_hazards:
 			if c["period"] > 0.0:
 				cycling += 1
 			if c["kind"] == "jump":
 				pads += 1
-		print("hazards: %d course patches (%s), %d cycling, %d jump pads" % [n, track.key, cycling, pads])
+			if not (c["laps"] as Array).is_empty() or not (c["per_lap"] as Dictionary).is_empty():
+				lapped += 1
+		print("hazards: %d course patches (%s), %d cycling, %d jump pads, %d lap-gated" % [n, track.key, cycling, pads, lapped])
+	_apply_lap_sets(1)
+
+
+# The course develops by lap (Lap 1 teaches, Lap 2 complicates, Lap 3 escalates): a
+# hazard's "laps" says which laps it is live on and "per_lap" overrides its period / duty /
+# phase on a given lap. The lap is the LEADER's, so the course changes for everyone at
+# once; a hazard that is not yet live is drawn faint from the start — the preview.
+var course_lap := 0
+
+
+func _leader_lap() -> int:
+	var best := 1
+	for kart in karts:
+		if kart.alive and not kart.finished:
+			best = maxi(best, int(kart.lap))
+	return clampi(best, 1, laps)
+
+
+func _apply_lap_sets(lap: int) -> void:
+	course_lap = lap
+	var live := 0
+	for c in course_hazards:
+		var gate: Array = c["laps"]
+		c["lap_ok"] = gate.is_empty() or gate.has(lap) or gate.has(float(lap))
+		var base: Dictionary = c["base"]
+		var ov: Dictionary = (c["per_lap"] as Dictionary).get(str(lap), {})
+		c["period"] = float(ov.get("period", base["period"]))
+		c["duty"] = float(ov.get("duty", base["duty"]))
+		c["phase"] = float(ov.get("phase", base["phase"]))
+		if c["lap_ok"]:
+			live += 1
+	if hazard_log:
+		print("lap %d: hazard set %d / %d live" % [lap, live, course_hazards.size()])
+	var notes: Dictionary = track.spec.get("lap_notes", {})
+	if notes.has(str(lap)) and lap > 1:
+		say(String(notes[str(lap)]).to_upper(), 2.4)
 
 
 # Cycling hazards switch on for `duty` of every `period` seconds, with an amber cue in the
 # second before; jump pads loft any kart that crosses them while live.
 func _update_course_hazards(_dt: float) -> void:
+	if course_hazards.is_empty():
+		return
+	var lap := _leader_lap()
+	if lap != course_lap:
+		_apply_lap_sets(lap)
 	for c in course_hazards:
 		var h: Items.Hazard = c["h"]
 		var period: float = c["period"]
-		var on := true
+		var on: bool = c.get("lap_ok", true)
 		var cue := 0.0
-		if period > 0.0:
+		if on and period > 0.0:
 			var ph := fposmod(t + float(c["phase"]), period)
 			var live := period * float(c["duty"])
 			on = ph < live

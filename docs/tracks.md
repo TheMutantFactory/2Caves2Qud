@@ -59,6 +59,21 @@ Eyn Roj's boost roots and the Moon Stair's pads are always live; Kyakukya's caps
 two-second cycle, Lake Hinnom's clams and the Hydropon's foam pads cycle, and Omonporch's
 magnetic wall pulses. `--hazard-log` prints every switch and every jump.
 
+## Lap development
+
+A hazard's `laps` list says which laps it is live on, and `per_lap` overrides its period,
+duty or phase on a given lap. The lap is the race leader's, so the course changes for
+everyone at once, and a hazard that is not yet live is drawn faint from the start: the
+bible's "persistent changes are visibly previewed". Each course's `lap_notes` show on the
+HUD as the leader starts the lap ("the waterwheel turns faster", "the middle cap falls off
+the beat", "a sunslag polyp glows gold"). Joppa's wheel speeds up and opens a gap on lap 3,
+Red Rock's baboons aim outside, then at the lane, then alternate, the Stilt's carts fill one
+aisle then the other, Grit Gate's third gate comes online on lap 2 and its cycle inverts on
+lap 3, the Asphalt Mines leak one oil ribbon then two, Rainbow Wood adds a weep per lap,
+Lake Hinnom's current reverses, the Moon Stair's pads exist only from lap 2 (Stable, then
+Elastic), the Hydropon's centre leaves span on lap 3, and the Thin World's void shows through
+more each lap. `--hazard-log` prints `lap N: hazard set k / n live` at every change.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
@@ -70,12 +85,11 @@ to data. The big ones:
   reef creatures crossing under the road. Cycling patches stand in for them.
 - **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
   level; the branch-to-branch transfers and the shaft drops stay on one road.
-- **Lap-by-lap development**: growing lilies, oil ribbons, leaning trees, announced rule
-  changes, the thinning road. Hazards are fixed for the race today.
+- **Lap-by-lap geometry**: lilies that add road, a tree that leans, a road that thins. Lap
+  sets change which hazards and pads are live, not the road itself.
 - **Parallel routes**: Yd Freehold's rooms, Grit Gate's corridor vs tunnel, the Thin World's
   twin portals. Each course is one line.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: per-lap hazard
-sets (Lap 1 teaches, Lap 2 complicates, Lap 3 escalates), a second road for parallel routes,
-and section races.
+The next engine features that would unlock the most courses are, in order: a second road
+for parallel routes, section races, and a lap-changing road (lilies, the thinning road).

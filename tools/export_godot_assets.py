@@ -395,7 +395,11 @@ def export_units(bp, out, manifest, abilities=None):
         if abilities is not None:
             spells, wings = abilities.abilities(name)
             flying = flying or wings
-        monsters.append({"name": name, "asset": ["char", unit], "asset_exists": True,
+        import qud_items
+        display = qud_items.clean_name(r.get("DisplayName"), name)
+        if not display or display.startswith("[") or display.startswith("*"):
+            display = name
+        monsters.append({"name": display, "qud": name, "asset": ["char", unit], "asset_exists": True,
                          "max_hp": float(hp), "radius": 0, "flying": bool(flying), "level": level,
                          "roles": [{"role": "spawn", "difficulty_band": band, "tier": "easy" if band <= 3 else ("med" if band <= 6 else "hard")}],
                          "spells": spells, "tile": r["Tile"], "colors": [main, detail]})

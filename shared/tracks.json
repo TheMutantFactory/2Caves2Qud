@@ -94,19 +94,28 @@
      "radius": 150
     },
     {
+     "kind": "jump",
+     "at": 0.6,
+     "side": -0.45,
+     "radius": 110
+    },
+    {
      "kind": "wheel",
      "at": 0.92,
      "side": 0.0,
      "radius": 150,
      "period": 4.0,
      "duty": 0.45,
-     "phase": 0.0
-    },
-    {
-     "kind": "jump",
-     "at": 0.6,
-     "side": -0.45,
-     "radius": 110
+     "phase": 0.0,
+     "per_lap": {
+      "2": {
+       "period": 3.0
+      },
+      "3": {
+       "period": 2.2,
+       "duty": 0.35
+      }
+     }
     }
    ],
    "spells": [
@@ -146,7 +155,11 @@
     104,
     92,
     58
-   ]
+   ],
+   "lap_notes": {
+    "2": "the waterwheel turns faster",
+    "3": "a gap opens in the paddles"
+   }
   },
   {
    "key": "redrock",
@@ -233,13 +246,22 @@
      "radius": 160
     },
     {
+     "kind": "jump",
+     "at": 0.97,
+     "side": 0.0,
+     "radius": 140
+    },
+    {
      "kind": "static",
      "at": 0.2,
      "side": 0.45,
      "radius": 120,
      "period": 5.0,
      "duty": 0.2,
-     "phase": 0.0
+     "phase": 0.0,
+     "laps": [
+      1
+     ]
     },
     {
      "kind": "static",
@@ -248,13 +270,46 @@
      "radius": 120,
      "period": 5.0,
      "duty": 0.2,
-     "phase": 2.5
+     "phase": 2.5,
+     "laps": [
+      1
+     ]
     },
     {
-     "kind": "jump",
-     "at": 0.97,
+     "kind": "static",
+     "at": 0.23,
      "side": 0.0,
-     "radius": 140
+     "radius": 130,
+     "period": 5.0,
+     "duty": 0.2,
+     "phase": 0.0,
+     "laps": [
+      2
+     ]
+    },
+    {
+     "kind": "static",
+     "at": 0.2,
+     "side": 0.3,
+     "radius": 120,
+     "period": 5.0,
+     "duty": 0.2,
+     "phase": 0.0,
+     "laps": [
+      3
+     ]
+    },
+    {
+     "kind": "static",
+     "at": 0.26,
+     "side": -0.3,
+     "radius": 120,
+     "period": 5.0,
+     "duty": 0.2,
+     "phase": 2.5,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -294,7 +349,11 @@
     132,
     60,
     40
-   ]
+   ],
+   "lap_notes": {
+    "2": "the baboons aim for the racing lane",
+    "3": "stones fall inside and out"
+   }
   },
   {
    "key": "rustwells",
@@ -416,10 +475,23 @@
      "phase": 4.0
     },
     {
+     "kind": "barrier",
+     "at": 0.33,
+     "side": 0.35,
+     "radius": 110,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
      "kind": "jump",
      "at": 0.33,
-     "side": 0.0,
-     "radius": 120
+     "side": -0.2,
+     "radius": 120,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -459,7 +531,11 @@
     96,
     64,
     40
-   ]
+   ],
+   "lap_notes": {
+    "2": "a bridge panel collapses: take the outer bypass",
+    "3": "the gap is jumpable"
+   }
   },
   {
    "key": "stilt",
@@ -536,7 +612,10 @@
      "radius": 150,
      "period": 8.0,
      "duty": 0.35,
-     "phase": 0.0
+     "phase": 0.0,
+     "laps": [
+      2
+     ]
     },
     {
      "kind": "cart",
@@ -545,7 +624,10 @@
      "radius": 150,
      "period": 8.0,
      "duty": 0.35,
-     "phase": 4.0
+     "phase": 4.0,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -585,7 +667,11 @@
     196,
     190,
     168
-   ]
+   ],
+   "lap_notes": {
+    "2": "the left aisle fills with carts",
+    "3": "the market turns: right aisle busy"
+   }
   },
   {
    "key": "gritgate",
@@ -676,6 +762,19 @@
      "period": 6.0,
      "duty": 0.5,
      "phase": 3.0
+    },
+    {
+     "kind": "barrier",
+     "at": 0.5,
+     "side": 0.0,
+     "radius": 140,
+     "period": 6.0,
+     "duty": 0.5,
+     "phase": 1.5,
+     "laps": [
+      2,
+      3
+     ]
     }
    ],
    "spells": [
@@ -714,7 +813,11 @@
     110,
     116,
     124
-   ]
+   ],
+   "lap_notes": {
+    "2": "a third gate comes online",
+    "3": "the barrier cycle inverts"
+   }
   },
   {
    "key": "asphalt",
@@ -790,12 +893,6 @@
    "hazards": [
     {
      "kind": "oil",
-     "at": 0.25,
-     "side": -0.3,
-     "radius": 170
-    },
-    {
-     "kind": "oil",
      "at": 0.5,
      "side": 0.2,
      "radius": 200
@@ -811,12 +908,6 @@
      "at": 0.72,
      "side": 0.4,
      "radius": 150
-    },
-    {
-     "kind": "oil",
-     "at": 0.88,
-     "side": -0.2,
-     "radius": 160
     },
     {
      "kind": "fire",
@@ -835,6 +926,25 @@
      "period": 5.0,
      "duty": 0.35,
      "phase": 2.5
+    },
+    {
+     "kind": "oil",
+     "at": 0.25,
+     "side": -0.3,
+     "radius": 170,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
+     "kind": "oil",
+     "at": 0.88,
+     "side": -0.2,
+     "radius": 160,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -875,7 +985,11 @@
     38,
     36,
     40
-   ]
+   ],
+   "lap_notes": {
+    "2": "an oil ribbon leaks across the causeway",
+    "3": "a second ribbon: chain the slides"
+   }
   },
   {
    "key": "golgotha",
@@ -1293,7 +1407,12 @@
      "radius": 130,
      "period": 2.0,
      "duty": 0.5,
-     "phase": 0.0
+     "phase": 0.0,
+     "per_lap": {
+      "3": {
+       "duty": 0.7
+      }
+     }
     },
     {
      "kind": "jump",
@@ -1302,7 +1421,16 @@
      "radius": 130,
      "period": 2.0,
      "duty": 0.5,
-     "phase": 1.0
+     "phase": 0.0,
+     "per_lap": {
+      "2": {
+       "phase": 1.0
+      },
+      "3": {
+       "phase": 1.0,
+       "duty": 0.3
+      }
+     }
     },
     {
      "kind": "jump",
@@ -1311,7 +1439,12 @@
      "radius": 130,
      "period": 2.0,
      "duty": 0.5,
-     "phase": 0.0
+     "phase": 0.0,
+     "per_lap": {
+      "3": {
+       "duty": 0.7
+      }
+     }
     }
    ],
    "spells": [
@@ -1351,7 +1484,11 @@
     150,
     128,
     96
-   ]
+   ],
+   "lap_notes": {
+    "2": "the middle cap falls off the beat",
+    "3": "long, short, long"
+   }
   },
   {
    "key": "rainbowwood",
@@ -1457,7 +1594,11 @@
      "radius": 180,
      "period": 9.0,
      "duty": 0.5,
-     "phase": 3.0
+     "phase": 3.0,
+     "laps": [
+      2,
+      3
+     ]
     },
     {
      "kind": "slime",
@@ -1466,7 +1607,22 @@
      "radius": 180,
      "period": 9.0,
      "duty": 0.5,
-     "phase": 6.0
+     "phase": 6.0,
+     "laps": [
+      3
+     ]
+    },
+    {
+     "kind": "slime",
+     "at": 0.2,
+     "side": 0.3,
+     "radius": 140,
+     "period": 9.0,
+     "duty": 0.5,
+     "phase": 0.0,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -1505,7 +1661,11 @@
     110,
     70,
     130
-   ]
+   ],
+   "lap_notes": {
+    "2": "the yellow weep joins the soup",
+    "3": "magenta, and the rivers mix"
+   }
   },
   {
    "key": "chavvah",
@@ -1581,12 +1741,6 @@
    "hazards": [
     {
      "kind": "jump",
-     "at": 0.3,
-     "side": 0.0,
-     "radius": 130
-    },
-    {
-     "kind": "jump",
      "at": 0.55,
      "side": 0.0,
      "radius": 130
@@ -1602,6 +1756,16 @@
      "at": 0.69,
      "side": 0.0,
      "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.3,
+     "side": 0.0,
+     "radius": 130,
+     "laps": [
+      2,
+      3
+     ]
     }
    ],
    "spells": [
@@ -1641,7 +1805,11 @@
     190,
     200,
     205
-   ]
+   ],
+   "lap_notes": {
+    "2": "the tree leans toward the branch transfer",
+    "3": "the tree leans back to the terrace"
+   }
   },
   {
    "key": "eynroj",
@@ -1725,15 +1893,6 @@
      "phase": 0.0
     },
     {
-     "kind": "static",
-     "at": 0.7,
-     "side": 0.3,
-     "radius": 140,
-     "period": 5.0,
-     "duty": 0.4,
-     "phase": 2.5
-    },
-    {
      "kind": "jump",
      "at": 0.8,
      "side": 0.0,
@@ -1744,6 +1903,19 @@
      "at": 0.86,
      "side": 0.0,
      "radius": 130
+    },
+    {
+     "kind": "static",
+     "at": 0.7,
+     "side": 0.3,
+     "radius": 140,
+     "period": 5.0,
+     "duty": 0.4,
+     "phase": 2.5,
+     "laps": [
+      2,
+      3
+     ]
     }
    ],
    "spells": [
@@ -1783,7 +1955,11 @@
     150,
     150,
     160
-   ]
+   ],
+   "lap_notes": {
+    "2": "the echoes double",
+    "3": "the echoes intensify"
+   }
   },
   {
    "key": "hinnom",
@@ -1857,12 +2033,6 @@
     },
     {
      "kind": "water",
-     "at": 0.45,
-     "side": -0.3,
-     "radius": 180
-    },
-    {
-     "kind": "water",
      "at": 0.75,
      "side": 0.0,
      "radius": 220
@@ -1890,6 +2060,25 @@
      "period": 4.0,
      "duty": 0.5,
      "phase": 2.0
+    },
+    {
+     "kind": "water",
+     "at": 0.45,
+     "side": -0.3,
+     "radius": 180,
+     "laps": [
+      1,
+      3
+     ]
+    },
+    {
+     "kind": "water",
+     "at": 0.45,
+     "side": 0.3,
+     "radius": 180,
+     "laps": [
+      2
+     ]
     }
    ],
    "spells": [
@@ -1929,7 +2118,11 @@
     210,
     208,
     196
-   ]
+   ],
+   "lap_notes": {
+    "2": "the kraken turns the current",
+    "3": "the current turns back"
+   }
   },
   {
    "key": "palladium",
@@ -2039,7 +2232,20 @@
      "kind": "jump",
      "at": 0.6,
      "side": 0.0,
-     "radius": 130
+     "radius": 130,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
+     "kind": "jump",
+     "at": 0.35,
+     "side": 0.3,
+     "radius": 110,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -2079,7 +2285,11 @@
     150,
     156,
     164
-   ]
+   ],
+   "lap_notes": {
+    "2": "the inner chute opens",
+    "3": "a sunslag polyp glows gold"
+   }
   },
   {
    "key": "ydfreehold",
@@ -2179,6 +2389,15 @@
      "at": 0.75,
      "side": 0.0,
      "radius": 130
+    },
+    {
+     "kind": "jump",
+     "at": 0.9,
+     "side": 0.0,
+     "radius": 130,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -2218,7 +2437,10 @@
     60,
     90,
     150
-   ]
+   ],
+   "lap_notes": {
+    "3": "the pipes light a surface bypass"
+   }
   },
   {
    "key": "moonstair",
@@ -2320,13 +2542,21 @@
      "kind": "jump",
      "at": 0.4,
      "side": 0.0,
-     "radius": 130
+     "radius": 130,
+     "laps": [
+      2,
+      3
+     ]
     },
     {
      "kind": "jump",
      "at": 0.7,
      "side": 0.0,
-     "radius": 130
+     "radius": 130,
+     "laps": [
+      2,
+      3
+     ]
     }
    ],
    "spells": [
@@ -2366,7 +2596,11 @@
     40,
     38,
     48
-   ]
+   ],
+   "lap_notes": {
+    "2": "warm static: ELASTIC",
+    "3": "warm static: TWINNED"
+   }
   },
   {
    "key": "hydropon",
@@ -2430,12 +2664,6 @@
    "hazards": [
     {
      "kind": "water",
-     "at": 0.35,
-     "side": 0.0,
-     "radius": 180
-    },
-    {
-     "kind": "water",
      "at": 0.8,
      "side": 0.3,
      "radius": 150
@@ -2448,6 +2676,27 @@
      "period": 3.0,
      "duty": 0.6,
      "phase": 0.0
+    },
+    {
+     "kind": "water",
+     "at": 0.35,
+     "side": 0.0,
+     "radius": 180,
+     "laps": [
+      1,
+      2
+     ]
+    },
+    {
+     "kind": "jump",
+     "at": 0.5,
+     "side": 0.0,
+     "radius": 120,
+     "laps": [
+      3,
+      4,
+      5
+     ]
     }
    ],
    "spells": [
@@ -2480,7 +2729,12 @@
     80,
     140,
     70
-   ]
+   ],
+   "lap_notes": {
+    "3": "new leaves span the centre",
+    "4": "the lilies keep growing",
+    "5": "the bloom"
+   }
   },
   {
    "key": "omonporch",
@@ -2561,7 +2815,27 @@
      "radius": 160,
      "period": 6.0,
      "duty": 0.6,
-     "phase": 0.0
+     "phase": 0.0,
+     "per_lap": {
+      "2": {
+       "duty": 0.4
+      },
+      "3": {
+       "duty": 0.4
+      }
+     }
+    },
+    {
+     "kind": "jump",
+     "at": 0.68,
+     "side": 0.0,
+     "radius": 140,
+     "period": 6.0,
+     "duty": 0.4,
+     "phase": 3.0,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -2601,7 +2875,11 @@
     170,
     150,
     100
-   ]
+   ],
+   "lap_notes": {
+    "2": "the magnetic window shortens",
+    "3": "a second release point"
+   }
   },
   {
    "key": "tomb",
@@ -2732,6 +3010,18 @@
      "period": 14.0,
      "duty": 0.1,
      "phase": 0.0
+    },
+    {
+     "kind": "fire",
+     "at": 0.46,
+     "side": 0.0,
+     "radius": 150,
+     "period": 5.0,
+     "duty": 0.4,
+     "phase": 1.25,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -2770,7 +3060,11 @@
     170,
     160,
     130
-   ]
+   ],
+   "lap_notes": {
+    "2": "the crematory sequences combine",
+    "3": "press, arm, vent, fan at once"
+   }
   },
   {
    "key": "thinworld",
@@ -2846,24 +3140,6 @@
    ],
    "hazards": [
     {
-     "kind": "static",
-     "at": 0.3,
-     "side": 0.0,
-     "radius": 170
-    },
-    {
-     "kind": "static",
-     "at": 0.55,
-     "side": -0.3,
-     "radius": 150
-    },
-    {
-     "kind": "static",
-     "at": 0.8,
-     "side": 0.3,
-     "radius": 170
-    },
-    {
      "kind": "jump",
      "at": 0.35,
      "side": 0.0,
@@ -2874,6 +3150,31 @@
      "at": 0.85,
      "side": 0.0,
      "radius": 140
+    },
+    {
+     "kind": "static",
+     "at": 0.3,
+     "side": 0.0,
+     "radius": 170
+    },
+    {
+     "kind": "static",
+     "at": 0.55,
+     "side": -0.3,
+     "radius": 150,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
+     "kind": "static",
+     "at": 0.8,
+     "side": 0.3,
+     "radius": 170,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -2912,7 +3213,11 @@
     60,
     150,
     180
-   ]
+   ],
+   "lap_notes": {
+    "2": "the road thins: the void shows through",
+    "3": "only the edges remain"
+   }
   },
   {
    "key": "chicago_loop",

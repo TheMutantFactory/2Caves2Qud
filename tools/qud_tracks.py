@@ -32,14 +32,79 @@ def ellipse(cx, cy, rx, ry, n=10, start=0.0, wobble=None):
     return pts
 
 
-def haz(kind, at, side=0.0, radius=150, period=0.0, duty=0.5, phase=0.0):
+def haz(kind, at, side=0.0, radius=150, period=0.0, duty=0.5, phase=0.0, laps=None, per_lap=None):
     """A surface patch at a fraction of the loop. period > 0 makes it CYCLE: live for
     `duty` of every `period` seconds (offset by `phase`), with an amber cue the second
-    before it goes live. kind "jump" is a pad that lofts karts crossing it while live."""
+    before it goes live. kind "jump" is a pad that lofts karts crossing it while live.
+    laps=[2, 3] makes it live only on those laps (drawn faint before: the preview);
+    per_lap={2: {"period": 3.0}} overrides period/duty/phase on a lap. The lap is the
+    race leader's, so the course develops for everyone at once."""
     h = {"kind": kind, "at": at, "side": side, "radius": radius}
     if period > 0:
         h.update({"period": period, "duty": duty, "phase": phase})
+    if laps:
+        h["laps"] = list(laps)
+    if per_lap:
+        h["per_lap"] = {str(k): v for k, v in per_lap.items()}
     return h
+
+
+# Lap development per course (bible: Lap 1 teaches, Lap 2 complicates, Lap 3 resolves or
+# escalates), as lap-gated hazards and per-lap overrides, plus the note the HUD shows.
+LAPPED = {
+    "joppa": [haz("wheel", 0.92, 0.0, 150, period=4.0, duty=0.45, per_lap={2: {"period": 3.0}, 3: {"period": 2.2, "duty": 0.35}})],
+    "redrock": [haz("static", 0.20, 0.45, 120, period=5.0, duty=0.2, laps=[1]), haz("static", 0.26, -0.45, 120, period=5.0, duty=0.2, phase=2.5, laps=[1]),
+                haz("static", 0.23, 0.0, 130, period=5.0, duty=0.2, laps=[2]),
+                haz("static", 0.20, 0.3, 120, period=5.0, duty=0.2, laps=[3]), haz("static", 0.26, -0.3, 120, period=5.0, duty=0.2, phase=2.5, laps=[3])],
+    "rustwells": [haz("barrier", 0.33, 0.35, 110, laps=[2, 3]), haz("jump", 0.33, -0.2, 120, laps=[3])],
+    "stilt": [haz("cart", 0.45, -0.4, 150, period=8.0, duty=0.35, laps=[2]), haz("cart", 0.52, 0.4, 150, period=8.0, duty=0.35, phase=4.0, laps=[3])],
+    "gritgate": [haz("barrier", 0.50, 0.0, 140, period=6.0, duty=0.5, phase=1.5, laps=[2, 3])],
+    "asphalt": [haz("oil", 0.25, -0.3, 170, laps=[2, 3]), haz("oil", 0.88, -0.2, 160, laps=[3])],
+    "kyakukya": [haz("jump", 0.55, 0.0, 130, period=2.0, duty=0.5, per_lap={3: {"duty": 0.7}}),
+                 haz("jump", 0.60, 0.0, 130, period=2.0, duty=0.5, per_lap={2: {"phase": 1.0}, 3: {"phase": 1.0, "duty": 0.3}}),
+                 haz("jump", 0.65, 0.0, 130, period=2.0, duty=0.5, per_lap={3: {"duty": 0.7}})],
+    "rainbowwood": [haz("slime", 0.16, 0.0, 180, period=9.0, duty=0.5), haz("slime", 0.5, 0.0, 180, period=9.0, duty=0.5, phase=3.0, laps=[2, 3]),
+                    haz("slime", 0.83, 0.0, 180, period=9.0, duty=0.5, phase=6.0, laps=[3]), haz("slime", 0.20, 0.3, 140, period=9.0, duty=0.5, laps=[3])],
+    "chavvah": [haz("jump", 0.30, 0.0, 130, laps=[2, 3])],
+    "eynroj": [haz("static", 0.7, 0.3, 140, period=5.0, duty=0.4, phase=2.5, laps=[2, 3])],
+    "hinnom": [haz("water", 0.45, -0.3, 180, laps=[1, 3]), haz("water", 0.45, 0.3, 180, laps=[2])],
+    "palladium": [haz("jump", 0.60, 0.0, 130, laps=[2, 3]), haz("jump", 0.35, 0.3, 110, laps=[3])],
+    "ydfreehold": [haz("jump", 0.90, 0.0, 130, laps=[3])],
+    "moonstair": [haz("jump", 0.40, 0.0, 130, laps=[2, 3]), haz("jump", 0.70, 0.0, 130, laps=[2, 3])],
+    "hydropon": [haz("water", 0.35, 0.0, 180, laps=[1, 2]), haz("jump", 0.50, 0.0, 120, laps=[3, 4, 5])],
+    "omonporch": [haz("jump", 0.62, 0.0, 160, period=6.0, duty=0.6, per_lap={2: {"duty": 0.4}, 3: {"duty": 0.4}}), haz("jump", 0.68, 0.0, 140, period=6.0, duty=0.4, phase=3.0, laps=[3])],
+    "tomb": [haz("fire", 0.46, 0.0, 150, period=5.0, duty=0.4, phase=1.25, laps=[3])],
+    "thinworld": [haz("static", 0.3, 0.0, 170), haz("static", 0.55, -0.3, 150, laps=[2, 3]), haz("static", 0.8, 0.3, 170, laps=[3])],
+}
+# entries a LAPPED set REPLACES: (course, kind, at) of the always-on version
+LAPPED_REPLACES = {
+    "joppa": [("wheel", 0.92)], "redrock": [("static", 0.20), ("static", 0.26)], "rustwells": [("jump", 0.33)],
+    "stilt": [("cart", 0.45), ("cart", 0.52)], "asphalt": [("oil", 0.25), ("oil", 0.88)],
+    "kyakukya": [("jump", 0.55), ("jump", 0.60), ("jump", 0.65)], "rainbowwood": [("slime", 0.16), ("slime", 0.5), ("slime", 0.83)],
+    "chavvah": [("jump", 0.30)], "eynroj": [("static", 0.7)], "hinnom": [("water", 0.45)], "palladium": [("jump", 0.60)],
+    "moonstair": [("jump", 0.40), ("jump", 0.70)], "hydropon": [("water", 0.35)], "omonporch": [("jump", 0.62)],
+    "thinworld": [("static", 0.3), ("static", 0.55), ("static", 0.8)],
+}
+LAP_NOTES = {
+    "joppa": {2: "the waterwheel turns faster", 3: "a gap opens in the paddles"},
+    "redrock": {2: "the baboons aim for the racing lane", 3: "stones fall inside and out"},
+    "rustwells": {2: "a bridge panel collapses: take the outer bypass", 3: "the gap is jumpable"},
+    "stilt": {2: "the left aisle fills with carts", 3: "the market turns: right aisle busy"},
+    "gritgate": {2: "a third gate comes online", 3: "the barrier cycle inverts"},
+    "asphalt": {2: "an oil ribbon leaks across the causeway", 3: "a second ribbon: chain the slides"},
+    "kyakukya": {2: "the middle cap falls off the beat", 3: "long, short, long"},
+    "rainbowwood": {2: "the yellow weep joins the soup", 3: "magenta, and the rivers mix"},
+    "chavvah": {2: "the tree leans toward the branch transfer", 3: "the tree leans back to the terrace"},
+    "eynroj": {2: "the echoes double", 3: "the echoes intensify"},
+    "hinnom": {2: "the kraken turns the current", 3: "the current turns back"},
+    "palladium": {2: "the inner chute opens", 3: "a sunslag polyp glows gold"},
+    "ydfreehold": {3: "the pipes light a surface bypass"},
+    "moonstair": {2: "warm static: ELASTIC", 3: "warm static: TWINNED"},
+    "hydropon": {3: "new leaves span the centre", 4: "the lilies keep growing", 5: "the bloom"},
+    "omonporch": {2: "the magnetic window shortens", 3: "a second release point"},
+    "tomb": {2: "the crematory sequences combine", 3: "press, arm, vent, fan at once"},
+    "thinworld": {2: "the road thins: the void shows through", 3: "only the edges remain"},
+}
 
 
 # The bible's timed and moving hazards and its jumps, per course, as cycling patches and
@@ -302,7 +367,12 @@ def build():
         t["walls"] = ["tiles", "tilesets", t["wallset"], t["wallset"] + " wall"]
         t["road_color"] = t.pop("road")
         fixed = [h for h in t.get("hazards", []) if h["kind"] != REPLACED.get(t["key"])]
-        t["hazards"] = fixed + TIMED.get(t["key"], [])
+        hz = fixed + TIMED.get(t["key"], [])
+        gone = LAPPED_REPLACES.get(t["key"], [])
+        hz = [h for h in hz if (h["kind"], h["at"]) not in gone]
+        t["hazards"] = hz + LAPPED.get(t["key"], [])
+        if t["key"] in LAP_NOTES:
+            t["lap_notes"] = {str(k): v for k, v in LAP_NOTES[t["key"]].items()}
         t["control"] = [[int(x), int(y)] for x, y in t["control"]]
         tracks.append(t)
     return tracks

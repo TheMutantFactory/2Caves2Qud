@@ -74,7 +74,7 @@ def _display(bp, blueprint, fallback):
 def _variants(bp, ms, display):
     """Siblings become variants; when their display names coincide they are numbered
     ('Snapjaw Scavenger 1 / 2 / 3') so the variant strip reads."""
-    names = [_display(bp, x["name"], x["name"]) for x in ms]
+    names = [_display(bp, x.get("qud", x["name"]), x.get("qud", x["name"])) for x in ms]
     out = []
     for i, x in enumerate(ms):
         n = names[i]
@@ -92,14 +92,14 @@ def build(bp, monsters, castes):
     # fold numbered siblings ("Snapjaw Scavenger 0/1/2") into one racer with variants
     groups = {}
     for m in monsters:
-        name = m["name"]
+        name = m.get("qud", m["name"])          # the blueprint name; "name" is the display name
         mm = NUMBERED.match(name)
         base = mm.group(1) if mm else name
         groups.setdefault(base, []).append(m)
     for base, ms in groups.items():
-        ms.sort(key=lambda x: x["name"])
+        ms.sort(key=lambda x: x.get("qud", x["name"]))
         lead = ms[0]
-        o = bp.get(lead["name"])
+        o = bp.get(lead.get("qud", lead["name"]))
         ch, tg = o["chain"], o["tags"]
         fam = "beasts"
         for fid, _, _, test in FAMILIES:
@@ -111,14 +111,14 @@ def build(bp, monsters, castes):
                 continue
         unit = lead["asset"][1]
         speed, weight, label = driving(float(lead.get("max_hp", 20)), bool(lead.get("flying")))
-        display = _display(bp, lead["name"], base)
+        display = _display(bp, lead.get("qud", lead["name"]), base)
         rec = {
             "id": unit, "name": display, "unit": unit, "kind": "monster", "family": fam,
             "tags": [t for t in (tg.get("Species"), tg.get("Class"), tg.get("Role")) if t],
             "variants": _variants(bp, ms, display),
             "hp": float(lead.get("max_hp", 20)), "flying": bool(lead.get("flying")),
             "speed": speed, "weight": weight, "driving_class": label,
-            "level": int(lead.get("level", 1)), "qud": lead["name"],
+            "level": int(lead.get("level", 1)), "qud": lead.get("qud", lead["name"]),
         }
         racers[unit] = rec
         by_family[fam].append(unit)

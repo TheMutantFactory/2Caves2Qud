@@ -166,8 +166,15 @@ in `HAZARD_KINDS` (`stun` per kind), pads call `Kart.launch` (air_t: no off-road
 lift in `update_visual`). `tools/qud_tracks.py` `TIMED` table adds them per course. Probe:
 `--hazard-log` prints `hazard: <kind> on|off t=` and `jump: <kart> t=`.
 
+PER-LAP HAZARD SETS (2026-09-05): hazard `laps` + `per_lap` overrides; `Race._apply_lap_sets`
+runs on the LEADER's lap (`_leader_lap`), dormant-by-lap hazards draw faint (preview), course
+`lap_notes` go through `say()`. `tools/qud_tracks.py` LAPPED / LAPPED_REPLACES / LAP_NOTES.
+Probe: `--hazard-log` → `lap N: hazard set k / n live`; `--timescale=3` gets a race to lap 3
+in ~35 s wall. monsters.json `name` is now the cleaned DISPLAY name; `qud` is the blueprint
+name (racers.json and abilities key on `qud`).
+
 Next, in order:
-1. Per-lap hazard sets and a second road for parallel routes, then section races (docs/tracks.md).
+1. A second road for parallel routes, then section races, then lap-changing geometry (docs/tracks.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.
