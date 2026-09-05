@@ -22,6 +22,8 @@ and sound without any of it entering the repo.
     sfx/<engine name>.ogg       the engine's sound cues mapped onto Qud clips
     music/battle_1..12.ogg, lose_theme.ogg, victory_theme.ogg, title_theme.ogg
     shared/                     a copy of shared/ (tracks, tuning, overrides, maps)
+    walls/                      a link to the store's voxel wall models (wall2vox.py);
+                                manifest "wall_families" says which family each tileset uses
 
 Run after tools/extract_qud.py (and again after changing shared/):
 
@@ -467,6 +469,22 @@ def main(argv=None):
     mapping = export_sounds(out)
     log("sounds:  %d cues + %d music" % (sum(1 for k in mapping if not k.startswith("battle_") and k not in THEMES),
                                         sum(1 for k in mapping if k.startswith("battle_") or k in THEMES)))
+    # the voxel wall models (tools/wall2vox.py) and which family each tileset uses
+    walls_src = qud_assets.path("walls")
+    walls_dst = os.path.join(out, "walls")
+    if os.path.isdir(walls_src):
+        if os.path.islink(walls_dst) or os.path.isfile(walls_dst):
+            os.remove(walls_dst)
+        elif os.path.isdir(walls_dst):
+            shutil.rmtree(walls_dst)
+        try:
+            os.symlink(walls_src, walls_dst, target_is_directory=True)
+        except OSError:
+            shutil.copytree(walls_src, walls_dst)
+        log("walls:   linked (%d models)" % len([f for f in os.listdir(walls_src) if f.endswith(".json")]))
+    else:
+        log("walls:   none (run tools/wall2vox.py for voxel barriers)")
+    manifest["wall_families"] = {ts: v[3] for ts, v in TILESETS.items()}
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=1)
     with open(os.path.join(out, "README.txt"), "w") as f:

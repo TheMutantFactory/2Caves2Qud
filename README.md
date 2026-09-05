@@ -91,6 +91,15 @@ Colours come from the blueprints that paint with that family (`PaintedWall` tag 
 parser, plus a front/top/back preview PNG. A self-check re-reads the elevation off the
 finished grid and fails the run if it differs from the art.
 
+In the game, `godot/QudVox.gd` turns those layers into one shared `ArrayMesh` per family
+(only solid-to-air faces, vertex-coloured per material) and `Track.gd` places the blocks
+where the engine used to stand flat wall sprites: runs of blocks across the sealed side
+streets of a city track (the barricades a kart bounces off), and short ruined runs of wall
+scattered beside a loop track, turned to face the road. One block spans the old 60-px sprite
+pitch, so the tracks' spacing and collisions are unchanged. The tileset → wall family mapping
+is the `wall_families` table in the exported manifest; a tileset without a voxel model falls
+back to the sprites.
+
 ## Licence
 
 MIT for everything in this repo. Caves of Qud and its assets are © Freehold Games and are not

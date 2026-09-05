@@ -8,6 +8,7 @@ extends Node3D
 
 const U := 0.05  # metres per world px
 const TILE_PX := 60.0
+const WALL_PX := 60.0   # one voxel wall block (16 voxels) spans this many world px
 
 var key: String
 var spec: Dictionary
@@ -346,35 +347,69 @@ func _build_buildings(max_px := 0.0) -> void:
 	add_child(mi)
 
 
-func _build_barricades() -> void:
+# Qud's wall family for this track's tileset (manifest "wall_families" from
+# tools/export_godot_assets.py), when the store has its voxel model.
+func _wall_family() -> String:
+	var ts: String = spec["walls"][2] if spec.get("walls", []).size() > 2 else ""
+	var fam := String(QUD.manifest.get("wall_families", {}).get(ts, ""))
+	return fam if fam != "" and QudVox.available(fam) else ""
+
+
+# One voxel wall block at a world-px position, its front face turned to `facing`
+# (the direction a viewer stands in). Blocks are WALL_PX wide, the old sprite pitch.
+func _wall_block(fam: String, variant: String, p: Vector2, facing: Vector2, parent: Node) -> bool:
+	var mi := QudVox.block(fam, variant, WALL_PX / 16.0, U)
+	if mi == null:
+		return false
+	mi.position = to3(p)
+	mi.rotation.y = atan2(facing.x, facing.y)
+	parent.add_child(mi)
+	return true
+
+
+func _wall_sprites() -> Array:
 	var walls: Array = []
 	var ts: String = spec["walls"][2]
 	for i in range(1, 5):
 		var tex: Texture2D = QUD.texture("tiles/%s_wall_%d.png" % [ts, i])
 		if tex:
 			walls.append(tex)
-	if walls.is_empty():
+	return walls
+
+
+func _build_barricades() -> void:
+	var fam := _wall_family()
+	var walls: Array = [] if fam != "" else _wall_sprites()
+	if fam == "" and walls.is_empty():
 		return
 	var holder := Node3D.new()
 	holder.name = "Barricades"
 	add_child(holder)
+	var blocks := 0
 	for bar in city.barricades(route, width):
 		var pos: Vector2 = bar["pos"]
 		var dir: Vector2 = bar["dir"]
 		var nrm := Vector2(-dir.y, dir.x)
 		var w: float = bar["width"]
 		barricade_walls.append([pos - nrm * (w * 0.5 + 20.0), pos + nrm * (w * 0.5 + 20.0)])
-		var count := maxi(2, int(ceil(w / 60.0)))
+		var count := maxi(2, int(ceil(w / WALL_PX)))
 		for k in count:
-			var off := (k - (count - 1) * 0.5) * 60.0
+			var off := (k - (count - 1) * 0.5) * WALL_PX
+			var p := pos + nrm * off
+			if fam != "":
+				# a run of blocks across the street, faces toward the route (the way the kart comes)
+				if _wall_block(fam, "", p, -dir, holder):
+					blocks += 1
+				continue
 			var s := Sprite3D.new()
 			s.texture = walls[k % walls.size()]
 			s.pixel_size = U
 			s.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 			s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-			var p := pos + nrm * off
 			s.position = Vector3(p.x * U, 30.0 * U, p.y * U)
 			holder.add_child(s)
+	if fam != "":
+		print("walls: %d voxel barricade blocks (%s)" % [blocks, fam])
 	barricade_nodes = [holder]
 
 
@@ -562,23 +597,38 @@ func _build_start_line() -> void:
 
 
 func _build_scenery(rng: RandomNumberGenerator) -> void:
-	var walls: Array = []
-	var ts: String = spec["walls"][2]
-	for i in range(1, 5):
-		var tex: Texture2D = QUD.texture("tiles/%s_wall_%d.png" % [ts, i])
-		if tex:
-			walls.append(tex)
-	if walls.is_empty():
-		return
 	if city != null:
 		return
+	var fam := _wall_family()
+	var walls: Array = [] if fam != "" else _wall_sprites()
+	if fam == "" and walls.is_empty():
+		return
+	var holder := Node3D.new()
+	holder.name = "Scenery"
+	add_child(holder)
 	var target := int(min(900, 140 * scale_k * scale_k))
 	var placed := 0
 	var tries := 0
 	while placed < target and tries < target * 20:
 		tries += 1
 		var p := Vector2(rng.randf_range(0, size.x), rng.randf_range(0, size.y))
-		if nearest(p, -1).dist < width * 0.8:
+		var near := nearest(p, -1)
+		if near.dist < width * 0.8:
+			continue
+		if fam != "":
+			# short ruined runs of wall off the road, turned to face it: isolated
+			# blocks for singles, the run model with its open ends for longer bits
+			var len_b := rng.randi_range(1, 4)
+			var d := direction_at(near.idx)
+			var along := d if rng.randf() < 0.5 else Vector2(-d.y, d.x)
+			var facing := Vector2(-along.y, along.x)
+			var q := points[near.idx]
+			if (p - q).dot(facing) < 0.0:
+				facing = -facing
+			var start := p - along * (len_b - 1) * 0.5 * WALL_PX
+			for k in len_b:
+				if _wall_block(fam, "-isolated" if len_b == 1 else "", start + along * k * WALL_PX, facing, holder):
+					placed += 1
 			continue
 		var s := Sprite3D.new()
 		s.texture = walls[rng.randi_range(0, walls.size() - 1)]
@@ -586,8 +636,10 @@ func _build_scenery(rng: RandomNumberGenerator) -> void:
 		s.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 		s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 		s.position = to3(p) + Vector3(0, 30.0 * U, 0)
-		add_child(s)
+		holder.add_child(s)
 		placed += 1
+	if fam != "":
+		print("walls: %d voxel scenery blocks (%s)" % [placed, fam])
 
 
 # ---------------------------------------------------------------- queries

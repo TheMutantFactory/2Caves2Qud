@@ -99,9 +99,15 @@ skull, resheph, spindle… — fall back to grey/white), and the ENGINE: importe
 Qud assets (menu, AI race on brick/ice, 904 creature racers + 24 castes, Qud floor/wall tiles,
 Qud sound cues + soundtrack). Verified by screenshot.
 
+Voxel walls IN GAME (2026-09-05): `godot/QudVox.gd` (static cache, one ArrayMesh per
+model, `vertex_color_is_srgb`) + `Track._build_barricades` / `_build_scenery` place blocks at
+`WALL_PX` (60 px) pitch, front face toward the road (`rotation.y = atan2(facing.x, facing.y)`).
+The race log prints `walls: N voxel ... blocks (<family>)` — read that, not the screenshot,
+to know the voxel path ran (the sprite fallback prints nothing). Verified brick + chicago_loop.
+
 Next, in order:
-1. A GDScript loader for `walls/<family>.json` (layers → one ArrayMesh per family) and a
-   track-side barrier that tiles the run model, replacing the flat `<ts>_wall_N.png` quads.
+1. Wall END pieces: wall2vox only exports the run (`00100010`) and isolated models, so a
+   barricade's end blocks show open ends; export `00100000`/`00000010` and use them at run ends.
 2. Qud items as the pickups/weapons: `Items.xml` blueprints (grenades, guns, tonics) in place
    of the RW3 spell list — `data/spells.json` is `[]` today, so item boxes give nothing.
 3. Mutations as monster abilities (`Mutations.xml`), `Sounds.xml` event→clip mapping for the
