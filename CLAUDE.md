@@ -27,6 +27,9 @@ and `godot/qud/` in case something lands in the tree by accident.
 .venv/bin/python tools/extract_qud.py       # tiles + sfx + data; no-op when current; --force, --only tiles,sfx,data
 .venv/bin/python tools/wall2vox.py [name]   # wall families -> walls/*.vox|json|png; exits 1 on a failed self-check
 .venv/bin/python tools/qud_assets.py        # where the store is + its manifest
+.venv/bin/python tools/export_godot_assets.py   # fill <store>/godot + link godot/qud (after extract; after shared/ edits)
+/Users/homefolder/Downloads/Godot.app/Contents/MacOS/Godot --headless --path godot --quit-after 4 -- --mute   # script/boot check
+/Users/homefolder/Downloads/Godot.app/Contents/MacOS/Godot --path godot -- --track=brick --auto --frames=240 --screenshot=/tmp/r.png --mute
 ```
 
 ## How Qud stores what we take (verified 2026-09-05, game 2.0.4)
@@ -67,20 +70,42 @@ and `godot/qud/` in case something lands in the tree by accident.
   cadence). Git identity: DazzlingDukeOfLazers <daniel.dee@gmail.com>.
 - When a tool path or command is needed twice, put it in this file, not the session.
 
+## The engine (imported 2026-09-05 from drift-wizard-3 `rift-type`, see docs/drift-wizard-3/ENGINE_BASE)
+
+`godot/` + `shared/` + `docs/drift-wizard-3/` came over whole with `git archive` — no shared
+history, so sync by diffing against the recorded commit. Three deliberate deltas from upstream:
+`RW3.gd` → `QUD.gd` (autoload `QUD`, root `res://qud/`); `Audio._stream` loads OGG/WAV from
+the file at runtime (the store is outside the project, nothing is imported);
+`net/SteamNet.gd` reaches the GodotSteam singleton through `Engine.get_singleton` so the
+autoload chain boots without the extension. Keep those three when pulling upstream changes.
+
+- `godot/qud` is a SYMLINK to `<store>/godot`, made by `tools/export_godot_assets.py`
+  (junction on Windows). Godot follows it; `.godot/` is the only import cache and it is ignored.
+- The engine's asset contract (what `QUD.texture()` etc. expect) is documented at the top of
+  `tools/export_godot_assets.py`. Racers = `data/monsters.json` + `units/<unit>_idle.png`
+  (16×24 tiles ×3, `frame_size` 72) — the engine positions sprites by `frame_size` as height.
+- Grand Prix races the `player_*` wardrobe skins (Qud castes); Monster Campaign / realms race
+  `monsters.json` by difficulty band = 1 + (Level-1)//4. A creature with no `Level` is band 1.
+- Headless boot check + a windowed AI race with `--frames=N --screenshot=path` (quits itself)
+  are the two verifications; both in README. The race prints a `race: state=...` line at the end.
+- Editor rescan: after ADDING a `class_name`, `--headless --editor --quit` once, else the
+  headless check reports `Identifier "X" not declared` for every class_name script.
+
 ## Status (2026-09-05) and what's next
 
 Done: install locate/validate, the one-time extractor (27,462 tiles + 3,020 sounds + data),
-and `wall2vox.py` (80 wall families, all 16×24, face 10 rows, cap 12–14 rows; 56 families get
-blueprint colours, the other 24 — coolant, nephilim, skull, resheph, spindle… — are painted by
-other mechanisms and fall back to grey/white).
+`wall2vox.py` (80 wall families; 56 get blueprint colours, the other 24 — coolant, nephilim,
+skull, resheph, spindle… — fall back to grey/white), and the ENGINE: imported and booting on
+Qud assets (menu, AI race on brick/ice, 904 creature racers + 24 castes, Qud floor/wall tiles,
+Qud sound cues + soundtrack). Verified by screenshot.
 
 Next, in order:
-1. **Bring in the engine.** Decide which drift-wizard-3 branch to start from (`rift-type` has
-   everything incl. multiplayer; `feature/godot-3d` is the lean 3D racer) and copy `godot/` +
-   `shared/` here, then swap its `rw3/` asset root for the Qud store (`godot/qud/` symlink or
-   an `export_godot_assets.py` step that copies just what the game uses).
-2. A GDScript loader for `walls/<family>.json` (layers → one ArrayMesh per family, greedy
-   faces are optional at 2.5k voxels) and a track-side barrier that tiles the run model.
-3. Sprites for karts/items: creature and item tiles are 2-bit too; the recolour rule is in
-   `tools/qud_palette.py` (black→TileColor, white→DetailColor), blueprints in `data/`.
-4. `Sounds.xml` in `data/` maps game events to clip names in `sfx/index.json`.
+1. A GDScript loader for `walls/<family>.json` (layers → one ArrayMesh per family) and a
+   track-side barrier that tiles the run model, replacing the flat `<ts>_wall_N.png` quads.
+2. Qud items as the pickups/weapons: `Items.xml` blueprints (grenades, guns, tonics) in place
+   of the RW3 spell list — `data/spells.json` is `[]` today, so item boxes give nothing.
+3. Mutations as monster abilities (`Mutations.xml`), `Sounds.xml` event→clip mapping for the
+   cues that are still regex guesses (see `<store>/godot/sfx/mapping.json`).
+4. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
+5. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
+   (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

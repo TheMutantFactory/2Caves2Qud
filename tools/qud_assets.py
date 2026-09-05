@@ -71,11 +71,51 @@ def write_manifest(m):
     os.replace(tmp, manifest_path())
 
 
+_TILE_INDEX = None
+
+
+def tile_index():
+    """tiles/index.json keyed by the LOWER-CASED blueprint path. Blueprints write
+    tile paths every which way ('Creatures/sw_crow.bmp', 'creatures\\sw_eel_2.bmp',
+    'Assets_Content_Textures_Creatures_sw_farmer.bmp'); the game resolves them
+    case-insensitively and so do we."""
+    global _TILE_INDEX
+    if _TILE_INDEX is None:
+        _TILE_INDEX = {}
+        try:
+            with open(path("tiles", "index.json"), "r", encoding="utf-8") as f:
+                for k, v in json.load(f).items():
+                    _TILE_INDEX[k.lower()] = v
+        except (OSError, ValueError):
+            pass
+    return _TILE_INDEX
+
+
+def normalize_tile_path(qud_tile_path):
+    """Any of the game's spellings -> 'folder/name.ext' lower-cased."""
+    p = qud_tile_path.replace("\\", "/").strip().lstrip("/").lower()
+    prefix = "assets_content_textures_"
+    if p.startswith(prefix):
+        rest = p[len(prefix):]
+        folder, _, fname = rest.partition("_")
+        p = folder + "/" + fname
+    return p
+
+
 def tile_file(qud_tile_path):
-    """'Creatures/sw_glowfish.bmp' -> absolute path of the extracted PNG."""
-    rel = qud_tile_path.replace("\\", "/").lstrip("/")
-    stem, _ext = os.path.splitext(rel)
-    return path("tiles", *stem.split("/")) + ".png"
+    """'Creatures/sw_glowfish.bmp' (any spelling) -> absolute path of the extracted
+    PNG, or None when the store has no such tile."""
+    key = normalize_tile_path(qud_tile_path)
+    entry = tile_index().get(key)
+    if entry is None:
+        stem, _ext = os.path.splitext(key)
+        for ext in (".bmp", ".png"):
+            entry = tile_index().get(stem + ext)
+            if entry:
+                break
+    if entry is None:
+        return None
+    return path("tiles", *entry["file"].split("/"))
 
 
 if __name__ == "__main__":

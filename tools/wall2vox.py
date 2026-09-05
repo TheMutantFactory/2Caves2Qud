@@ -53,6 +53,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import qud_assets  # noqa: E402
+import qud_blueprints  # noqa: E402
 import qud_palette  # noqa: E402
 
 W, D, H = 16, 16, 10          # voxel block: width (x), depth (y), height (z)
@@ -242,7 +243,7 @@ def family_colours(data_dir):
         if not fn.endswith(".xml"):
             continue
         try:
-            root = ET.parse(os.path.join(bp_dir, fn)).getroot()
+            root = qud_blueprints.parse_xml(os.path.join(bp_dir, fn))
         except ET.ParseError:
             continue
         for ob in root.iter("object"):

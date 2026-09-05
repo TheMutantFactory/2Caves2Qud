@@ -1,0 +1,561 @@
+{
+  "_comment": "Gameplay numbers shared by both paths. Units: world px, seconds, radians. See docs/kart-reference.md for where each mechanic comes from.",
+  "race": {
+    "laps": 3,
+    "racers": 8,
+    "track_scale": 4.0,
+    "countdown": 3.6,
+    "waypoint_spacing": 90
+  },
+  "kart": {
+    "max_speed": 780,
+    "accel": 640,
+    "brake": 1000,
+    "turn": 2.7,
+    "turn_curve": [
+      [
+        0.0,
+        0.4
+      ],
+      [
+        0.25,
+        1.0
+      ],
+      [
+        0.8,
+        0.5
+      ],
+      [
+        1.6,
+        0.45
+      ]
+    ],
+    "steer_smooth": 9.0,
+    "grip": 7.0,
+    "drag": 0.55,
+    "offroad_drag": 1.6,
+    "offroad_speed": 0.45,
+    "radius": 24,
+    "stat_speed_pct": 0.025,
+    "stat_accel_pct": 0.12,
+    "stat_weight_turn_pct": 0.03,
+    "boost_accel_multiplier": 2.0,
+    "coin_speed_pct": 0.04
+  },
+  "drift": {
+    "min_speed_ratio": 0.55,
+    "grip": 1.7,
+    "turn_multiplier": 1.4,
+    "steer_min": 0.2,
+    "steer_max": 1.0,
+    "inward_charge_multiplier": 2.5,
+    "stages": [
+      {
+        "charge": 0.6,
+        "boost_time": 0.6,
+        "strength": 0.21
+      },
+      {
+        "charge": 1.4,
+        "boost_time": 1.2,
+        "strength": 0.26
+      },
+      {
+        "charge": 2.4,
+        "boost_time": 2.0,
+        "strength": 0.3
+      }
+    ],
+    "stat_charge_pct": 0.05
+  },
+  "boost": {
+    "metabolism_light": 0.5,
+    "metabolism_heavy": 1.0,
+    "cap": 0.8
+  },
+  "slipstream": {
+    "length": 360,
+    "width": 70,
+    "collect_time": 2.2,
+    "min_speed_ratio": 0.72,
+    "strength": 0.18,
+    "time": 1.6
+  },
+  "start": {
+    "window_before": 0.35,
+    "window_after": 0.15,
+    "burnout_hold": 0.9,
+    "burnout_stun": 0.7,
+    "strength": 0.35,
+    "time": 1.0
+  },
+  "bump": {
+    "push": 0.5
+  },
+  "ai": {
+    "speed_cap": [
+      [
+        -2000,
+        1.14
+      ],
+      [
+        -500,
+        1.06
+      ],
+      [
+        0,
+        1.0
+      ],
+      [
+        500,
+        0.94
+      ],
+      [
+        1500,
+        0.86
+      ]
+    ],
+    "drift_prob": [
+      [
+        -1500,
+        1.0
+      ],
+      [
+        0,
+        0.6
+      ],
+      [
+        1500,
+        0.2
+      ]
+    ],
+    "skill_floor": 0.93,
+    "start_reaction": [
+      -0.3,
+      1.15
+    ]
+  },
+  "items": {
+    "respawn": 5.0,
+    "far_seconds": 8.0,
+    "small_field_pct": 0.125,
+    "odds": {
+      "fireball": [
+        4,
+        3,
+        1
+      ],
+      "freeze": [
+        4,
+        2,
+        0
+      ],
+      "wolf": [
+        3,
+        2,
+        1
+      ],
+      "blink": [
+        0,
+        2,
+        4
+      ],
+      "lightning_form": [
+        1,
+        3,
+        5
+      ],
+      "lightning_bolt": [
+        0,
+        2,
+        4
+      ]
+    },
+    "lightning_form_strength": 0.5,
+    "lightning_form_time": 2.4
+  },
+  "mode7": {
+    "cam_height": 120,
+    "cam_back": 290,
+    "fov_deg": 78,
+    "horizon": 0.4
+  },
+  "godot": {
+    "elevation_px": 60,
+    "elevation_freq": 0.0006,
+    "cam_back": 260,
+    "cam_height": 110,
+    "cam_ahead": 200,
+    "cam_fov": 70
+  },
+  "campaign": {
+    "max_hp": 50,
+    "start_sp": 3,
+    "gate_sp": 2,
+    "gate_heal": 25,
+    "lap_damage_per_rank": 2,
+    "heart_heal": 15,
+    "item_damage": 6,
+    "wolf_damage": 5,
+    "mob_damage": 2,
+    "monster_hp_scale": 1.0,
+    "ability_cooldown": [
+      6.0,
+      12.0
+    ],
+    "ability_speed": 700,
+    "shiny_odds": {
+      "spell": 4,
+      "scroll": 4,
+      "heart": 2,
+      "sp": 2,
+      "trinket": 1
+    },
+    "kill_sp": 1,
+    "quick_shop_timescale": 0.15,
+    "quick_offers": 4,
+    "lap_damage_cap": 8,
+    "lap_damage_lead_pct": 0.2,
+    "lap_damage_lead_min": 2,
+    "ability_damage_by_band": [
+      [
+        1,
+        0.6
+      ],
+      [
+        5,
+        1.0
+      ],
+      [
+        9,
+        1.3
+      ]
+    ],
+    "boss_realms": [
+      10,
+      15,
+      20
+    ],
+    "boss_hp_base": 60,
+    "boss_hp_per_realm": 8,
+    "unlimited_cooldown": 1.2,
+    "melee_range": 180,
+    "melee_shove": 260,
+    "coin_lines": 6,
+    "coins_per_line": 5,
+    "coin_max": 6,
+    "coin_spill": 3,
+    "generator_cap": 3,
+    "generator_mob_speed": 60,
+    "wizard_racer_hp": 40,
+    "monster_racer_cooldown": 3.0
+  },
+  "survivors": {
+    "city": "chicago_loop",
+    "hero_speed": 105,
+    "hero_hp": 50,
+    "magnet": 220,
+    "xp_base": 12,
+    "xp_step": 10,
+    "realm_seconds": 60,
+    "species_per_realm": 7,
+    "spawn_base": 1.0,
+    "spawn_per_realm": 0.5,
+    "max_mobs": 350,
+    "spawn_radius": [
+      1500,
+      2200
+    ],
+    "despawn_radius": 3600,
+    "mob_speed_base": 37.5,
+    "mob_speed_per_stat": 6.25,
+    "mob_hp_scale": 1.0,
+    "ability_cooldown": [
+      4.0,
+      7.0
+    ],
+    "ranged_damage_scale": 0.6,
+    "heart_chance": 0.03,
+    "heart_heal": 15,
+    "gem_life": 60,
+    "cam_back": 560,
+    "cam_height": 380,
+    "cam_fov": 55,
+    "max_building_px": 320,
+    "contact_damage_scale": 0.6,
+    "damage_by_band": [
+      [
+        1,
+        0.6
+      ],
+      [
+        5,
+        1.0
+      ],
+      [
+        9,
+        1.4
+      ]
+    ],
+    "hurt_invuln": 0.5,
+    "boss_hp_cap": 900,
+    "cooldown_scale": 4.0,
+    "arena": "realm",
+    "arena_px": 9000,
+    "arena_floor": "moss",
+    "opening_mobs": 3,
+    "opening_distance": 480,
+    "realm_tile_px": 200,
+    "orb_xp": 8,
+    "spawner_cap": 4,
+    "spawner_cooldown_scale": 0.8,
+    "xp_quad": 3.0,
+    "realm_cam_height": 900,
+    "realm_cam_back": 330
+  },
+  "gauntlet": {
+    "hero_speed": 260,
+    "mob_speed_base": 18,
+    "mob_speed_per_stat": 6,
+    "mob_hp_scale": 1.0,
+    "spawner_hp": 40,
+    "spawner_cooldown": [
+      6.0,
+      10.0
+    ],
+    "spawner_cap": 5,
+    "spawner_sp": 2,
+    "max_mobs": 80,
+    "ability_cooldown": [
+      3.0,
+      6.0
+    ],
+    "ranged_damage_scale": 0.5,
+    "contact_damage_scale": 0.6,
+    "damage_by_realm": [
+      [
+        1,
+        0.6
+      ],
+      [
+        10,
+        1.0
+      ],
+      [
+        21,
+        1.5
+      ]
+    ],
+    "hurt_invuln": 0.5,
+    "heart_chance": 0.06,
+    "heart_heal": 15,
+    "cam_back": 360,
+    "cam_height": 640,
+    "cam_fov": 55
+  },
+  "rig": {
+    "_comment": "test rig archetypes (docs/test-rig.md). kinematic: NPCs slide along the route holding their gap (a stun stops them); --drive uses the kart physics with speed_scale, the bend cap and catchup_gain instead. catchup_max caps the kinematic catch-up in px/s",
+    "npc_hp": 200,
+    "speed_scale": 1.45,
+    "catchup_gain": 1.2,
+    "swerve_period": 2.4,
+    "settle_time": 3.0,
+    "swerve_amplitude": 0.55,
+    "bend_look": 220.0,
+    "bend_cap_base": 2.0,
+    "bend_cap_gain": 0.0,
+    "kinematic": true,
+    "catchup_max": 400.0,
+    "recover_time": 5.0,
+    "slow_steps": [
+      1.0,
+      0.3,
+      0.1
+    ]
+  },
+  "summons": {
+    "_comment": "summoned karts ride in formation with their owner: one beside (lateral as a fraction of half the road), up to ring_max in a fixed ring of ring_radius px, more in a road-following grid of grid_lanes across and grid_row_px between rows behind; they bite enemy karts within bite_range px every bite_cooldown s",
+    "beside_lateral": 0.55,
+    "ring_max": 8,
+    "ring_radius": 110,
+    "grid_lanes": [
+      -0.6,
+      0.6,
+      0.0
+    ],
+    "grid_row_px": 75,
+    "bite_range": 60,
+    "bite_cooldown": 1.0,
+    "follow_rate": 8.0
+  },
+  "realm_spells": {
+    "_comment": "scroll lists for realm-built tracks, by the realm's tileset",
+    "brick": [
+      "Magic Missile",
+      "Wolf",
+      "Summon Blade",
+      "Poison Sting",
+      "Blink",
+      "Arcane Warding",
+      "Healing Light",
+      "Giant Bear",
+      "Void Beam",
+      "Petrify"
+    ],
+    "volcano": [
+      "Fireball",
+      "Immolate",
+      "Melt",
+      "Fan of Flames",
+      "Dragon Breath",
+      "Invoke Savagery",
+      "Shrapnel Blast",
+      "Fire Drake",
+      "Flame Burst",
+      "Pillar of Fire"
+    ],
+    "ice": [
+      "Icicle",
+      "Iceball",
+      "Freeze",
+      "Lightning Bolt",
+      "Death Chill",
+      "Ice Vortex",
+      "Chain Lightning",
+      "Blizzard",
+      "Ice Drake",
+      "Lightning Form"
+    ],
+    "stone": [
+      "Magic Missile",
+      "Lightning Bolt",
+      "Summon Blade",
+      "Arcane Warding",
+      "Blink",
+      "Void Beam",
+      "Petrify",
+      "Healing Light",
+      "Chain Lightning",
+      "Wolf"
+    ],
+    "cave": [
+      "Death Bolt",
+      "Wolf",
+      "Poison Sting",
+      "Shadow Hex",
+      "Darkness",
+      "Giant Bear",
+      "Death Chill",
+      "Lifedrain",
+      "Petrify",
+      "Blink"
+    ],
+    "jungle": [
+      "Poison Sting",
+      "Wolf",
+      "Giant Bear",
+      "Toxin Burst",
+      "Regeneration Aura",
+      "Spider Queen",
+      "Rain Storm",
+      "Invoke Savagery",
+      "Earthquake",
+      "Torrent"
+    ],
+    "moss": [
+      "Wolf",
+      "Poison Sting",
+      "Regeneration Aura",
+      "Giant Bear",
+      "Rain Storm",
+      "Freeze",
+      "Earthquake",
+      "Blink",
+      "Healing Light",
+      "Magic Missile"
+    ],
+    "fossil": [
+      "Death Bolt",
+      "Summon Bone Knights",
+      "Bone Spear",
+      "Dread Lash",
+      "Touch of Death",
+      "Shadow Hex",
+      "Seal Fate",
+      "The Restless Dead",
+      "Death Chill",
+      "Blink"
+    ],
+    "flesh": [
+      "Blood Bullet",
+      "Lifedrain",
+      "Bone Spear",
+      "Bloodshift",
+      "Drain Pulse",
+      "Vampiricism",
+      "Goatia Offering",
+      "Boiling Blood",
+      "Pain Mirror",
+      "Blink"
+    ],
+    "fishbone": [
+      "Icicle",
+      "Freeze",
+      "Iceball",
+      "Chill Wind",
+      "Death Chill",
+      "Blizzard",
+      "Ice Vortex",
+      "Shatter",
+      "Lightning Bolt",
+      "Blink"
+    ],
+    "turtle": [
+      "Magic Missile",
+      "Wolf",
+      "Iceball",
+      "Fireball",
+      "Lightning Bolt",
+      "Arcane Warding",
+      "Healing Light",
+      "Blink",
+      "Giant Bear",
+      "Chain Lightning"
+    ],
+    "default": [
+      "Lightning Bolt",
+      "Fireball",
+      "Wolf",
+      "Blink",
+      "Healing Light",
+      "Arcane Warding",
+      "Chain Lightning",
+      "Death Bolt",
+      "Freeze",
+      "Magic Missile"
+    ]
+  },
+  "rifttype": {
+    "_doc": "Rift-Type side-scroller: scroll px/s, wizard stats, bolts, the charged wave, monsters and the boss",
+    "scroll_speed": 130,
+    "segments": 7,
+    "wave_gap": 470,
+    "player_hp": 40,
+    "player_speed": 420,
+    "wall_damage": 3,
+    "contact_damage": 3,
+    "bolt_damage": 4,
+    "bolt_cooldown": 0.16,
+    "bolt_speed": 900,
+    "charge_time": 1.0,
+    "wave_damage": 14,
+    "enemy_hp_scale": 0.22,
+    "enemy_cooldown_scale": 1.5,
+    "enemy_damage": 4,
+    "enemy_bolt_speed": 300,
+    "boss_hp_base": 140,
+    "boss_hp_per_realm": 45,
+    "xp_base": 24,
+    "xp_power": 1.45
+  }
+}

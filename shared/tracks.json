@@ -1,0 +1,342 @@
+{
+ "_comment": "Track definitions shared by the Mode-7 mod (mod/) and the Godot build (godot/). Coordinates are unscaled world px; both paths apply tuning.race.track_scale. Asset lists follow the game's rl_data layout. City tracks carry a 'city' key naming a shared/maps/<city>.json (OpenStreetMap, ODbL); their loop is a random route through the street grid instead of the control points. Each track's 'spells' are the scrolls that appear on it; running over one adds the spell to the action bar.",
+ "tracks": [
+  {
+   "key": "brick",
+   "name": "Ruined Brick Circuit",
+   "floor": [
+    "tiles",
+    "tilesets",
+    "brick",
+    "brick floor",
+    "floor"
+   ],
+   "offroad": [
+    "tiles",
+    "tilesets",
+    "moss",
+    "moss floor",
+    "floor"
+   ],
+   "walls": [
+    "tiles",
+    "tilesets",
+    "brick",
+    "brick wall"
+   ],
+   "size": [
+    3600,
+    2400
+   ],
+   "width": 230,
+   "ground": [
+    8,
+    12,
+    6
+   ],
+   "road_color": [
+    82,
+    76,
+    70
+   ],
+   "control": [
+    [
+     600,
+     520
+    ],
+    [
+     1500,
+     380
+    ],
+    [
+     2600,
+     520
+    ],
+    [
+     3150,
+     1000
+    ],
+    [
+     2650,
+     1450
+    ],
+    [
+     3050,
+     1950
+    ],
+    [
+     2200,
+     2050
+    ],
+    [
+     1550,
+     1650
+    ],
+    [
+     900,
+     2000
+    ],
+    [
+     380,
+     1500
+    ],
+    [
+     620,
+     1000
+    ]
+   ],
+   "spells": [
+    "Magic Missile",
+    "Wolf",
+    "Summon Blade",
+    "Poison Sting",
+    "Blink",
+    "Arcane Warding",
+    "Healing Light",
+    "Giant Bear",
+    "Void Beam",
+    "Petrify"
+   ]
+  },
+  {
+   "key": "volcano",
+   "name": "Inferno Rift",
+   "floor": [
+    "tiles",
+    "tilesets",
+    "volcano",
+    "volcano floor",
+    "floor"
+   ],
+   "offroad": [
+    "tiles",
+    "chasm",
+    "chasm_lava"
+   ],
+   "walls": [
+    "tiles",
+    "tilesets",
+    "volcano",
+    "volcano wall"
+   ],
+   "size": [
+    3600,
+    2400
+   ],
+   "width": 210,
+   "ground": [
+    0,
+    0,
+    0
+   ],
+   "road_color": [
+    70,
+    48,
+    44
+   ],
+   "control": [
+    [
+     500,
+     1200
+    ],
+    [
+     900,
+     500
+    ],
+    [
+     1800,
+     350
+    ],
+    [
+     2700,
+     600
+    ],
+    [
+     3100,
+     1200
+    ],
+    [
+     2700,
+     1800
+    ],
+    [
+     2000,
+     1500
+    ],
+    [
+     1500,
+     1950
+    ],
+    [
+     800,
+     1900
+    ]
+   ],
+   "spells": [
+    "Fireball",
+    "Immolate",
+    "Melt",
+    "Fan of Flames",
+    "Dragon Breath",
+    "Invoke Savagery",
+    "Shrapnel Blast",
+    "Fire Drake",
+    "Flame Burst",
+    "Pillar of Fire"
+   ]
+  },
+  {
+   "key": "ice",
+   "name": "Frostbite Run",
+   "floor": [
+    "tiles",
+    "tilesets",
+    "ice",
+    "ice floor",
+    "floor"
+   ],
+   "offroad": [
+    "tiles",
+    "chasm",
+    "chasm_water"
+   ],
+   "walls": [
+    "tiles",
+    "tilesets",
+    "ice",
+    "ice wall"
+   ],
+   "size": [
+    3600,
+    2400
+   ],
+   "width": 240,
+   "ground": [
+    0,
+    0,
+    0
+   ],
+   "road_color": [
+    64,
+    78,
+    92
+   ],
+   "control": [
+    [
+     400,
+     400
+    ],
+    [
+     1200,
+     700
+    ],
+    [
+     2000,
+     380
+    ],
+    [
+     3200,
+     500
+    ],
+    [
+     3100,
+     1300
+    ],
+    [
+     2300,
+     1100
+    ],
+    [
+     2400,
+     1900
+    ],
+    [
+     1400,
+     2000
+    ],
+    [
+     500,
+     1700
+    ],
+    [
+     900,
+     1200
+    ]
+   ],
+   "spells": [
+    "Icicle",
+    "Iceball",
+    "Freeze",
+    "Lightning Bolt",
+    "Death Chill",
+    "Ice Vortex",
+    "Chain Lightning",
+    "Blizzard",
+    "Ice Drake",
+    "Lightning Form"
+   ]
+  },
+  {
+   "key": "chicago_loop",
+   "name": "Chicago Loop",
+   "city": "chicago_loop",
+   "route_len_m": [
+    1200,
+    2000
+   ],
+   "floor": [
+    "tiles",
+    "tilesets",
+    "stone",
+    "stone floor",
+    "floor"
+   ],
+   "offroad": [
+    "tiles",
+    "tilesets",
+    "brick",
+    "brick floor",
+    "floor"
+   ],
+   "walls": [
+    "tiles",
+    "tilesets",
+    "brick",
+    "brick wall"
+   ],
+   "size": [
+    71608,
+    71244
+   ],
+   "width": 480,
+   "ground": [
+    34,
+    34,
+    38
+   ],
+   "road_color": [
+    72,
+    72,
+    78
+   ],
+   "control": [
+    [
+     0,
+     0
+    ]
+   ],
+   "spells": [
+    "Lightning Bolt",
+    "Fireball",
+    "Wolf",
+    "Blink",
+    "Healing Light",
+    "Arcane Warding",
+    "Chain Lightning",
+    "Death Bolt",
+    "Freeze",
+    "Magic Missile"
+   ]
+  }
+ ]
+}

@@ -13,9 +13,11 @@ committed.
 ## Layout
 
 ```
-tools/            read the Qud install, write the asset store, build wall voxels
-godot/            the game (Godot 4.7); godot/qud/ is a gitignored link/copy of the store
-docs/             design notes
+tools/            read the Qud install, write the asset store, build wall voxels, fill the engine's asset contract
+godot/            the game (Godot 4.7): the drift-wizard-3 kart racer, its asset root re-pointed
+                  at res://qud/ — a gitignored link into the asset store
+shared/           the engine's data contract: tracks.json, tuning.json, overrides.json, maps/
+docs/             design notes; docs/drift-wizard-3/ is the engine's own documentation as imported
 ```
 
 ## One-time setup: extract the Qud assets
@@ -47,6 +49,29 @@ What goes in the store, and where it comes from:
 | `sfx/<name>.ogg` + `index.json` | every sound effect and music clip | the `AudioClip`s streamed from `resources.resource`, decoded (FMOD Vorbis) and re-encoded as OGG Vorbis |
 | `data/` | blueprints, `Colors.xml`, `Sounds.xml`, maps, text | a verbatim copy of `StreamingAssets/Base` |
 | `walls/<family>.vox` / `.json` / `.png` + `index.json` | a voxel wall block per autotiled wall family | `tools/wall2vox.py`, from the tiles above |
+
+## Run the game
+
+```bash
+.venv/bin/python tools/export_godot_assets.py   # fill godot/qud from the store (again after editing shared/)
+"<godot>" --path godot                          # the menu
+"<godot>" --path godot -- --track=brick --auto --frames=400 --screenshot=out.png   # an AI race, one frame, quit
+"<godot>" --headless --path godot --quit-after 5                                   # script-error check
+```
+
+The engine is the Godot build of [drift-wizard-3](https://github.com/TheMutantFactory/drift-wizard-3)
+at the commit recorded in `docs/drift-wizard-3/ENGINE_BASE`, imported whole (race, campaign,
+local split-screen and Steam multiplayer, survivors, gauntlet and rift-type modes) with three
+changes: the `RW3` autoload is `QUD` and reads `res://qud/`, sounds load straight from the
+store's OGG files instead of being imported, and the Steam layer compiles without the
+GodotSteam extension (online stays off until `tools/get_godotsteam.py` fetches it).
+`tools/export_godot_assets.py` fills the engine's asset contract from Qud: every creature
+blueprint with a tile becomes a racer (its `Level` sets the difficulty band, `Hitpoints` the
+weight), the player castes from `Subtypes.xml` are the wardrobe skins, track road and ground
+are Qud floor tiles over the track colours, barricades are wall-family faces, the engine's
+sound cues map onto Qud clips and its twelve battle themes onto Qud's soundtrack. Effects,
+projectiles and item pickups are procedural placeholders in Qud colours until Qud's own
+items and mutations take their place; spells and equipment are empty lists for now.
 
 ## Wall voxels
 
