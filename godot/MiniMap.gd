@@ -55,7 +55,8 @@ func _draw() -> void:
 	for p in track.points:
 		route.append(_world_to_map(p, center, scale))
 	if route.size() > 1:
-		route.append(route[0])
+		if not track.open:
+			route.append(route[0])
 		var rw := maxf(2.0, track.width * scale) if track.city != null else 3.0
 		draw_polyline(route, Color(1.0, 0.93, 0.35, 0.9), rw)
 	for br in track.branches:

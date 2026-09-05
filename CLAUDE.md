@@ -180,8 +180,16 @@ branch sample's EQUIVALENT loop index (`branch_equiv`) so `advance` keeps laps; 
 them. GDScript gotcha: `var x := <expr over an untyped param>` fails to infer — type it.
 Probe: `branches: N parallel routes` + `branch: <kart> takes <name>` under `--hazard-log`.
 
+SECTION RACES (2026-09-05): spec `sections` > 0 → `Track.open` (open Catmull-Rom with a
+500 px lead-in, `start_i`, `start_wp()`, `direction_at` clamps, `nearest` no wrap, `advance`
+finishes at the far end by setting `kart.lap = 99`, a FinishLine mesh); Race sets every
+kart's `next_wp = track.start_wp()`, skips the lap rule on open roads, and the HUD /
+`_leader_lap` use `stage_of` / `stage_name` / `stage_count`. Probe: `section N: hazard set`
+lines and `race: state=gates|finished lap=99`. The rig's arc-length helpers still assume a loop.
+
 Next, in order:
-1. Section races, then lap-changing geometry, then moving hazards with a path (docs/tracks.md).
+1. Lap-changing geometry (lilies, the thinning road), then moving hazards with a path, then
+   authored elevation (docs/tracks.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

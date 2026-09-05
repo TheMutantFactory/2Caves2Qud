@@ -29,6 +29,11 @@ var free_mode := false
 # Parallel routes (spec "branches"): a second road that leaves the loop at one fraction and
 # rejoins at another. {name, kind (safe|expert), pts, from_i, to_i, width, ai_take, hazards}
 var branches: Array = []
+# Section races (spec "sections" > 0): the road is OPEN — one way from the grid to a finish
+# at the far end, no laps; the course develops by section instead of by lap.
+var open := false
+var sections := 0
+var start_i := 0                 # the loop index the grid stands on (after the lead-in)
 
 
 func setup(k: String, rng: RandomNumberGenerator) -> void:
@@ -75,11 +80,22 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	for c in spec["control"]:
 		control.append(Vector2(c[0], c[1]) * scale_k)
 	var spacing := float(Shared.t(["race", "waypoint_spacing"], 90.0))
-	points = catmull_rom(control, maxi(4, int(round(8.0 * scale_k * 90.0 / spacing))))
+	var samples := maxi(4, int(round(8.0 * scale_k * 90.0 / spacing)))
+	sections = int(spec.get("sections", 0))
+	open = sections > 0
+	if open:
+		# a lead-in behind the first point so the grid stands on road, then the one-way path
+		var d0: Vector2 = (control[1] - control[0]).normalized()
+		control.insert(0, control[0] - d0 * 500.0 * scale_k)
+		points = catmull_rom_open(control, samples)
+		start_i = samples
+	else:
+		points = catmull_rom(control, samples)
+		start_i = 0
 	n = points.size()
 	seg_len.resize(n)
 	for i in n:
-		seg_len[i] = maxf(1.0, points[(i + 1) % n].distance_to(points[i]))
+		seg_len[i] = maxf(1.0, points[(i + 1) % n].distance_to(points[i])) if (not open or i < n - 1) else 1.0
 
 	elev_amp = float(spec.get("elevation", Shared.t(["godot", "elevation_px"], 60.0)))
 	noise.seed = rng.randi()
@@ -481,8 +497,31 @@ func to3(p: Vector2, lift_px := 0.0) -> Vector3:
 
 
 func direction_at(i: int) -> Vector2:
+	if open:
+		var j := clampi(i, 0, n - 2)
+		var dd := points[j + 1] - points[j]
+		return dd.normalized() if dd.length_squared() > 0.0 else Vector2.RIGHT
 	var d := points[(i + 1) % n] - points[i % n]
 	return d.normalized() if d.length_squared() > 0.0 else Vector2.RIGHT
+
+
+# The waypoint a kart starts on, and the stage (lap, or section on an open road) it is in.
+func start_wp() -> int:
+	return maxi(1, start_i - 6) if open else 1
+
+
+func stage_of(kart) -> int:
+	if open:
+		return clampi(1 + int(kart.next_wp * sections / n), 1, sections)
+	return int(kart.lap)
+
+
+func stage_name() -> String:
+	return "SECTION" if open else "LAP"
+
+
+func stage_count(laps: int) -> int:
+	return sections if open else laps
 
 
 func _material(tex: Texture2D, color := Color.WHITE) -> StandardMaterial3D:
@@ -525,7 +564,7 @@ func _build_ground() -> void:
 
 
 func _ribbon(offset_a: float, offset_b: float, lift_px: float, tex: Texture2D, color: Color, name: String) -> void:
-	_ribbon_of(points, true, offset_a, offset_b, lift_px, tex, color, name)
+	_ribbon_of(points, not open, offset_a, offset_b, lift_px, tex, color, name)
 
 
 static func _dir_of(pts: PackedVector2Array, i: int, closed: bool) -> Vector2:
@@ -675,14 +714,20 @@ func _build_road() -> void:
 
 
 func _build_start_line() -> void:
+	_build_line_at(start_i, "StartLine")
+	if open:
+		_build_line_at(n - 1, "FinishLine")
+
+
+func _build_line_at(at: int, name: String) -> void:
 	var img := Image.create(16, 2, false, Image.FORMAT_RGBA8)
 	for y in 2:
 		for x in 16:
 			img.set_pixel(x, y, Color.WHITE if (x + y) % 2 == 0 else Color(0.08, 0.08, 0.08))
 	var tex := ImageTexture.create_from_image(img)
-	var d := direction_at(0)
+	var d := direction_at(at)
 	var nrm := Vector2(-d.y, d.x)
-	var base := points[0]
+	var base := points[at]
 	var half := width * 0.5
 	var depth := 32.0
 	var st := SurfaceTool.new()
@@ -701,7 +746,7 @@ func _build_start_line() -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _material(tex)
-	mi.name = "StartLine"
+	mi.name = name
 	add_child(mi)
 
 
@@ -763,6 +808,9 @@ func nearest(p: Vector2, hint: int, window := 30) -> Dictionary:
 	if hint >= 0:
 		lo = hint - window
 		hi = hint + window
+	if open:
+		lo = maxi(0, lo)
+		hi = mini(n - 1, hi)
 	for k in range(lo, hi):
 		var i := ((k % n) + n) % n
 		var q := Geometry2D.get_closest_point_to_segment(p, points[i], points[(i + 1) % n])
@@ -795,8 +843,8 @@ func on_road(p: Vector2, hint: int) -> bool:
 
 
 func start_positions(count: int) -> Array:
-	var base := points[0]
-	var d := direction_at(0)
+	var base := points[start_i]
+	var d := direction_at(start_i)
 	var nrm := Vector2(-d.y, d.x)
 	var heading := atan2(d.y, d.x)
 	var out := []
@@ -876,13 +924,19 @@ func advance(kart) -> bool:
 	var thresh2 := pow(width * 0.7, 2)
 	var best := -1
 	for k in WINDOW:
-		var idx: int = (kart.next_wp + k) % n
+		var idx: int = (kart.next_wp + k) % n if not open else mini(n - 1, kart.next_wp + k)
 		var kp: Vector2 = kart.pos
 		if kp.distance_squared_to(points[idx]) < thresh2:
 			best = k
 	if best < 0:
 		return false
 	var new_lap := false
+	if open:
+		kart.next_wp = mini(n - 1, kart.next_wp + best + 1)
+		if kart.next_wp >= n - 1 and not kart.finished and int(kart.lap) <= 1:
+			kart.lap = 99      # the far end IS the finish: past every lap count
+			new_lap = true
+		return new_lap
 	for k in range(best + 1):
 		kart.next_wp = (kart.next_wp + 1) % n
 		if kart.next_wp == 1:

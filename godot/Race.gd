@@ -404,6 +404,7 @@ func _spawn_racers(count: int) -> void:
 			if not QUD.has_unit(unit):
 				unit = "player"
 			k.setup(String(rc.get("name", "Wizard")), unit, s["pos"], s["heading"], true, rng, shadow_mesh, Vector2i(5, 5), Campaign.max_hp)
+			k.next_wp = track.start_wp()
 			k.human = seat_i
 			k.remote = pl["adapter"] is RemoteAdapter
 			k.label.visible = true
@@ -450,6 +451,7 @@ func _spawn_racers(count: int) -> void:
 			if boss:
 				kart_hp = float(C.get("boss_hp_base", 60)) + float(C.get("boss_hp_per_realm", 8)) * Campaign.level
 			k.setup(r["name"], r["unit"], s["pos"], s["heading"], false, krng, shadow_mesh, stats, kart_hp)
+			k.next_wp = track.start_wp()
 			if boss:
 				k.label.modulate = Color(1.0, 0.6, 0.2)
 				k.label.font_size = 44
@@ -733,8 +735,8 @@ func _leader_lap() -> int:
 	var best := 1
 	for kart in karts:
 		if kart.alive and not kart.finished:
-			best = maxi(best, int(kart.lap))
-	return clampi(best, 1, laps)
+			best = maxi(best, track.stage_of(kart))
+	return clampi(best, 1, track.stage_count(laps))
 
 
 func _apply_lap_sets(lap: int) -> void:
@@ -751,7 +753,7 @@ func _apply_lap_sets(lap: int) -> void:
 		if c["lap_ok"]:
 			live += 1
 	if hazard_log:
-		print("lap %d: hazard set %d / %d live" % [lap, live, course_hazards.size()])
+		print("%s %d: hazard set %d / %d live" % [track.stage_name().to_lower(), lap, live, course_hazards.size()])
 	var notes: Dictionary = track.spec.get("lap_notes", {})
 	if notes.has(str(lap)) and lap > 1:
 		say(String(notes[str(lap)]).to_upper(), 2.4)
@@ -1280,7 +1282,9 @@ func _physics_process(dt: float) -> void:
 			_net_ev(["item", kart.net_id, kart.item])
 			Items.use(self, kart)
 		if track.advance(kart):
-			if party and kart.human >= 0 and state == RACING:
+			if track.open:
+				pass                        # a section race has no lap rule: the far end is the finish
+			elif party and kart.human >= 0 and state == RACING:
 				_human_lap(kart)
 			elif kart.is_player and state == RACING and not rig:
 				_player_lap()
@@ -2832,7 +2836,7 @@ func _update_panels(dt: float) -> void:
 func _refresh_panel_huds() -> void:
 	for pn in panels:
 		var kart: Kart = pn["kart"]
-		pn["pos"].text = "%s   LAP %d/%d" % [ordinal(kart.rank), mini(kart.lap, laps), laps]
+		pn["pos"].text = "%s   %s %d/%d" % [ordinal(kart.rank), track.stage_name(), mini(track.stage_of(kart), track.stage_count(laps)), track.stage_count(laps)]
 		pn["hp_fill"].size = Vector2(200.0 * clampf(kart.hp / maxf(1.0, kart.max_hp), 0.0, 1.0), 16)
 		pn["info"].text = "HP %d   coins %d%s" % [int(kart.hp), kart.coins, ("   shield x%d" % kart.shields) if kart.shields > 0 else ""]
 		pn["msg"].text = String(pn["message"]) if float(pn["message_t"]) > 0.0 else ("WRECKED %.0f" % kart.respawn_t if kart.respawn_t > 0.0 else "")
@@ -2945,7 +2949,7 @@ func _process(_delta: float) -> void:
 
 	lbl_realm.text = ("TEST RIG" if rig else "REALM %d / %d%s" % [Campaign.level, Campaign.MAX_LEVEL, ("  " + String(level.get("tileset", "")).capitalize()) if not level.is_empty() else ""]) + ("   FREE DRIVE (F)" if free_mode else "") + ("   SLOW x%s (Z)" % str(slow_scale) if slow_scale < 1.0 else "")
 	lbl_street.text = track.street_name_at(player.pos) if track.city != null else ""
-	lbl_lap.text = "LAP %d/%d" % [mini(player.lap, laps), laps]
+	lbl_lap.text = "%s %d/%d" % [track.stage_name(), mini(track.stage_of(player), track.stage_count(laps)), track.stage_count(laps)]
 	lbl_pos.text = "POS %d/%d" % [player.rank, karts.size()]
 	lbl_time.text = _fmt_time(race_time)
 	hp_fill.size = Vector2(300.0 * clampf(Campaign.hp / maxf(1.0, Campaign.max_hp), 0.0, 1.0), 24)

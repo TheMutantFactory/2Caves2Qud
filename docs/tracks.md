@@ -111,13 +111,23 @@ decide at the fork with the branch's `ai_take` chance and aim along it (`Track.a
 | Tomb | recovery corridor | safe | around the crematory |
 | Thin World | Recoming portal | safe | the twin of the Crossing |
 
+## Section races
+
+A course with `sections` is one way: an open road from the grid to a finish line at its far
+end, with a lead-in behind the first point so the grid stands on road. There are no laps;
+the HUD counts sections, the far end finishes the kart, and the development machinery
+(`laps=[2]`, `per_lap`, the notes) runs per section, so "Section 2 rides the belts"
+and "Section 3 enters the cryobarrios" are data. Golgotha Drop, Bethesda Susa Deep Freeze,
+Eyn Roj Dreamroot and the Tomb of the Eaters Bell Run are section races; their branches
+and hazards sit at fractions of the path like everywhere else.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
 to data. The big ones:
 
-- **Section races.** Golgotha, Bethesda Susa, Eyn Roj and the Tomb are one-way descents or
-  ascents; the engine only knows loops, so they run as three-lap circuits of their shape.
+- **Descent as descent.** The section races are one way, but the road's rise and fall is the
+  ground noise, not an authored drop; Golgotha's shafts and the Tomb's climb are not steps.
 - **Moving hazards with a path**: baboon throws aimed at a lane, drillbots cutting walls,
   reef creatures crossing under the road. Cycling patches stand in for them.
 - **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
@@ -128,5 +138,5 @@ to data. The big ones:
   plus a lap-3 bypass) and routes that split more than once.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: section races,
-a lap-changing road (lilies, the thinning road), and moving hazards with a path.
+The next engine features that would unlock the most courses are, in order: a lap-changing
+road (lilies, the thinning road), moving hazards with a path, and authored elevation.

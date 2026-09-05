@@ -1191,7 +1191,7 @@
    "cup": "Chrome Cup",
    "cup_index": 7,
    "difficulty": 3.0,
-   "format": "3-section race (run as a loop)",
+   "format": "3-section race",
    "target_lap": "section race",
    "skill": "Forced-movement lane changes",
    "sentence": "Commit to a one-way plunge through Golgotha's conveyor-fed trash chutes, dodge vent cycles, and outrun the refuse into the Cloaca.",
@@ -1205,59 +1205,44 @@
    ],
    "width": 210,
    "elevation": 160,
-   "laps": 3,
+   "laps": 1,
+   "sections": 3,
    "control": [
     [
      300,
      300
     ],
     [
-     1200,
-     200
-    ],
-    [
-     2000,
-     500
-    ],
-    [
-     2600,
+     1100,
      300
     ],
     [
-     3300,
-     700
+     1700,
+     600
     ],
     [
-     3100,
-     1300
+     1200,
+     1100
     ],
     [
-     2400,
-     1500
-    ],
-    [
-     3000,
-     2000
-    ],
-    [
-     2200,
-     2200
-    ],
-    [
-     1400,
-     1900
-    ],
-    [
-     700,
-     2100
-    ],
-    [
-     300,
+     1900,
      1400
     ],
     [
-     700,
-     800
+     2700,
+     1200
+    ],
+    [
+     3200,
+     1600
+    ],
+    [
+     2600,
+     2100
+    ],
+    [
+     3400,
+     2300
     ]
    ],
    "hazards": [
@@ -1274,34 +1259,10 @@
      "radius": 160
     },
     {
-     "kind": "slime",
-     "at": 0.7,
-     "side": 0.0,
-     "radius": 200
-    },
-    {
      "kind": "poison",
      "at": 0.9,
      "side": 0.35,
      "radius": 150
-    },
-    {
-     "kind": "poison",
-     "at": 0.36,
-     "side": 0.0,
-     "radius": 170,
-     "period": 4.0,
-     "duty": 0.4,
-     "phase": 0.0
-    },
-    {
-     "kind": "poison",
-     "at": 0.6,
-     "side": -0.3,
-     "radius": 160,
-     "period": 4.0,
-     "duty": 0.4,
-     "phase": 2.0
     },
     {
      "kind": "jump",
@@ -1314,6 +1275,40 @@
      "at": 0.66,
      "side": 0.0,
      "radius": 150
+    },
+    {
+     "kind": "poison",
+     "at": 0.36,
+     "side": 0.0,
+     "radius": 170,
+     "period": 4.0,
+     "duty": 0.4,
+     "phase": 0.0,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
+     "kind": "poison",
+     "at": 0.6,
+     "side": -0.3,
+     "radius": 160,
+     "period": 4.0,
+     "duty": 0.4,
+     "phase": 2.0,
+     "laps": [
+      3
+     ]
+    },
+    {
+     "kind": "slime",
+     "at": 0.7,
+     "side": 0.0,
+     "radius": 200,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -1355,6 +1350,10 @@
     90,
     70
    ],
+   "lap_notes": {
+    "2": "the belts run faster: vents ahead",
+    "3": "the cloaca: refuse islands"
+   },
    "branches": [
     {
      "name": "second chute",
@@ -1376,16 +1375,16 @@
      ],
      "control": [
       [
-       1129,
-       413
+       634,
+       373
       ],
       [
-       1468,
-       518
+       907,
+       485
       ],
       [
-       1822,
-       545
+       1200,
+       520
       ]
      ]
     }
@@ -1397,7 +1396,7 @@
    "cup": "Chrome Cup",
    "cup_index": 8,
    "difficulty": 3.5,
-   "format": "3-section race (run as a loop)",
+   "format": "3-section race",
    "target_lap": "section race",
    "skill": "Progressive ice control",
    "sentence": "Descend Bethesda Susa as every sector grows colder, earn three gate keys through racing lines, and survive the cryobarrios before the warm Temple of the Rock.",
@@ -1411,84 +1410,47 @@
    ],
    "width": 230,
    "elevation": 120,
-   "laps": 3,
+   "laps": 1,
+   "sections": 3,
    "control": [
     [
      300,
-     500
+     200
     ],
     [
      1100,
-     300
+     200
     ],
     [
-     1900,
-     600
+     1800,
+     500
     ],
     [
-     2600,
-     400
+     1300,
+     1000
+    ],
+    [
+     2100,
+     1300
+    ],
+    [
+     2900,
+     1100
     ],
     [
      3300,
-     800
-    ],
-    [
-     3200,
-     1500
+     1600
     ],
     [
      2600,
-     1900
-    ],
-    [
-     2000,
-     1500
-    ],
-    [
-     1500,
      2100
     ],
     [
-     800,
-     2000
-    ],
-    [
-     400,
-     1400
+     3400,
+     2300
     ]
    ],
    "hazards": [
-    {
-     "kind": "water",
-     "at": 0.15,
-     "side": 0.0,
-     "radius": 180
-    },
-    {
-     "kind": "ice",
-     "at": 0.5,
-     "side": -0.3,
-     "radius": 170
-    },
-    {
-     "kind": "ice",
-     "at": 0.58,
-     "side": 0.3,
-     "radius": 170
-    },
-    {
-     "kind": "ice",
-     "at": 0.72,
-     "side": 0.0,
-     "radius": 230
-    },
-    {
-     "kind": "ice",
-     "at": 0.8,
-     "side": -0.35,
-     "radius": 170
-    },
     {
      "kind": "ice",
      "at": 0.65,
@@ -1497,6 +1459,53 @@
      "period": 7.0,
      "duty": 0.5,
      "phase": 3.0
+    },
+    {
+     "kind": "water",
+     "at": 0.15,
+     "side": 0.0,
+     "radius": 180,
+     "laps": [
+      1
+     ]
+    },
+    {
+     "kind": "ice",
+     "at": 0.5,
+     "side": -0.3,
+     "radius": 170,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
+     "kind": "ice",
+     "at": 0.58,
+     "side": 0.3,
+     "radius": 170,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
+     "kind": "ice",
+     "at": 0.72,
+     "side": 0.0,
+     "radius": 230,
+     "laps": [
+      3
+     ]
+    },
+    {
+     "kind": "ice",
+     "at": 0.8,
+     "side": -0.35,
+     "radius": 170,
+     "laps": [
+      3
+     ]
     }
    ],
    "spells": [
@@ -1538,6 +1547,10 @@
     132,
     136
    ],
+   "lap_notes": {
+    "2": "rimed stone: the wards",
+    "3": "the cryobarrios: ice"
+   },
    "branches": [
     {
      "name": "chrome elevator",
@@ -1556,16 +1569,16 @@
      ],
      "control": [
       [
-       3002,
-       832
+       1523,
+       892
       ],
       [
-       3002,
-       988
+       1685,
+       914
       ],
       [
-       3093,
-       1115
+       1808,
+       1024
       ]
      ]
     }
@@ -2126,7 +2139,7 @@
    "cup": "Canopy Cup",
    "cup_index": 12,
    "difficulty": 4.0,
-   "format": "3-section descent and ascent (run as a loop)",
+   "format": "3-section descent and ascent",
    "target_lap": "section race",
    "skill": "Reading psychic route echoes",
    "sentence": "Dive beneath Eyn Roj through crystalline roots where psychic echoes show several possible roads but only solid rhythm rock marks the immediate racing line.",
@@ -2140,55 +2153,44 @@
    ],
    "width": 220,
    "elevation": 170,
-   "laps": 3,
+   "laps": 1,
+   "sections": 3,
    "control": [
     [
-     400,
+     300,
      1200
     ],
     [
-     900,
-     600
-    ],
-    [
-     1700,
-     400
-    ],
-    [
-     2500,
-     700
-    ],
-    [
-     2100,
+     1000,
      1200
-    ],
-    [
-     2800,
-     1500
-    ],
-    [
-     3300,
-     1100
-    ],
-    [
-     3200,
-     1900
-    ],
-    [
-     2400,
-     2200
     ],
     [
      1600,
-     1900
+     800
     ],
     [
-     900,
-     2100
+     2200,
+     1100
     ],
     [
-     500,
-     1700
+     1900,
+     1600
+    ],
+    [
+     2600,
+     2000
+    ],
+    [
+     3200,
+     1600
+    ],
+    [
+     2900,
+     900
+    ],
+    [
+     3400,
+     400
     ]
    ],
    "hazards": [
@@ -3416,7 +3418,7 @@
    "cup": "Spindle Cup",
    "cup_index": 19,
    "difficulty": 5.0,
-   "format": "3-section ascent (run as a loop)",
+   "format": "3-section ascent",
    "target_lap": "section race",
    "skill": "Timed sanctuary routing",
    "spoiler": true,
@@ -3431,14 +3433,15 @@
    ],
    "width": 210,
    "elevation": 160,
-   "laps": 3,
+   "laps": 1,
+   "sections": 3,
    "control": [
     [
      300,
-     2100
+     2200
     ],
     [
-     1100,
+     1000,
      2200
     ],
     [
@@ -3446,40 +3449,28 @@
      1800
     ],
     [
-     1000,
-     1400
-    ],
-    [
-     1700,
-     1100
-    ],
-    [
-     2500,
-     1400
-    ],
-    [
-     3200,
-     1900
-    ],
-    [
-     3300,
-     1200
-    ],
-    [
-     2700,
-     700
+     1100,
+     1300
     ],
     [
      1900,
-     500
+     1000
     ],
     [
-     1100,
-     700
+     2700,
+     1300
     ],
     [
-     400,
-     1200
+     3200,
+     900
+    ],
+    [
+     2800,
+     400
+    ],
+    [
+     3400,
+     200
     ]
    ],
    "hazards": [
@@ -3605,16 +3596,16 @@
      "hazards": [],
      "control": [
       [
-       2591,
-       1135
+       1820,
+       937
       ],
       [
-       2857,
-       1123
+       2134,
+       943
       ],
       [
-       3109,
-       1209
+       2430,
+       1047
       ]
      ]
     }
