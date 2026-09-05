@@ -259,6 +259,8 @@ func _ready() -> void:
 		humans = [placeholder]
 	else:
 		_spawn_racers(int(Shared.t(["race", "racers"], 8)))
+		for k in karts:
+			k.next_wp = track.start_wp()    # an open road's grid sits past its lead-in
 		_spawn_item_boxes()
 		_spawn_track_hazards()
 		if level.is_empty():
@@ -762,6 +764,8 @@ func _apply_lap_sets(lap: int) -> void:
 # Cycling hazards switch on for `duty` of every `period` seconds, with an amber cue in the
 # second before; jump pads loft any kart that crosses them while live.
 func _update_course_hazards(_dt: float) -> void:
+	if hazard_log and player != null and player.alive and Engine.get_physics_frames() % 300 == 0:
+		print("player: t=%.0f road=%s wp=%d/%d branch=%d speed=%d rank=%d" % [t, track.on_road(player.pos, player.next_wp), player.next_wp, track.n, player.branch, int(player.speed()), player.rank])
 	if course_hazards.is_empty():
 		return
 	var lap := _leader_lap()
