@@ -13,6 +13,8 @@ var current_music := ""
 var sfx_db := -6.0
 var music_db := -10.0
 var muted := false
+var variants := {}      # qud/sfx/variants.json: name -> [clip names]; Qud ships 5 takes of most sounds
+var log_sfx := false    # --sfx-log: print every cue played (tests grep for it)
 
 
 func _ready() -> void:
@@ -26,6 +28,12 @@ func _ready() -> void:
 	add_child(music_player)
 	music_player.finished.connect(func(): if current_music != "": music_player.play())
 	muted = "--mute" in OS.get_cmdline_user_args() or OS.has_feature("headless")
+	log_sfx = "--sfx-log" in OS.get_cmdline_user_args()
+	var vp := SFX_ROOT + "variants.json"
+	if FileAccess.file_exists(vp):
+		var d = JSON.parse_string(FileAccess.open(vp, FileAccess.READ).get_as_text())
+		if d is Dictionary:
+			variants = d
 
 
 # Clips live in the Qud asset store OUTSIDE the project (godot/qud is a link into it),
@@ -48,11 +56,20 @@ func _stream(path: String) -> AudioStream:
 
 
 func play(name: String, volume_db := 0.0) -> void:
+	if name == "":
+		return
+	var clip := name
+	if variants.has(name):
+		var takes: Array = variants[name]
+		if takes.size() > 0:
+			clip = String(takes[randi() % takes.size()])
+	if log_sfx:
+		print("sfx: %s -> %s" % [name, clip])
 	if muted:
 		return
-	var s := _stream(SFX_ROOT + name + ".ogg")
+	var s := _stream(SFX_ROOT + clip + ".ogg")
 	if s == null:
-		s = _stream(SFX_ROOT + name + ".wav")
+		s = _stream(SFX_ROOT + clip + ".wav")
 	if s == null:
 		return
 	for p in players:

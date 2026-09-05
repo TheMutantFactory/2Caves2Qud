@@ -1613,6 +1613,7 @@ func _update_world(dt: float) -> void:
 				hit = kart
 				break
 		if hit != null:
+			play(p.hit_sound, -2.0)     # the slug's impact, the grenade's detonation
 			if p.radius > 0.0:
 				for kart in karts.duplicate():
 					if kart != p.owner_kart and kart.alive and kart.pos.distance_to(p.pos) < p.radius + kart.RADIUS + 18.0:
@@ -1628,6 +1629,8 @@ func _update_world(dt: float) -> void:
 				heal_kart(p.owner_kart, p.damage * p.heal_frac)
 			alive = false
 		elif not alive:
+			if p.radius > 0.0:
+				play(p.hit_sound, -4.0)  # a grenade going off where it fell
 			spawn_effect(Items.effect_strip(p.dtype), p.position, 6, 0.05)
 		if not alive:
 			projectiles.erase(p)

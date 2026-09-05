@@ -64,6 +64,36 @@ MUTATIONS = {
     "Astral": ("Astral", "Mutations/phasing.bmp", {"kind": "blink", "dtype": "Arcane", "dmg": 0, "per_level": 0, "range": 0, "distance": 300}),
 }
 FLYING_CLASSES = ("Wings", "Astral")
+
+# class -> cast sound candidates (first that exists in the store wins), then a kind fallback
+SOUNDS = {
+    "FlamingRay": ["sfx_ability_mutation_flamingRay_attack"], "FreezingRay": ["sfx_ability_mutation_freezingRay_attack"],
+    "LightManipulation": ["sfx_ability_mutation_lightManipulation_laser_fire"], "Quills": ["sfx_ability_mutation_quills_expel"],
+    "Disintegration": ["sfx_ability_mutation_disintegration_disintegrate"], "BurrowingClaws": ["sfx_ability_mutation_burrowingClaws_burrow"],
+    "Beak": ["sfx_ability_mutation_beak_peck"], "Stinger": ["sfx_ability_mutation_stinger_tailWhip"],
+    "Spinnerets": ["sfx_ability_mutation_spinnerets_webDrop"], "SpiderWebs": ["sfx_ability_mutation_spinnerets_webDrop"],
+    "Burgeoning": ["sfx_ability_mutation_burgeoning_plantGrow"], "TemporalFugue": ["sfx_ability_mutation_temporalFugue_copy"],
+    "StunningForce": ["sfx_ability_mutation_stunning_force"], "TimeDilation": ["sfx_ability_mutation_timeDilation_activate"],
+    "ElectromagneticPulse": ["sfx_ability_mutation_emp_activate", "sfx_ability_electromagnetic_pulse"],
+    "Confusion": ["sfx_ability_confusion"], "Cryokinesis": ["sfx_ability_cryokinesis_active"],
+    "Pyrokinesis": ["sfx_ability_pyrokinesis_active", "sfx_ability_mutation_flamingRay_attack"],
+    "Regeneration": ["sfx_ability_mutation_regeneration_limbRegrowth"],
+    "ForceBubble": ["sfx_ability_forcefield_create"], "ForceWall": ["sfx_ability_forcefield_create"],
+    "Teleportation": ["sfx_ability_mutation_phase"], "Phasing": ["sfx_ability_mutation_phase"], "Astral": ["sfx_ability_mutation_phase"],
+    "SpacetimeVortex": ["sfx_ability_mutation_phase"], "StickyTongue": ["sfx_ability_creature_liquid_spit"],
+    "SlimeGlands": ["sfx_ability_creature_liquid_spit"], "Horns": ["sfx_ability_charge"],
+    "CorrosiveGasGeneration": ["sfx_ability_gasMutation_activeRelease"], "SleepGasGeneration": ["sfx_ability_gasMutation_activeRelease"],
+    "SporePuffer": ["sfx_ability_gasMutation_activeRelease"],
+}
+BREATH_SOUND = ["sfx_ability_gas_breathe"]
+KIND_SOUND = {"beam": "sfx_ability_mutation_physical_generic_activate", "bolt": "sfx_ability_mutation_mental_generic_activate",
+              "blast": "sfx_ability_mutation_physical_generic_activate", "patch": "sfx_ability_gasMutation_activeRelease",
+              "hex": "sfx_ability_mutation_mental_generic_activate", "burst": "sfx_ability_mutation_physical_generic_activate",
+              "summon": "sfx_ability_mutation_mental_generic_activate", "shield": "sfx_ability_forcefield_create",
+              "heal": "sfx_ability_mutation_physical_generic_activate", "buff": "sfx_ability_mutation_physical_generic_activate",
+              "blink": "sfx_ability_mutation_phase", "melee": "sfx_ability_mutation_physical_generic_activate"}
+HIT_SOUND = {"Fire": "sfx_missile_directEnergy_hit", "Ice": "sfx_missile_directEnergy_hit", "Lightning": "sfx_missile_directEnergy_hit",
+             "Arcane": "sfx_missile_directEnergy_hit", "Holy": "sfx_missile_directEnergy_hit"}
 DAMAGE_SCALE = 1.6      # Qud dice means -> the kart's numbers (a wizard has 50 HP)
 
 
@@ -73,10 +103,11 @@ def icon_stem(tile):
 
 
 class AbilityBuilder:
-    def __init__(self, bp, items_by_blueprint, has_tile):
+    def __init__(self, bp, items_by_blueprint, has_tile, sounds=None):
         self.bp = bp
         self.items = items_by_blueprint      # blueprint name -> item record (tools/qud_items.py)
         self.has_tile = has_tile
+        self.sounds = sounds                 # qud_sounds.SoundIndex or None
         self.icons = {}                      # stem -> (tile, main, detail)
         self.used = {}                       # class -> count, for the report
 
@@ -106,6 +137,14 @@ class AbilityBuilder:
         }
         if spec["kind"] == "heal":
             rec["stats"]["heal"] = spec["amount"]
+        if self.sounds is not None:
+            cands = list(SOUNDS.get(cls, [])) + (BREATH_SOUND if cls.endswith("Breather") else []) + [KIND_SOUND.get(spec["kind"])]
+            snd = self.sounds.first(*cands)
+            if snd:
+                kart["sound"] = snd
+            hit = self.sounds.first(HIT_SOUND.get(spec["dtype"]), "sfx_throwing_generic_hitOrganic")
+            if hit and spec["kind"] in ("bolt", "blast", "beam", "melee"):
+                kart["hit_sound"] = hit
         self.used[cls] = self.used.get(cls, 0) + 1
         return rec
 

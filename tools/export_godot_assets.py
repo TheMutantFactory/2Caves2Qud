@@ -25,6 +25,10 @@ and sound without any of it entering the repo.
     effects/*.png (6-frame strips), effects/proj/*.png, status/stun.png
                                 procedural for now, Qud-coloured
     sfx/<engine name>.ogg       the engine's sound cues mapped onto Qud clips
+    sfx/<clip>.ogg + variants.json   every take of every sound the items, mutations
+                                and pickups name (their blueprints' MissileFireSound,
+                                SwingSound, ThrownSound, DetonatedSound, ImpactSound
+                                tags); Audio.play picks a take at random
     music/battle_1..12.ogg, lose_theme.ogg, victory_theme.ogg, title_theme.ogg
     shared/                     a copy of shared/ (tracks, tuning, overrides, maps)
     walls/                      a link to the store's voxel wall models (wall2vox.py);
@@ -309,9 +313,9 @@ def write_icons(out, icons):
     return n
 
 
-def export_items(bp, out):
+def export_items(bp, out, sounds=None):
     import qud_items
-    ib = qud_items.ItemBuilder(bp, lambda t: qud_assets.tile_file(t) is not None)
+    ib = qud_items.ItemBuilder(bp, lambda t: qud_assets.tile_file(t) is not None, sounds)
     recs = ib.build()
     os.makedirs(os.path.join(out, "data"), exist_ok=True)
     with open(os.path.join(out, "data", "spells.json"), "w", encoding="utf-8") as f:
@@ -453,6 +457,53 @@ def export_sounds(out):
     return mapping
 
 
+# The arcade pickups' cast sounds (Items.use plays "pickup_<kind>"), first existing wins.
+PICKUP_SOUNDS = {
+    "fireball": ["sfx_throwing_generic_throw"], "lightning_bolt": ["sfx_missile_laserRifle_fire"],
+    "blink": ["sfx_ability_mutation_phase", "sfx_ability_teleport_involuntary_in"],
+    "lightning_form": ["sfx_ability_injectorTube_inject"], "freeze": ["sfx_throwing_generic_throw"],
+    "wolf": ["sfx_humanoid_generic_vo_attack"],
+}
+
+
+def export_sound_takes(out, sounds, items, monsters):
+    """Every sound the items, mutations and pickups name: link all of Qud's takes
+    (sfx_x-001..-005) into sfx/ and write sfx/variants.json name -> [clip names],
+    which Audio.play picks from at random. Aliases (pickup_<kind>) map the same way."""
+    sdir = os.path.join(out, "sfx")
+    names = {}
+    for rec in items:
+        for k in ("sound", "hit_sound"):
+            b = rec.get("kart", {}).get(k)
+            if b:
+                names[b] = b
+    for m in monsters:
+        for rec in m.get("spells", []):
+            for k in ("sound", "hit_sound"):
+                b = rec.get("kart", {}).get(k)
+                if b:
+                    names[b] = b
+    for kind, cands in PICKUP_SOUNDS.items():
+        b = sounds.first(*cands)
+        if b:
+            names["pickup_" + kind] = b
+    variants = {}
+    linked = set()
+    for name, base in names.items():
+        takes = sounds.bases.get(base, [])
+        if not takes:
+            continue
+        variants[name] = takes
+        for clip in takes:
+            if clip in linked:
+                continue
+            linked.add(clip)
+            link_or_copy(os.path.join(qud_assets.path("sfx"), sounds.files[clip]), os.path.join(sdir, clip + ".ogg"))
+    with open(os.path.join(sdir, "variants.json"), "w", encoding="utf-8") as f:
+        json.dump(variants, f, indent=0, sort_keys=True)
+    return len(linked), len(variants)
+
+
 # ---------------------------------------------------------------- link
 
 def link_project(repo, out):
@@ -503,10 +554,12 @@ def main(argv=None):
 
     manifest = {"source": store, "units": {}, "icons": [], "effects": [], "status": [], "equipment": []}
     bp = B.Blueprints(qud_assets.path("data"))
-    items, n_icons = export_items(bp, out)
+    import qud_sounds
+    sounds = qud_sounds.SoundIndex(qud_assets.path("sfx"))
+    items, n_icons = export_items(bp, out, sounds)
     log("items:   %d as action-bar spells, %d icons" % (len(items), n_icons))
     import qud_mutations
-    ab = qud_mutations.AbilityBuilder(bp, {r["qud"]: r for r in items}, lambda t: qud_assets.tile_file(t) is not None)
+    ab = qud_mutations.AbilityBuilder(bp, {r["qud"]: r for r in items}, lambda t: qud_assets.tile_file(t) is not None, sounds)
     n_units, monsters = export_units(bp, out, manifest, ab)
     n_players = export_players(qud_assets.path("data"), out, manifest)
     log("units:   %d creatures + player + %d castes" % (n_units, n_players))
@@ -521,6 +574,8 @@ def main(argv=None):
     log("tracks:  %d" % export_track_tiles(out, manifest, qud_assets.path("tiles")))
     log("effects: %d" % export_effects(out))
     mapping = export_sounds(out)
+    n_takes, n_names = export_sound_takes(out, sounds, items, monsters)
+    log("takes:   %d clips linked for %d named sounds (per-weapon fire/hit, mutations, pickups)" % (n_takes, n_names))
     log("sounds:  %d cues + %d music" % (sum(1 for k in mapping if not k.startswith("battle_") and k not in THEMES),
                                         sum(1 for k in mapping if k.startswith("battle_") or k in THEMES)))
     # the voxel wall models (tools/wall2vox.py) and which family each tileset uses

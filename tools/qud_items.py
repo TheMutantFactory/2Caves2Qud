@@ -25,7 +25,10 @@ blueprints in Items.xml:
 
 Damage is the mean of the blueprint's dice, scaled to the kart game's numbers
 (a wizard has 50 HP; RW3 spells did 5-40). Names are the game's display names
-with its colour markup stripped.
+with its colour markup stripped. Sounds come from the blueprints' own tags
+(MissileFireSound, SwingSound, ThrownSound, DetonatedSound, the projectile's
+ImpactSound) resolved against the extracted clips (tools/qud_sounds.py), into
+the record's kart hint as "sound" (cast) and "hit_sound" (impact/detonation).
 """
 import re
 
@@ -117,9 +120,10 @@ def icon_stem(tile):
 
 
 class ItemBuilder:
-    def __init__(self, bp, has_tile):
+    def __init__(self, bp, has_tile, sounds=None):
         self.bp = bp
         self.has_tile = has_tile      # tile path -> bool (the store has that image)
+        self.sounds = sounds          # qud_sounds.SoundIndex, or None for silent records
         self.records = []
         self.icons = {}               # stem -> (tile, main, detail)
         self.seen_names = set()
@@ -143,6 +147,31 @@ class ItemBuilder:
             "melee": False, "self_target": False, "stats": {}, "description": {"text": MARKUP.sub(r"\1", desc)},
             "asset": ["items", stem], "upgrades": [], "kart": {},
         }
+
+    def sound(self, rec, o, tag, *fallbacks):
+        """The record's cast sound: the blueprint's tag, else the first fallback that exists."""
+        if self.sounds is None:
+            return
+        b = self.sounds.first(o["tags"].get(tag), *fallbacks)
+        if b:
+            rec["kart"]["sound"] = b
+
+    def hit_sound(self, rec, *candidates):
+        if self.sounds is None:
+            return
+        b = self.sounds.first(*candidates)
+        if b:
+            rec["kart"]["hit_sound"] = b
+
+    def projectile_impact(self, o):
+        """The ImpactSound of the projectile a weapon fires, via its ammo loader."""
+        for part in ("EnergyAmmoLoader", "MagazineAmmoLoader", "LiquidAmmoLoader"):
+            proj = o["parts"].get(part, {}).get("ProjectileObject")
+            if proj and proj in self.bp.raw:
+                v = self.bp.get(proj)["tags"].get("ImpactSound")
+                if v:
+                    return v
+        return None
 
     def tier_level(self, o, default=1):
         t = o["tags"].get("Tier")
@@ -206,6 +235,9 @@ class ItemBuilder:
         rec["kart"] = kart
         rec["range"] = 7
         rec["max_charges"] = 3
+        self.sound(rec, o, "ThrownSound", "sfx_throwing_generic_throw", "sfx_throwing_stone_medium_throw")
+        self.hit_sound(rec, o["tags"].get("DetonatedSound"),
+                       "sfx_grenade_gas_explode" if spec["kind"] in ("patch", "hex") else "sfx_grenade_highExplosive_explode")
         self.records.append(rec)
 
     def missile(self, name, o, r):
@@ -259,6 +291,11 @@ class ItemBuilder:
             kart.update({"kind": "bolt", "count": 3, "damage": round(dmg * 0.8, 1)})
             rec["range"] = 4
         rec["kart"] = kart
+        self.sound(rec, o, "MissileFireSound",
+                   "sfx_missile_bow_fire" if "BaseBow" in o["chain"] else None,
+                   "sfx_missile_rifle_fire" if rec["range"] >= 9 else "sfx_missile_smallGun_fire")
+        self.hit_sound(rec, self.projectile_impact(o),
+                       "sfx_missile_directEnergy_hit" if beam else "sfx_throwing_generic_hitOrganic")
         self.records.append(rec)
 
     def thrown(self, name, o, r):
@@ -272,6 +309,8 @@ class ItemBuilder:
         rec["range"] = 5
         rec["max_charges"] = 4
         rec["kart"] = {"kind": "bolt", "dtype": "Physical"}
+        self.sound(rec, o, "ThrownSound", "sfx_throwing_generic_throw")
+        self.hit_sound(rec, "sfx_throwing_generic_hitOrganic")
         self.records.append(rec)
 
     def melee(self, name, o, r):
@@ -286,6 +325,12 @@ class ItemBuilder:
         rec["range"] = 1
         rec["max_charges"] = 0
         rec["kart"] = {"kind": "melee", "dtype": "Physical"}
+        skill = mw.get("Skill", "")
+        self.sound(rec, o, "SwingSound",
+                   {"LongBlades": "sfx_melee_longBlade_metal_swing", "ShortBlades": "sfx_melee_shortSword_metal_swing",
+                    "Axe": "sfx_melee_axe_metal_swing", "Cudgel": "sfx_melee_cudgel_oneHanded_metal_swing"}.get(skill),
+                   "sfx_melee_cudgel_wood_swing")
+        self.hit_sound(rec, o["tags"].get("HitSound"), "sfx_throwing_generic_hitOrganic")
         self.records.append(rec)
 
     def tonic(self, name, o, r):
@@ -306,4 +351,5 @@ class ItemBuilder:
         elif "shields" in spec:
             rec["stats"] = {"shields": spec["shields"]}
             rec["kart"] = {"kind": "shield", "shields": spec["shields"]}
+        self.sound(rec, o, "", "sfx_ability_injectorTube_inject")
         self.records.append(rec)

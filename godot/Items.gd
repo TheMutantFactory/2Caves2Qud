@@ -98,6 +98,7 @@ class Projectile extends Sprite3D:
 	var cause := "bolt"
 	var heal_frac := 0.0     # the owner heals this fraction of the damage dealt
 	var shove := 0.0         # px/s added to the victim along the projectile's path (negative pulls it back)
+	var hit_sound := ""      # played where it lands (a grenade's detonation, a slug's impact)
 
 	func tick(dt: float, track: Track) -> bool:
 		if homing != null and is_instance_valid(homing) and homing.alive:
@@ -342,7 +343,7 @@ static func use(race, kart: Kart) -> bool:
 	match kind:
 		"fireball":
 			spawn_projectile(race, kart, QUD.texture("effects/proj/fire_ball.png"), 1050.0, item_dmg, "Fire", 60.0)
-			race.play("sorcery")
+			race.play("pickup_" + kind)
 		"lightning_bolt":
 			var target := target_ahead(race, kart, 1300.0)
 			if target == null:
@@ -350,7 +351,7 @@ static func use(race, kart: Kart) -> bool:
 				return false
 			race.hit_kart(target, item_dmg, "Lightning", kart, 0.9)
 			race.spawn_bolt(kart.position, target.position)
-			race.play("sorcery")
+			race.play("pickup_" + kind)
 		"blink":
 			var d := track.direction_at(kart.next_wp)
 			race.spawn_effect(QUD.effect("translocation"), kart.position + Vector3(0, 30 * Track.U, 0), 6)
@@ -358,11 +359,11 @@ static func use(race, kart: Kart) -> bool:
 			kart.heading = atan2(d.y, d.x)
 			kart.vel = d * maxf(kart.speed(), 320.0)
 			race.spawn_effect(QUD.effect("translocation"), track.to3(kart.pos, 30.0), 6)
-			race.play("sorcery")
+			race.play("pickup_" + kind)
 		"lightning_form":
 			kart.add_boost("lightning_form", float(Shared.t(["items", "lightning_form_strength"], 0.5)),
 				float(Shared.t(["items", "lightning_form_time"], 2.4)))
-			race.play("sorcery")
+			race.play("pickup_" + kind)
 		"freeze":
 			var ice := IcePatch.new()
 			ice.texture = QUD.texture("tiles/cloud_ice_cloud.png")
@@ -375,7 +376,7 @@ static func use(race, kart: Kart) -> bool:
 			ice.position = track.to3(ice.pos, 2.0)
 			race.add_child(ice)
 			race.patches.append(ice)
-			race.play("sorcery")
+			race.play("pickup_" + kind)
 		"wolf":
 			spawn_summon(race, kart, SpellDB.default_summon(), float(Shared.t(["campaign", "wolf_damage"], 5)), 7.0)
 			race.play("enemy")
@@ -394,6 +395,10 @@ static func cast_spell(race, kart: Kart, spell: Dictionary) -> bool:
 	var rng_px := float(e.get("range", 400.0)) + bon(kart, "spell_range")
 	var dmg := float(e.get("damage", 0.0)) + bon(kart, "spell_damage")
 	var dur := float(e.get("duration", 4.0)) + bon(kart, "spell_duration")
+	# the item's or mutation's own sound (qud/data/spells.json kart.sound); beams play on a hit
+	var snd := String(e.get("sound", ""))
+	if kind != "beam":
+		race.play(snd)
 	match kind:
 		"bolt":
 			var homing := target_ahead(race, kart, rng_px * 1.5)
@@ -438,6 +443,9 @@ static func cast_spell(race, kart: Kart, spell: Dictionary) -> bool:
 				race.hit_kart(target, d_here, dtype, kart, float(e.get("stun", 0.6)))
 				_after_hit(race, kart, target, d_here, e, kart.forward())
 				race.spawn_bolt(kart.position, target.position, tint)
+				if not hit_any:
+					race.play(snd)
+					race.play(String(e.get("hit_sound", "")), -3.0)
 				hit_any = true
 			if not hit_any:
 				return false
@@ -572,7 +580,6 @@ static func cast_spell(race, kart: Kart, spell: Dictionary) -> bool:
 			fx.follow = target
 		_:
 			return false
-	race.play("sorcery")
 	return true
 
 
@@ -593,6 +600,7 @@ static func ring_effects(race, center: Vector2, radius: float, tex: Texture2D, f
 static func _arm(p: Projectile, e: Dictionary) -> void:
 	p.heal_frac = float(e.get("heal_frac", 0.0))
 	p.shove = float(e.get("shove", 0.0))
+	p.hit_sound = String(e.get("hit_sound", ""))
 	if e.has("stun"):
 		p.stun = float(e["stun"])
 

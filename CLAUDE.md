@@ -130,10 +130,17 @@ armed. `Race.gd` gained `--type=gp|campaign|single` for CLI tests. Probe: a camp
 `wolf` (summons) buckets, not `ability` (that bucket is melee). Realm 12 seed 8 killed the
 auto-driven player: tune `campaign.ability_damage_by_band` in tuning.json if that's too hot.
 
+PER-WEAPON SOUNDS (2026-09-05): there is NO Sounds.xml in Qud's data — sounds are TAGS on the
+blueprints (`MissileFireSound`, `SwingSound`, `ThrownSound`, `DetonatedSound`, projectile
+`ImpactSound`), path-like values whose last segment is the clip base; clips ship as five
+takes `-001..-005`. `tools/qud_sounds.py` resolves; records carry `kart.sound` (cast) and
+`kart.hit_sound` (impact/detonation); the exporter links every take + `sfx/variants.json`,
+`Audio.play` picks a take at random and `--sfx-log` prints `sfx: <name> -> <clip>` (THE probe).
+`Items.cast_spell` plays the cast sound up front (beams on the first hit), projectiles carry
+`hit_sound` (Race's projectile loop plays it on impact / a grenade's end of flight), the arcade
+pickups play `pickup_<kind>`. The 15 engine cues in `mapping.json` are still regex guesses.
+
 Next, in order:
-1. `Sounds.xml` event→clip mapping for the cues that are still regex guesses (see
-   `<store>/godot/sfx/mapping.json`); per-weapon fire sounds from the blueprints'
-   `MissileFireSound` tags.
-2. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
-3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
+1. Placeholder art to Qud art: effects strips, projectiles, stun icon, portal, clouds.
+2. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

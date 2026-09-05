@@ -93,6 +93,19 @@ reach; `shared/overrides.json` still has the last word by name. The six arcade i
 pickups are the same engine behaviours wearing Qud items: HE grenade, laser rifle,
 recoiler, blaze injector, cryo grenade and a snapjaw pack.
 
+### Every weapon sounds like itself
+
+Qud's blueprints name their sounds: a gun's `MissileFireSound`, a blade's `SwingSound`, a
+grenade's `DetonatedSound`, the `ImpactSound` of the projectile a gun fires. The item and
+mutation generators resolve those names (and a table for the mutations: flaming ray attack,
+quills expel, gas breath, injector tube…) against the extracted clips through
+`tools/qud_sounds.py`, and the exporter links every take Qud ships of each one (five for
+most) with a `variants.json` the engine's `Audio.play` picks from at random. So a laser
+rifle fires with its own crack and lands with the direct-energy hit, a grenade plays the
+throw and then its detonation where it falls, a long sword swings with steel, a snapjaw's
+musket sounds like a musket. `--sfx-log` prints every cue played, which is how this is
+tested.
+
 ## Mutations as the monsters' abilities
 
 In the Monster Campaign the field is Qud's creatures, and each one attacks with what its
