@@ -538,20 +538,10 @@
      "phase": 4.0
     },
     {
-     "kind": "barrier",
-     "at": 0.33,
-     "side": 0.35,
-     "radius": 110,
-     "laps": [
-      2,
-      3
-     ]
-    },
-    {
      "kind": "jump",
-     "at": 0.33,
-     "side": -0.2,
-     "radius": 120,
+     "at": 0.295,
+     "side": 0.0,
+     "radius": 130,
      "laps": [
       3
      ]
@@ -597,7 +587,7 @@
    ],
    "lap_notes": {
     "2": "a bridge panel collapses: take the outer bypass",
-    "3": "the gap is jumpable"
+    "3": "the gap is jumpable: pad before the break"
    },
    "branches": [
     {
@@ -629,6 +619,53 @@
        930
       ]
      ]
+    },
+    {
+     "name": "outer bypass",
+     "kind": "safe",
+     "from": 0.29,
+     "to": 0.36,
+     "width": 220,
+     "ai_take": 0.3,
+     "hazards": [],
+     "laps": [
+      2,
+      3
+     ],
+     "bypass": true,
+     "control": [
+      [
+       1916,
+       403
+      ],
+      [
+       2171,
+       346
+      ],
+      [
+       2429,
+       380
+      ]
+     ]
+    }
+   ],
+   "road_states": [
+    {
+     "from": 0.31,
+     "to": 0.335,
+     "laps": [
+      1
+     ],
+     "state": "cracked"
+    },
+    {
+     "from": 0.31,
+     "to": 0.335,
+     "laps": [
+      2,
+      3
+     ],
+     "state": "gap"
     }
    ]
   },
@@ -2637,12 +2674,12 @@
        "kind": "jump",
        "at": 0.5,
        "side": 0.0,
-       "radius": 130,
-       "laps": [
-        2,
-        3
-       ]
+       "radius": 130
       }
+     ],
+     "laps": [
+      2,
+      3
      ],
      "control": [
       [
@@ -2867,6 +2904,32 @@
        1489
       ]
      ]
+    },
+    {
+     "name": "surface bypass",
+     "kind": "safe",
+     "from": 0.86,
+     "to": 0.96,
+     "width": 200,
+     "ai_take": 0.5,
+     "hazards": [],
+     "laps": [
+      3
+     ],
+     "control": [
+      [
+       148,
+       1642
+      ],
+      [
+       87,
+       1429
+      ],
+      [
+       105,
+       1207
+      ]
+     ]
     }
    ]
   },
@@ -3063,6 +3126,17 @@
       ]
      ]
     }
+   ],
+   "road_states": [
+    {
+     "from": 0.44,
+     "to": 0.5,
+     "laps": [
+      2,
+      3
+     ],
+     "state": "hologram"
+    }
    ]
   },
   {
@@ -3197,26 +3271,16 @@
      "ai_take": 0.35,
      "hazards": [
       {
-       "kind": "water",
-       "at": 0.5,
-       "side": 0.0,
-       "radius": 170,
-       "laps": [
-        1,
-        2
-       ]
-      },
-      {
        "kind": "jump",
        "at": 0.5,
        "side": 0.0,
-       "radius": 120,
-       "laps": [
-        3,
-        4,
-        5
-       ]
+       "radius": 120
       }
+     ],
+     "laps": [
+      3,
+      4,
+      5
      ],
      "control": [
       [
@@ -3786,6 +3850,42 @@
        1612
       ]
      ]
+    }
+   ],
+   "road_states": [
+    {
+     "from": 0.15,
+     "to": 0.3,
+     "laps": [
+      2,
+      3
+     ],
+     "state": "hologram"
+    },
+    {
+     "from": 0.42,
+     "to": 0.5,
+     "laps": [
+      3
+     ],
+     "state": "hologram"
+    },
+    {
+     "from": 0.56,
+     "to": 0.68,
+     "laps": [
+      2,
+      3
+     ],
+     "state": "hologram"
+    },
+    {
+     "from": 0.74,
+     "to": 0.84,
+     "laps": [
+      3
+     ],
+     "state": "hologram"
     }
    ]
   },

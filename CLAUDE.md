@@ -187,9 +187,15 @@ kart's `next_wp = track.start_wp()`, skips the lap rule on open roads, and the H
 `_leader_lap` use `stage_of` / `stage_name` / `stage_count`. Probe: `section N: hazard set`
 lines and `race: state=gates|finished lap=99`. The rig's arc-length helpers still assume a loop.
 
+LAP-CHANGING GEOMETRY (2026-09-05): branch `laps` (dormant = translucent ghost, not road,
+skipped by `nearest`/`choose_branch`, hazards sleep via `spot.branch`) + spec `road_states`
+(the loop road is built in PIECES at stretch boundaries — `road_pieces` — so a piece can be
+hologram / cracked / gap; `on_road` is false in a gap; a `bypass` branch is taken 0.9 while
+its stretch is a gap). `Track.apply_lap(lap)` runs from `Race._apply_lap_sets` and returns
+the change strings the log prints. `_ribbon_of` returns its MeshInstance3D now.
+
 Next, in order:
-1. Lap-changing geometry (lilies, the thinning road), then moving hazards with a path, then
-   authored elevation (docs/tracks.md).
+1. Moving hazards with a path, then authored elevation, then camber (docs/tracks.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

@@ -56,7 +56,7 @@ LAPPED = {
     "redrock": [haz("static", 0.20, 0.45, 120, period=5.0, duty=0.2, laps=[1]), haz("static", 0.26, -0.45, 120, period=5.0, duty=0.2, phase=2.5, laps=[1]),
                 haz("static", 0.23, 0.0, 130, period=5.0, duty=0.2, laps=[2]),
                 haz("static", 0.20, 0.3, 120, period=5.0, duty=0.2, laps=[3]), haz("static", 0.26, -0.3, 120, period=5.0, duty=0.2, phase=2.5, laps=[3])],
-    "rustwells": [haz("barrier", 0.33, 0.35, 110, laps=[2, 3]), haz("jump", 0.33, -0.2, 120, laps=[3])],
+    "rustwells": [haz("jump", 0.295, 0.0, 130, laps=[3])],
     "stilt": [haz("cart", 0.45, -0.4, 150, period=8.0, duty=0.35, laps=[2]), haz("cart", 0.52, 0.4, 150, period=8.0, duty=0.35, phase=4.0, laps=[3])],
     "gritgate": [haz("barrier", 0.50, 0.0, 140, period=6.0, duty=0.5, phase=1.5, laps=[2, 3])],
     "asphalt": [haz("oil", 0.25, -0.3, 170, laps=[2, 3]), haz("oil", 0.88, -0.2, 160, laps=[3])],
@@ -94,7 +94,7 @@ LAPPED_REPLACES = {
 LAP_NOTES = {
     "joppa": {2: "the waterwheel turns faster", 3: "a gap opens in the paddles"},
     "redrock": {2: "the baboons aim for the racing lane", 3: "stones fall inside and out"},
-    "rustwells": {2: "a bridge panel collapses: take the outer bypass", 3: "the gap is jumpable"},
+    "rustwells": {2: "a bridge panel collapses: take the outer bypass", 3: "the gap is jumpable: pad before the break"},
     "stilt": {2: "the left aisle fills with carts", 3: "the market turns: right aisle busy"},
     "gritgate": {2: "a third gate comes online", 3: "the barrier cycle inverts"},
     "golgotha": {2: "the belts run faster: vents ahead", 3: "the cloaca: refuse islands"},
@@ -385,9 +385,31 @@ def _loop_points(control, samples=16):
     return pts
 
 
-def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None):
-    return {"name": name, "kind": kind, "from": frm, "to": to, "offset": offset, "width": width,
-            "ai_take": ai_take, "hazards": hazards or []}
+def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None, laps=None, bypass=False):
+    """laps=[3, 4] makes the branch EXIST only on those laps (drawn as a translucent preview
+    before); bypass=True makes AI karts take it when the loop stretch it skirts is a gap."""
+    b = {"name": name, "kind": kind, "from": frm, "to": to, "offset": offset, "width": width,
+         "ai_take": ai_take, "hazards": hazards or []}
+    if laps:
+        b["laps"] = list(laps)
+    if bypass:
+        b["bypass"] = True
+    return b
+
+
+def road_state(frm, to, laps, state):
+    """A stretch of the loop that on `laps` is "hologram" (translucent, still road),
+    "cracked" (amber: the preview of a coming gap) or "gap" (no road at all)."""
+    return {"from": frm, "to": to, "laps": list(laps), "state": state}
+
+
+# Lap-changing geometry: roads that appear, collapse or thin between laps.
+ROAD_STATES = {
+    "rustwells": [road_state(0.31, 0.335, [1], "cracked"), road_state(0.31, 0.335, [2, 3], "gap")],
+    "thinworld": [road_state(0.15, 0.30, [2, 3], "hologram"), road_state(0.42, 0.50, [3], "hologram"),
+                  road_state(0.56, 0.68, [2, 3], "hologram"), road_state(0.74, 0.84, [3], "hologram")],
+    "moonstair": [road_state(0.44, 0.50, [2, 3], "hologram")],
+}
 
 
 def place_branch(b, control):
@@ -414,7 +436,8 @@ def place_branch(b, control):
 BRANCHES = {
     "joppa": [branch("pond cut", "expert", 0.46, 0.58, 190, 150, 0.4, [haz("water", 0.3, 0.0, 150), haz("water", 0.7, 0.0, 150)])],
     "redrock": [branch("cavern bridge", "safe", 0.30, 0.44, -240, 220, 0.45)],
-    "rustwells": [branch("wire bridge", "expert", 0.28, 0.40, 220, 140, 0.35, [haz("jump", 0.5, 0.0, 120)])],
+    "rustwells": [branch("wire bridge", "expert", 0.28, 0.40, 220, 140, 0.35, [haz("jump", 0.5, 0.0, 120)]),
+                  branch("outer bypass", "safe", 0.29, 0.36, -230, 220, 0.3, laps=[2, 3], bypass=True)],
     "stilt": [branch("left aisle", "safe", 0.40, 0.56, -210, 240, 0.3, [haz("cart", 0.5, 0.0, 150, period=8.0, duty=0.35, laps=[2])]),
               branch("right aisle", "safe", 0.40, 0.56, 210, 240, 0.3, [haz("cart", 0.5, 0.0, 150, period=8.0, duty=0.35, phase=4.0, laps=[3])])],
     "gritgate": [branch("service tunnel", "safe", 0.34, 0.64, -260, 220, 0.45)],
@@ -424,11 +447,12 @@ BRANCHES = {
     "kyakukya": [branch("root ramp", "safe", 0.28, 0.40, -220, 220, 0.4)],
     "chavvah": [branch("slender branches", "expert", 0.26, 0.34, 260, 130, 0.3, [haz("jump", 0.35, 0.0, 110), haz("jump", 0.7, 0.0, 110)])],
     "hinnom": [branch("water line", "expert", 0.42, 0.50, 200, 170, 0.35, [haz("water", 0.5, 0.0, 170)])],
-    "palladium": [branch("inner chute", "expert", 0.56, 0.66, 230, 150, 0.35, [haz("jump", 0.5, 0.0, 130, laps=[2, 3])])],
+    "palladium": [branch("inner chute", "expert", 0.56, 0.66, 230, 150, 0.35, [haz("jump", 0.5, 0.0, 130)], laps=[2, 3])],
     "ydfreehold": [branch("red workshop", "expert", 0.36, 0.52, 240, 170, 0.3, [haz("barrier", 0.5, 0.0, 130, period=6.0, duty=0.45)]),
-                   branch("violet salon", "safe", 0.36, 0.52, -240, 230, 0.3)],
+                   branch("violet salon", "safe", 0.36, 0.52, -240, 230, 0.3),
+                   branch("surface bypass", "safe", 0.86, 0.96, -200, 200, 0.5, laps=[3])],
     "moonstair": [branch("shortcut crystals", "expert", 0.48, 0.58, 240, 140, 0.35, [haz("static", 0.5, 0.0, 140, period=5.0, duty=0.4)])],
-    "hydropon": [branch("centre leaves", "expert", 0.30, 0.62, 300, 150, 0.35, [haz("water", 0.5, 0.0, 170, laps=[1, 2]), haz("jump", 0.5, 0.0, 120, laps=[3, 4, 5])])],
+    "hydropon": [branch("centre leaves", "expert", 0.30, 0.62, 300, 150, 0.35, [haz("jump", 0.5, 0.0, 120)], laps=[3, 4, 5])],
     "omonporch": [branch("high line", "expert", 0.58, 0.70, 260, 150, 0.35, [haz("jump", 0.5, 0.0, 130)])],
     "tomb": [branch("recovery corridor", "safe", 0.40, 0.56, -250, 220, 0.45)],
     "thinworld": [branch("Recoming portal", "safe", 0.80, 0.92, -220, 200, 0.5)],
@@ -463,6 +487,8 @@ def build():
         gone = BRANCH_REPLACES.get(t["key"], [])
         t["hazards"] = [h for h in t["hazards"] if (h["kind"], h["at"]) not in gone]
         t["branches"] = [place_branch(b, t["control"]) for b in BRANCHES.get(t["key"], [])]
+        if t["key"] in ROAD_STATES:
+            t["road_states"] = ROAD_STATES[t["key"]]
         t["control"] = [[int(x), int(y)] for x, y in t["control"]]
         tracks.append(t)
     return tracks

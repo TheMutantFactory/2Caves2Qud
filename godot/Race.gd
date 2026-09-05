@@ -708,7 +708,7 @@ func _spawn_track_hazards() -> void:
 			hazards.append(h)      # damage / slip / stun through the ordinary hazard loop
 		var period := float(spot.get("period", 0.0))
 		course_hazards.append({"h": h, "kind": kind, "period": period, "duty": float(spot.get("duty", 0.5)),
-			"phase": float(spot.get("phase", 0.0)), "on": true, "laps": spot.get("laps", []),
+			"phase": float(spot.get("phase", 0.0)), "on": true, "laps": spot.get("laps", []), "branch": int(spot.get("branch", -1)),
 			"per_lap": spot.get("per_lap", {}), "base": {"period": period, "duty": float(spot.get("duty", 0.5)), "phase": float(spot.get("phase", 0.0))}})
 		n += 1
 	if n > 0:
@@ -743,10 +743,15 @@ func _leader_lap() -> int:
 
 func _apply_lap_sets(lap: int) -> void:
 	course_lap = lap
+	for change in track.apply_lap(lap):       # branches appearing, road stretches changing state
+		if hazard_log:
+			print("%s %d: %s" % [track.stage_name().to_lower(), lap, change])
 	var live := 0
 	for c in course_hazards:
 		var gate: Array = c["laps"]
 		c["lap_ok"] = gate.is_empty() or gate.has(lap) or gate.has(float(lap))
+		if int(c["branch"]) >= 0 and not track.branch_live(int(c["branch"])):
+			c["lap_ok"] = false                # a dormant branch's hazards sleep with it
 		var base: Dictionary = c["base"]
 		var ov: Dictionary = (c["per_lap"] as Dictionary).get(str(lap), {})
 		c["period"] = float(ov.get("period", base["period"]))

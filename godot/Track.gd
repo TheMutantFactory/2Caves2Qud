@@ -576,7 +576,7 @@ static func _dir_of(pts: PackedVector2Array, i: int, closed: bool) -> Vector2:
 
 
 # A road strip along any polyline (the loop, closed; a branch, open).
-func _ribbon_of(pts: PackedVector2Array, closed: bool, offset_a: float, offset_b: float, lift_px: float, tex: Texture2D, color: Color, name: String) -> void:
+func _ribbon_of(pts: PackedVector2Array, closed: bool, offset_a: float, offset_b: float, lift_px: float, tex: Texture2D, color: Color, name: String) -> MeshInstance3D:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var along := 0.0
@@ -612,6 +612,7 @@ func _ribbon_of(pts: PackedVector2Array, closed: bool, offset_a: float, offset_b
 	mi.material_override = _material(tex, color)
 	mi.name = name
 	add_child(mi)
+	return mi
 
 
 # ---------------------------------------------------------------- parallel routes
@@ -650,15 +651,17 @@ func _build_branches() -> void:
 		var pts := catmull_rom_open(ctrl, samples)
 		var w := float(b.get("width", 180)) * (1.0 + (scale_k - 1.0) * 0.35)
 		var kind := String(b.get("kind", "safe"))
-		branches.append({"name": String(b.get("name", "route %d" % (bi + 1))), "kind": kind, "pts": pts,
-			"from_i": from_i, "to_i": to_i, "width": w, "ai_take": float(b.get("ai_take", 0.4)),
-			"hazards": b.get("hazards", [])})
 		# the road: main texture; the curbs say what it is (bible route language: grey dashed =
 		# the safer alternate, luminous = the expert route)
 		var curb := Color(0.55, 0.55, 0.6) if kind == "safe" else Color(0.5, 1.0, 1.0)
-		_ribbon_of(pts, false, -w * 0.5, w * 0.5, 7.0, road_tex, Color(0.72, 0.72, 0.75) if kind == "safe" else Color(0.85, 0.9, 1.0), "Branch%d" % bi)
-		_ribbon_of(pts, false, -w * 0.5 - 14.0, -w * 0.5, 7.5, null, curb, "Branch%dCurbL" % bi)
-		_ribbon_of(pts, false, w * 0.5, w * 0.5 + 14.0, 7.5, null, curb, "Branch%dCurbR" % bi)
+		var color := Color(0.72, 0.72, 0.75) if kind == "safe" else Color(0.85, 0.9, 1.0)
+		var mesh := _ribbon_of(pts, false, -w * 0.5, w * 0.5, 7.0, road_tex, color, "Branch%d" % bi)
+		var curbs := [_ribbon_of(pts, false, -w * 0.5 - 14.0, -w * 0.5, 7.5, null, curb, "Branch%dCurbL" % bi),
+			_ribbon_of(pts, false, w * 0.5, w * 0.5 + 14.0, 7.5, null, curb, "Branch%dCurbR" % bi)]
+		branches.append({"name": String(b.get("name", "route %d" % (bi + 1))), "kind": kind, "pts": pts,
+			"from_i": from_i, "to_i": to_i, "width": w, "ai_take": float(b.get("ai_take", 0.4)),
+			"hazards": b.get("hazards", []), "laps": b.get("laps", []), "live": true,
+			"bypass": bool(b.get("bypass", false)), "mesh": mesh, "curbs": curbs, "color": color})
 		bi += 1
 	if bi > 0:
 		print("branches: %d parallel routes (%s): %s" % [bi, key, ", ".join(branches.map(func(b): return "%s %s" % [b["name"], b["kind"]]))])
@@ -697,10 +700,24 @@ func aim(kart, look: int) -> Dictionary:
 func choose_branch(kart) -> void:
 	for b in branches.size():
 		var br: Dictionary = branches[b]
+		if not bool(br["live"]):
+			continue
 		var fork: int = int(br["from_i"]) - 6
 		if kart.next_wp >= fork and kart.next_wp < int(br["from_i"]) and kart.choice_fork != fork:
 			kart.choice_fork = fork
-			kart.branch_choice = b if kart.rng.randf() < float(br["ai_take"]) else -1
+			var chance := float(br["ai_take"])
+			if bool(br["bypass"]):
+				for i in range(int(br["from_i"]), int(br["to_i"])):
+					if _road_state_at(i) == "gap":
+						chance = 0.9      # the road ahead is out: nearly everyone goes round
+						break
+			kart.branch_choice = b if kart.rng.randf() < chance else -1
+
+
+# Lap-changing road (spec "road_states": {from, to, laps, state}): the road is built in
+# pieces at those stretches so a piece can turn "hologram" (translucent, still road),
+# "cracked" (amber: the preview of a coming gap), or "gap" (hidden, not road) on a lap.
+var road_pieces: Array = []      # [{from_i, to_i, mesh, states: [{laps, state}], state}]
 
 
 func _build_road() -> void:
@@ -710,7 +727,102 @@ func _build_road() -> void:
 	# lifted above the interpolated ground so slopes never poke through the surface
 	_ribbon(-half - curb, -half, 7.0, null, Color(0.88, 0.84, 0.76), "CurbL")
 	_ribbon(half, half + curb, 7.0, null, Color(0.88, 0.84, 0.76), "CurbR")
-	_ribbon(-half, half, 7.5, road_tex, Color.WHITE, "Road")
+	road_pieces.clear()
+	var states: Array = spec.get("road_states", [])
+	if states.is_empty():
+		_ribbon(-half, half, 7.5, road_tex, Color.WHITE, "Road")
+		return
+	# cut points: every stretch boundary, in order; pieces between them
+	var cuts := [0]
+	for rs in states:
+		cuts.append(clampi(int(floor(float(rs.get("from", 0.0)) * n)), 1, n - 2))
+		cuts.append(clampi(int(floor(float(rs.get("to", 0.0)) * n)), 1, n - 2))
+	cuts.append(n - 1 if open else n)
+	cuts.sort()
+	var uniq := []
+	for c in cuts:
+		if uniq.is_empty() or c != uniq[uniq.size() - 1]:
+			uniq.append(c)
+	for i in range(uniq.size() - 1):
+		var a: int = uniq[i]
+		var b: int = uniq[i + 1]
+		var sub := PackedVector2Array()
+		for j in range(a, mini(b + 1, n)):
+			sub.append(points[j])
+		if not open and b == n:
+			sub.append(points[0])
+		if sub.size() < 2:
+			continue
+		var piece := {"from_i": a, "to_i": b, "states": [], "state": "road"}
+		for rs in states:
+			var f := clampi(int(floor(float(rs.get("from", 0.0)) * n)), 1, n - 2)
+			var t2 := clampi(int(floor(float(rs.get("to", 0.0)) * n)), 1, n - 2)
+			if a >= f and b <= t2:
+				piece["states"].append({"laps": rs.get("laps", []), "state": String(rs.get("state", "road"))})
+		piece["mesh"] = _ribbon_of(sub, false, -half, half, 7.5, road_tex, Color.WHITE, "Road%d" % i)
+		road_pieces.append(piece)
+
+
+func _road_state_at(idx: int) -> String:
+	for piece in road_pieces:
+		if idx >= int(piece["from_i"]) and idx < int(piece["to_i"]):
+			return String(piece["state"])
+	return "road"
+
+
+# The course on lap `lap`: branch liveness and road-piece states. Returns the changes
+# as strings for the log.
+func apply_lap(lap: int) -> Array:
+	var changes := []
+	for b in branches.size():
+		var br: Dictionary = branches[b]
+		var gate: Array = br.get("laps", [])
+		var live := gate.is_empty() or gate.has(lap) or gate.has(float(lap))
+		if live != bool(br["live"]):
+			br["live"] = live
+			_set_branch_live(br, live)
+			changes.append("branch %s %s" % [String(br["name"]), "live" if live else "dormant"])
+	for piece in road_pieces:
+		var st := "road"
+		for cand in piece["states"]:
+			var g: Array = cand["laps"]
+			if g.is_empty() or g.has(lap) or g.has(float(lap)):
+				st = String(cand["state"])
+				break
+		if st != String(piece["state"]):
+			piece["state"] = st
+			var mi: MeshInstance3D = piece["mesh"]
+			var mat: StandardMaterial3D = mi.material_override
+			mi.visible = st != "gap"
+			match st:
+				"hologram":
+					mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat.albedo_color = Color(0.55, 0.95, 1.0, 0.38)
+				"cracked":
+					mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+					mat.albedo_color = Color(1.0, 0.75, 0.35)
+				_:
+					mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+					mat.albedo_color = Color.WHITE
+			changes.append("road %d-%d %s" % [int(piece["from_i"]), int(piece["to_i"]), st])
+	return changes
+
+
+func _set_branch_live(br: Dictionary, live: bool) -> void:
+	var road: MeshInstance3D = br["mesh"]
+	var mat: StandardMaterial3D = road.material_override
+	if live:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+		mat.albedo_color = br["color"]
+	else:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(0.7, 0.8, 0.9, 0.22)      # the preview of a road to come
+	for c in br["curbs"]:
+		(c as MeshInstance3D).visible = live
+
+
+func branch_live(b: int) -> bool:
+	return b >= 0 and b < branches.size() and bool(branches[b]["live"])
 
 
 func _build_start_line() -> void:
@@ -822,6 +934,8 @@ func nearest(p: Vector2, hint: int, window := 30) -> Dictionary:
 	# a branch counts only within its own road; then its equivalent loop index stands in
 	for b in branches.size():
 		var br: Dictionary = branches[b]
+		if not bool(br["live"]):
+			continue
 		var pts: PackedVector2Array = br["pts"]
 		var half := float(br["width"]) * 0.5
 		for j in range(pts.size() - 1):
@@ -839,6 +953,8 @@ func on_road(p: Vector2, hint: int) -> bool:
 	var near := nearest(p, hint)
 	if int(near.get("branch", -1)) >= 0:
 		return true
+	if not road_pieces.is_empty() and _road_state_at(int(near["idx"])) == "gap":
+		return false
 	return near.dist <= width * 0.5
 
 
@@ -870,7 +986,7 @@ func hazard_spots() -> Array:
 			out.append({"kind": String(h.get("kind", "fire")), "pos": pts[j] + nrm * float(h.get("side", 0.0)) * float(br["width"]) * 0.5,
 				"radius": float(h.get("radius", 150.0)), "period": float(h.get("period", 0.0)),
 				"duty": float(h.get("duty", 0.5)), "phase": float(h.get("phase", 0.0)),
-				"laps": h.get("laps", []), "per_lap": h.get("per_lap", {})})
+				"laps": h.get("laps", []), "per_lap": h.get("per_lap", {}), "branch": branches.find(br)})
 	for h in spec.get("hazards", []):
 		var i := int(floor(float(h.get("at", 0.0)) * n)) % n
 		var d := direction_at(i)

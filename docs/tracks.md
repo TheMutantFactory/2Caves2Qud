@@ -121,6 +121,21 @@ and "Section 3 enters the cryobarrios" are data. Golgotha Drop, Bethesda Susa De
 Eyn Roj Dreamroot and the Tomb of the Eaters Bell Run are section races; their branches
 and hazards sit at fractions of the path like everywhere else.
 
+## Lap-changing geometry
+
+Two things change the road itself between laps. A **branch with `laps`** exists only on those
+laps: before, it is drawn as a translucent ghost road with no curbs (the preview), it is not
+road, its hazards sleep and the AI ignores it; on its lap it becomes a route. The Hydropon's
+centre leaves grow in on lap 3, Palladium's inner chute opens on lap 2, Yd Freehold's
+surface bypass lights on lap 3, and Rust Wells' outer bypass appears when the bridge goes.
+A **road stretch with `road_states`** is built as its own piece of road so it can change
+state on a lap: `hologram` is translucent cyan and still road (the Thin World thins on lap 2
+and more on lap 3; a Moon Stair platform), `cracked` is the amber preview of a break (Rust
+Wells lap 1), and `gap` is no road at all (Rust Wells laps 2 and 3: a bridge panel is gone,
+the curbs remain as the edge). AI karts take a `bypass` branch nine times in ten while its
+stretch is a gap; a jump pad on lap 3 launches the brave across. `--hazard-log` prints
+`lap N: road a-b <state>` and `lap N: branch <name> live|dormant`.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
@@ -132,11 +147,11 @@ to data. The big ones:
   reef creatures crossing under the road. Cycling patches stand in for them.
 - **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
   level; the branch-to-branch transfers and the shaft drops stay on one road.
-- **Lap-by-lap geometry**: lilies that add road, a tree that leans, a road that thins. Lap
-  sets change which hazards and pads are live, not the road itself.
+- **Camber and lean** (Chavvah's tilting tree, Moon Stair's rule changes beyond the pads):
+  the road's shape never changes, only whether a stretch or a branch is road.
 - **A third room** (Yd Freehold has two branches and the loop; the bible has three rooms
   plus a lap-3 bypass) and routes that split more than once.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: a lap-changing
-road (lilies, the thinning road), moving hazards with a path, and authored elevation.
+The next engine features that would unlock the most courses are, in order: moving hazards
+with a path, authored elevation, and camber.
