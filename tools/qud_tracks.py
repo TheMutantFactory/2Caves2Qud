@@ -218,10 +218,13 @@ COURSES = [
          format="3-section race", target_lap="section race", target_run="160-180 s", skill="Forced-movement lane changes",
          sentence="Commit to a one-way plunge through Golgotha's conveyor-fed trash chutes, dodge vent cycles, and outrun the refuse into the Cloaca.",
          tileset="rust", offroad="bile", wallset="metal", road=[84, 90, 70], ground=[60, 86, 40],
-         width=210, elevation=160, laps=3,
+         width=210, elevation=160, laps=3, size=[4800, 3200],
          sections=3,
-         control=[[300, 300], [1100, 300], [1700, 600], [1200, 1100], [1900, 1400], [2700, 1200], [3200, 1600],
-                  [2600, 2100], [3400, 2300]],
+         # S1 the jungle and the chute mouths, S2 two conveyor floors swept east then west with a shaft
+         # drop between, S3 the wide Cloaca run through refuse islands to the finish lamps
+         control=[[300, 300], [1100, 300], [1700, 650], [1300, 1100], [2300, 1150], [3300, 1050], [4200, 1300],
+                  [3600, 1700], [2400, 1750], [1200, 1650], [500, 1950], [900, 2500], [1800, 2700], [2600, 2550],
+                  [3400, 2800], [4300, 2900]],
          hazards=[haz("poison", 0.3, 0.3, 160), haz("poison", 0.48, -0.3, 160), haz("slime", 0.7, 0.0, 200), haz("poison", 0.9, 0.35, 150)],
          spells=["Acid Gas Grenade Mk I", "Poison Gas Grenade Mk I", "Chaingun", "Salve Injector", "Gaslight Kris", "Grappling Gun", "Hulk Honey Injector", "Freeze Grenade Mk I"],
          gaps=["one-way section race with four chute mouths", "conveyor belts", "vent cycles with cues", "shaft drops"]),
@@ -229,10 +232,13 @@ COURSES = [
          format="3-section race", target_lap="section race", target_run="170-190 s", skill="Progressive ice control",
          sentence="Descend Bethesda Susa as every sector grows colder, earn three gate keys through racing lines, and survive the cryobarrios before the warm Temple of the Rock.",
          tileset="marble", offroad="jungle", wallset="marble", road=[128, 132, 136], ground=[40, 84, 44],
-         width=230, elevation=120, laps=3,
+         width=230, elevation=120, laps=3, size=[4800, 3200],
          sections=3,
-         control=[[300, 200], [1100, 200], [1800, 500], [1300, 1000], [2100, 1300], [2900, 1100], [3300, 1600],
-                  [2600, 2100], [3400, 2300]],
+         # S1 the ruins, the wharf and three pool arenas as lobes, S2 the ward switchbacks west, S3 the
+         # cryobarrios east to the warm Temple
+         control=[[300, 250], [1000, 250], [1600, 550], [1300, 1000], [2100, 1300], [2800, 1000], [3500, 1250],
+                  [4200, 1600], [3300, 1900], [2300, 1800], [1300, 2000], [600, 2300], [1300, 2700], [2200, 2850],
+                  [3100, 2750], [3900, 2950], [4500, 2700]],
          hazards=[haz("water", 0.15, 0.0, 180), haz("ice", 0.5, -0.3, 170), haz("ice", 0.58, 0.3, 170), haz("ice", 0.72, 0.0, 230), haz("ice", 0.8, -0.35, 170)],
          spells=["Freeze Grenade Mk I", "Freeze Ray", "Salve Injector", "Ubernostrum Injector", "Laser Pistol", "Sleep Gas Grenade Mk I", "Steel Dagger", "Shade Oil Injector"],
          gaps=["three keyed gates from arena tokens", "chrome elevator vs switchbacks", "phase-web door bypass", "grip in visible thirds"]),
@@ -272,10 +278,13 @@ COURSES = [
          format="3-section descent and ascent", target_lap="section race", target_run="165-185 s", skill="Reading psychic route echoes",
          sentence="Dive beneath Eyn Roj through crystalline roots where psychic echoes show several possible roads but only solid rhythm rock marks the immediate racing line.",
          tileset="marble", offroad="crystal", wallset="crystal1", road=[150, 150, 160], ground=[110, 60, 140],
-         width=220, elevation=170, laps=3,
+         width=220, elevation=170, laps=3, size=[4800, 3200],
          sections=3,
-         control=[[300, 1200], [1000, 1200], [1600, 800], [2200, 1100], [1900, 1600], [2600, 2000], [3200, 1600],
-                  [2900, 900], [3400, 400]],
+         # S1 circles the marble glade and dives, S2 the root helix as three chambers tightening inward,
+         # S3 the trunk ascent to the chiming rock
+         control=[[500, 1100], [1200, 700], [2000, 900], [2100, 1500], [1400, 1800], [800, 1500], [1000, 2200],
+                  [1900, 2500], [2800, 2900], [3800, 2700], [4300, 2100], [3600, 1700], [2800, 2000], [3000, 1300],
+                  [3600, 900], [4300, 1000], [4600, 400]],
          hazards=[haz("static", 0.45, 0.0, 150, period=5.0, duty=0.4), haz("static", 0.7, 0.3, 140, period=5.0, duty=0.4, phase=2.5)],
          spells=["Sunder Mind" if False else "Eigenpistol", "Stasis Grenade Mk I", "Salve Injector", "Nullray Pistol", "Skulk Injector", "Normality Gas Grenade Mk I", "Vibro Dagger", "Ubernostrum Injector"],
          gaps=["psychic overlays (doubled edges, false silhouettes, ghost racers)", "root helix descent + trunk ascent", "rhythm rock haptics"]),
@@ -345,10 +354,13 @@ COURSES = [
          format="3-section ascent", target_lap="section race", target_run="190-215 s", skill="Timed sanctuary routing", spoiler=True,
          sentence="Ascend the Tomb of the Eaters from bone catacombs through its lethal crematory, reaching checkered Places of Rest before each Bell pulse displaces exposed racers.",
          tileset="bone", offroad="blackmarble", wallset="bone", road=[170, 160, 130], ground=[30, 26, 22],
-         width=210, elevation=160, laps=3,
+         width=210, elevation=160, laps=3, size=[4800, 3200],
          sections=3,
-         control=[[300, 2200], [1000, 2200], [1600, 1800], [1100, 1300], [1900, 1000], [2700, 1300], [3200, 900],
-                  [2800, 400], [3400, 200]],
+         # S1 the Death Gate down through the catacombs' bone channels, S2 the crematory conveyors west to
+         # the Columbarium, S3 the climb through two gardens and the U-shaped tomb hall to the Spindle
+         control=[[3600, 400], [4300, 450], [4500, 1000], [3900, 1300], [4400, 1700], [3700, 2000], [2900, 2300],
+                  [2000, 2200], [1200, 2500], [500, 2200], [600, 1500], [1300, 1200], [800, 700], [1500, 300],
+                  [2200, 600], [2500, 1500], [3400, 1300], [3600, 600], [3000, 250]],
          hazards=[haz("fire", 0.4, -0.3, 160), haz("fire", 0.47, 0.3, 160), haz("fire", 0.55, 0.0, 170), haz("poison", 0.7, 0.3, 150)],
          spells=["Fullerite Dagger", "Light Rail", "Salve Injector", "Plasma Grenade Mk II", "Spaser Pistol", "Ubernostrum Injector", "High Explosive Grenade Mk III", "Shade Oil Injector"],
          gaps=["the Bell clock and checkered sanctuaries", "crematory press/arm/vent/fan sequence", "stairwell teleporter"]),
@@ -555,13 +567,13 @@ CUPS = ["Fresh Water Cup", "Chrome Cup", "Canopy Cup", "Reef Cup", "Spindle Cup"
 # target time (the AI field at racing pace runs ~850 px/s), and the section courses ran in a
 # sixth of their target run. stretch scales a course's control points and size (widths stay
 # in kart widths, hazards and movers sit at fractions, mover periods scale with the path) by
-# target / measured lap, capped near 2.2 for a circuit (Chavvah 2.6) and 3.0 for a section race; what a cap
-# leaves short is a gap on the course.
+# target / measured lap, capped near 2.2 for a circuit (Chavvah 2.6); the section races were re-routed with about
+# twice the road (three regions, one per section) and stretch by their run target instead.
 STRETCH = {
     "joppa": 1.81, "redrock": 2.1, "rustwells": 1.10, "stilt": 2.6, "gritgate": 1.79, "asphalt": 2.05,
-    "golgotha": 3.0, "bethesda": 3.0, "kyakukya": 2.2, "rainbowwood": 1.8, "chavvah": 2.6, "eynroj": 3.0,
+    "golgotha": 2.33, "bethesda": 2.51, "kyakukya": 2.2, "rainbowwood": 1.8, "chavvah": 2.6, "eynroj": 2.49,
     "hinnom": 2.7, "palladium": 1.9, "ydfreehold": 2.15, "moonstair": 2.1, "hydropon": 1.54,
-    "omonporch": 2.7, "tomb": 3.0, "thinworld": 2.17,
+    "omonporch": 2.7, "tomb": 2.9, "thinworld": 2.17,
 }
 
 

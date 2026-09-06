@@ -212,6 +212,6 @@ Rust Wells' collapsed bridge is a fall now, not a drive across the ground.
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
 (docs/graybox.md) measured the AI field on every course and stretched the loops to the
 bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
-What remains is craft the probes cannot do: the section races want about three times the
-road of a circuit lap, and the psychic overlays, ghost echoes and occlusion struts are
-presentation.
+The section races were re-routed as three regions each and run to their targets. What
+remains is presentation the probes cannot see: the psychic overlays, ghost echoes and
+occlusion struts.

@@ -61,6 +61,16 @@ The sharpest bends were the ellipse joins on Rainbowwood (69°/100 px) and Rust 
 - **Stretch bumps.** A second round for the circuits that still lapped short after the
   first fit (Hinnom, Omonporch, Rainbowwood, Redrock, Stilt, Palladium, Chavvah, Moonstair,
   Ydfreehold, Asphalt).
+- **More route for the section races.** At the 3.0 cap the four one-way courses still ran
+  in 0.54–0.67 of the bible's three-minute runs: their paths were nine points drawn like a
+  circuit. Each is now drawn on a 4800 × 3200 canvas as three regions, one per section,
+  from the Route paragraph — Golgotha's jungle chutes, two conveyor floors swept east then
+  west with a shaft drop between, and the wide Cloaca; Bethesda's ruins, wharf and three
+  pool lobes, the ward switchbacks, the cryobarrios to the Temple; Eyn Roj's glade circle
+  and dive, the helix as three chambers tightening inward, the trunk ascent; the Tomb's
+  bone channels down from the Death Gate, the conveyors west to the Columbarium, the climb
+  through two gardens and a U-shaped hall to the Spindle. About twice the road, with the
+  stretch fitted to the run target (2.3–2.9) rather than capped.
 
 ## After
 
@@ -72,26 +82,26 @@ The sharpest bends were the ellipse joins on Rainbowwood (69°/100 px) and Rust 
 | stilt | 2.6 | 78-88 | 34 s | 83 s | 1.00 | 0.3% | 1.1s | 0 / 0 | 11.9s | 3°/100 px at 0.55 |
 | gritgate | 1.79 | 75-85 | 45 s | 79 s | 0.98 | 1.0% | 15.2s | 0 / 0 | 13.1s | 9°/100 px at 0.41 |
 | asphalt | 2.05 | 80-90 | 46 s | 88 s | 1.04 | 0.0% | 1.8s | 1 / 0 | 9.8s | 8°/100 px at 0.08 |
-| golgotha | 3.0 | 160-180 | 30 s | 114 s | 0.67 | 4.8% | 0.0s | 40 / 0 | 16.3s | 11°/100 px at 0.91 |
-| bethesda | 3.0 | 170-190 | 32 s | 108 s | 0.60 | 9.3% | 0.0s | 20 / 0 | 15.5s | 11°/100 px at 0.91 |
+| golgotha | 2.33 | 160-180 | 30 s | 157 s | 0.93 | 6.3% | 0.0s | 41 / 0 | 15.7s | 10°/100 px at 0.94 |
+| bethesda | 2.51 | 170-190 | 32 s | 158 s | 0.88 | 4.1% | 0.0s | 12 / 0 | 12.2s | 9°/100 px at 0.10 |
 | kyakukya | 2.2 | 68-78 | 33 s | 72 s | 0.98 | 0.0% | 0.9s | 0 / 0 | 11.9s | 5°/100 px at 1.00 |
 | rainbowwood | 1.8 | 82-92 | 58 s | 87 s | 1.00 | 2.9% | 0.0s | 0 / 0 | 17.4s | 12°/100 px at 0.25 |
 | chavvah | 2.6 | 80-90 | 32 s | 84 s | 0.98 | 0.1% | 0.0s | 1 / 0 | 10.4s | 4°/100 px at 0.50 |
-| eynroj | 3.0 | 165-185 | 25 s | 94 s | 0.54 | 4.3% | 1.7s | 8 / 0 | 15.6s | 13°/100 px at 0.18 |
+| eynroj | 2.49 | 165-185 | 25 s | 155 s | 0.88 | 0.9% | 6.3s | 8 / 0 | 17.2s | 11°/100 px at 0.10 |
 | hinnom | 2.7 | 82-92 | 35 s | 93 s | 1.07 | 0.2% | 0.7s | 0 / 0 | 13.3s | 3°/100 px at 0.60 |
 | palladium | 1.9 | 84-94 | 54 s | 87 s | 0.97 | 2.2% | 38.1s | 0 / 0 | 14.4s | 8°/100 px at 0.21 |
 | ydfreehold | 2.15 | 78-88 | 46 s | 89 s | 1.07 | 0.8% | 4.4s | 0 / 0 | 11.1s | 5°/100 px at 0.84 |
 | moonstair | 2.1 | 86-96 | 55 s | 103 s | 1.14 | 0.0% | 33.3s | 0 / 0 | 12.9s | 5°/100 px at 0.22 |
 | hydropon | 1.54 | 38-45 | 27 s | 38 s | 0.91 | 6.7% | 1.6s | 0 / 0 | 9.5s | 7°/100 px at 0.44 |
 | omonporch | 2.7 | 88-98 | 38 s | 94 s | 1.01 | 0.0% | 1.6s | 0 / 0 | 15.7s | 5°/100 px at 0.99 |
-| tomb | 3.0 | 190-215 | 35 s | 120 s | 0.59 | 9.9% | 0.0s | 10 / 0 | 13.3s | 14°/100 px at 0.90 |
+| tomb | 2.9 | 190-215 | 35 s | 185 s | 0.91 | 1.5% | 1.1s | 2 / 0 | 14.2s | 10°/100 px at 1.00 |
 | thinworld | 2.17 | 92-102 | 45 s | 93 s | 0.96 | 0.7% | 19.3s | 0 / 4 | 15.5s | 9°/100 px at 0.66 |
 
 Lap medians are the eight-wizard field's, before is the first measurement (a realm-1
-campaign field), after is the final one. Every circuit laps within 0.90–1.14 of its target.
-The three section races run at 0.54–0.67 of the bible's three-minute runs at the 3.0 cap:
-a three-section course wants about three times the road of a circuit lap, which is more
-route, not more stretch, and is recorded as the courses' remaining gap. The stuck seconds
+campaign field), after is the final one. Every circuit laps within 0.90–1.14 of its target
+and every section race runs within 0.88–0.93 of its run. A field that is half unfinished
+in the table is the results screen: the race ends when the wizard finishes and the rest of
+the field stops there, so only the karts ahead of it record a run. The stuck seconds
 are the courses' own stun hazards doing their job (Moonstair's warm static, Gritgate's force
 barriers, Palladium's strip), not pins: they scale with the field and vanish under
 `--noattacks` only for monster abilities, not course hazards. Rust Wells' drops are its
