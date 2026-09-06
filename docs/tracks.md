@@ -224,10 +224,20 @@ is `psychic` on the course: forms per section, an `envelope` in px and a `beat` 
 - **Rhythm rocks.** Studs along the true edge (one multimesh) pulse on the beat and sit
   brighter where a real turn is ahead: the one thing that is always trustworthy.
 
+- **Rhythm-rock haptics** (`Race._haptics`). On each beat of the course a human whose road
+  turns by more than 25° over the next 1200 px (about 1.4 s at pace, `Track.bend_ahead`)
+  gets a short rumble on the pad that drives that seat, harder for a sharper bend (the solo
+  wizard: the first pad connected). Nothing on a straight, nothing on another course;
+  `race.haptics` turns it off. The studs' emphasis uses the same rule, so the pad and the
+  bright studs ahead agree: a first cut measured six waypoints ahead, which on the
+  stretched loop is a few hundred px, and rumbled twice in a whole run.
+
 `--psychic-log` prints `psychic: section=N forms=[...] edges=k/K faded=F sils=s/S ghosts=G
 pulse=` every five seconds and on each section change; `psychic: none on <key>` on a course
-without overlays. What is left of the course file: the rhythm-rock haptics and the briefly
-solidified echo across two root gaps (a skill route the course has no gaps for).
+without overlays. `--haptics-log` prints `haptic: <kart> pad=N bend=deg strength=x wp=`
+per rumble (`pad=-1` in a headless run, which has no pads: the intent is logged, the call
+skipped) and `haptic: none on <key>` elsewhere. What is left of the course file: the
+briefly solidified echo across two root gaps, a skill route the course has no gaps for.
 
 ## The occlusion struts
 
@@ -296,5 +306,5 @@ Nothing on the bible's list is left as a rule the engine cannot express. The gra
 bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
 The section races were re-routed as three regions each and run to their targets, and Eyn
 Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts, its venting
-plasma jellies and its sunslag polyps. What remains is the haptics, which want a
-controller in hand.
+plasma jellies and its sunslag polyps, and the rhythm rocks reach the pad. The bible's
+lists are closed; what remains is playing it.

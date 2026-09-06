@@ -274,6 +274,11 @@ SUNSLAG POLYPS (2026-09-06): spec `polyps` + `sunslag` → `Track.polyp_spots`, 
 Qud's coral ball / sunslag bulb via PICKUP_ICONS in the exporter. Probe `polyp:` lines under
 --hazard-log. GOTCHA: inserting a call "at the end of a function" by text — check the
 function really ends there (a trailing comment + var block bit twice).
+HAPTICS (2026-09-06): `Race._haptics` rumbles a human's pad on the psychic beat before a
+bend (`Track.bend_ahead`: >25 deg over 1200 px of road — never count waypoints for distance,
+their spacing changes with stretch; the studs' emphasis shares the rule); `_pad_of` maps a seat to its GamepadAdapter.device, the solo
+wizard to the first connected pad. `race.haptics` switch; probe `--haptics-log` (pad=-1
+headless). THE BIBLE'S LISTS ARE CLOSED.
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

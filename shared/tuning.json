@@ -7,7 +7,8 @@
     "countdown": 3.6,
     "waypoint_spacing": 90,
     "item_set_seconds": 18.0,
-    "item_pace_px": 850.0
+    "item_pace_px": 850.0,
+    "haptics": true
   },
   "kart": {
     "max_speed": 780,

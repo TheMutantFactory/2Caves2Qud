@@ -696,6 +696,9 @@ var course_hazards: Array = []     # [{h, kind, period, duty, phase, on}]
 var hazard_log := false
 var psychic_log := false        # --psychic-log: the overlays' forms and counts every 5 s
 var strut_log := false          # --strut-log: the occlusion struts' clear count every 5 s
+var haptics_log := false        # --haptics-log: every rhythm-rock rumble sent to a human's pad
+var haptic_beat := {}           # kart -> the beat index it last rumbled on
+var _said_no_haptics := false
 var strut_clear_frames := 0     # frames in which a strut stood clear for a human (the probe's proof)
 var _said_none := false
 var _said_no_struts := false
@@ -712,6 +715,7 @@ func _spawn_track_hazards() -> void:
 	graybox = OS.get_cmdline_user_args().has("--graybox")
 	psychic_log = OS.get_cmdline_user_args().has("--psychic-log")
 	strut_log = OS.get_cmdline_user_args().has("--strut-log")
+	haptics_log = OS.get_cmdline_user_args().has("--haptics-log")
 	for kart in karts:
 		kart.branch_log = hazard_log
 	for spot in track.hazard_spots():
@@ -850,9 +854,14 @@ func _apply_lap_sets(lap: int) -> void:
 func _update_course_hazards(dt: float) -> void:
 	if track.psychic():
 		_psychic_step()
-	elif psychic_log and not _said_none:
-		_said_none = true
-		print("psychic: none on %s" % track.key)
+		_haptics()
+	else:
+		if haptics_log and not _said_no_haptics:
+			_said_no_haptics = true
+			print("haptic: none on %s" % track.key)
+		if psychic_log and not _said_none:
+			_said_none = true
+			print("psychic: none on %s" % track.key)
 	if graybox and state == RACING:
 		for kart in karts:
 			if not kart.alive or kart.finished:
@@ -917,6 +926,42 @@ func _update_course_hazards(dt: float) -> void:
 						play("sfx_ability_jump", -4.0)
 					if hazard_log:
 						print("jump: %s t=%.2f" % [kart.display_name, t])
+
+
+# ---------------------------------------------------------------- rhythm-rock haptics (Eyn Roj)
+#
+# The rhythm rocks pulse through the controller as well as on the road: on each beat of
+# the course (psychic.beat, the studs' pulse) a human whose next stretch bends by more than
+# 22 degrees over the next six waypoints gets a short rumble, harder for a sharper bend,
+# on the pad that drives that seat (the solo wizard: the first pad connected). Nothing on a
+# straight, nothing on a course without rhythm rocks. race.haptics turns it off.
+func _pad_of(kart: Kart) -> int:
+	if kart.human >= 0 and kart.human < Players.players.size():
+		var adapter = Players.players[kart.human]["adapter"]
+		return int(adapter.device) if adapter is GamepadAdapter else -1
+	var pads := Input.get_connected_joypads()
+	return int(pads[0]) if not pads.is_empty() else -1
+
+
+func _haptics() -> void:
+	if not bool(Shared.t(["race", "haptics"], true)) or state != RACING:
+		return
+	var beat := float((track.spec.get("psychic", {}) as Dictionary).get("beat", 2.0))
+	var bi := int(floor(t * beat))
+	for kart in humans:
+		if not kart.alive or kart.finished or int(haptic_beat.get(kart, -1)) == bi:
+			continue
+		haptic_beat[kart] = bi
+		var i: int = kart.next_wp
+		var bend := track.bend_ahead(i, Track.BEND_LOOK_PX)
+		if bend < deg_to_rad(Track.BEND_DEG):
+			continue
+		var strength := clampf(bend / deg_to_rad(70.0), 0.3, 1.0)
+		var pad := _pad_of(kart)
+		if pad >= 0:
+			Input.start_joy_vibration(pad, 0.0, strength, 0.12)
+		if haptics_log:
+			print("haptic: %s pad=%d bend=%d strength=%.2f wp=%d t=%.2f" % [kart.display_name, pad, int(rad_to_deg(bend)), strength, i, t])
 
 
 # ---------------------------------------------------------------- polyps (Palladium)

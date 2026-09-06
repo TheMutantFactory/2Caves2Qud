@@ -1409,9 +1409,7 @@ func _build_psychic(rng: RandomNumberGenerator) -> void:
 			continue
 		acc = 0.0
 		var d := direction_at(k)
-		var ahead := direction_at((k + 6) % n)
-		var bend := absf(d.angle_to(ahead))
-		var emph := 1.0 if bend > deg_to_rad(22.0) else 0.45
+		var emph := 1.0 if bend_ahead(k, BEND_LOOK_PX) > deg_to_rad(BEND_DEG) else 0.45
 		var nrm := Vector2(-d.y, d.x)
 		for side in [-1.0, 1.0]:
 			studs.append([points[k] + nrm * side * (half + 8.0), emph])
@@ -1460,6 +1458,25 @@ func _fence_of(pts: PackedVector2Array, offset: float, lift_a: float, lift_b: fl
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = mat
 	return mi
+
+
+const BEND_LOOK_PX := 1200.0    # a real turn: this much road ahead (about 1.4 s at pace)...
+const BEND_DEG := 25.0          # ...turning the heading by at least this
+
+
+# The heading change from waypoint i to the waypoint about `px` of road ahead: the studs'
+# emphasis and the pad's rumble both mean "a real turn is coming" by this.
+func bend_ahead(i: int, px: float) -> float:
+	var j := i
+	var acc := 0.0
+	var steps := 0
+	while acc < px and steps < n:
+		acc += seg_len[j % n]
+		j += 1
+		steps += 1
+		if open and j >= n - 1:
+			break
+	return absf(direction_at(i % n).angle_to(direction_at(j % n)))
 
 
 # One frame of the overlays: which forms are on, and how far every kart is from each one.
