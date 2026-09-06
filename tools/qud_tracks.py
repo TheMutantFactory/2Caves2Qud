@@ -173,6 +173,13 @@ COURSES = [
          control=[[500, 1900], [1300, 2050], [2100, 1850], [2500, 1500], [2200, 1150], [2700, 850], [3100, 1100],
                   [3200, 1700], [2900, 2100], [1900, 1300], [1100, 1000], [500, 1250]],
          hazards=[haz("water", 0.58, 0.35, 170), haz("water", 0.63, 0.4, 150)],
+         # set dressing (tools/qud_zones.py, Track._build_dressing): Qud's own Joppa zone stood
+         # beside the start straight, its huts as voxel walls, its pond, torchposts, farms and
+         # villagers as billboards; then the marsh scattered along the rest of the loop
+         dressing=[{"zone": "Joppa", "at": 0.97, "side": -1, "gap": 140, "cell": 60},
+                   {"scatter": "Watervine", "count": 260}, {"scatter": "Brinestalk", "count": 80},
+                   {"scatter": "Dogthorn Tree", "count": 50}, {"scatter": "Starapple Tree", "count": 14},
+                   {"scatter": "WatervineFarmerJoppa", "count": 8, "roadside": True}],
          spells=["Bronze Dagger", "Salve Injector", "Short Bow", "Chrome Revolver", "High Explosive Grenade Mk I", "Stun Gas Grenade Mk I", "Rubbergum Injector", "Musket"],
          gaps=["timed waterwheel gate", "shallow-water shortcut line", "hay carts between laps"]),
     dict(key="redrock", name="Red Rock Ramble", cup="Fresh Water Cup", cup_index=2, difficulty=1.5,

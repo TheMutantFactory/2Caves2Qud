@@ -751,6 +751,27 @@ def main(argv=None):
         log("walls:   linked (%d models)" % len([f for f in os.listdir(walls_src) if f.endswith(".json")]))
     else:
         log("walls:   none (run tools/wall2vox.py for voxel barriers)")
+    # set dressing: the zones and scatter blueprints the courses ask for (tracks.json "dressing")
+    import qud_zones
+    with open(os.path.join(out, "shared", "tracks.json"), "r", encoding="utf-8") as f:
+        tj = json.load(f)
+    unit_slugs = {m["qud"]: m["asset"][1] for m in monsters if m.get("asset") and len(m["asset"]) > 1
+                  and os.path.exists(os.path.join(out, "units", m["asset"][1] + "_idle.png"))}
+    dx = qud_zones.DressingExporter(bp, out, manifest.get("wall_families", {}), unit_slugs, paint, scaled, load_tile)
+    zones, scatter = {}, {}
+    for t in (tj["tracks"] if isinstance(tj, dict) else tj):
+        for d in t.get("dressing", []):
+            if d.get("zone") and d["zone"] not in zones:
+                zones[d["zone"]] = dx.zone(d["zone"])
+            if d.get("scatter"):
+                scatter[d["scatter"]] = dx.art_for(d["scatter"])
+    with open(os.path.join(out, "data", "zones.json"), "w", encoding="utf-8") as f:
+        json.dump(zones, f, indent=0)
+    with open(os.path.join(out, "data", "dressing.json"), "w", encoding="utf-8") as f:
+        json.dump(dx.arts, f, indent=0)
+    log("dressing: %d zones (%s), %d scatter kinds, %d painted tiles" % (
+        len(zones), ", ".join("%s %d" % (k, len(v["objects"])) for k, v in zones.items()), len(scatter),
+        sum(1 for a in dx.arts.values() if a["art"].startswith("dressing/"))))
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=1)
     with open(os.path.join(out, "README.txt"), "w") as f:

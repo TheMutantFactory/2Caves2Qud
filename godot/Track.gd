@@ -128,6 +128,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	_build_psychic(rng)
 	_build_struts()
 	_build_bell()
+	_build_dressing(rng)
 
 
 # ---------------------------------------------------------------- city
@@ -1745,6 +1746,167 @@ func total_len_est() -> float:
 	for k in mini(n, 200):
 		acc += seg_len[k]
 	return acc / maxf(1.0, float(mini(n, 200)))
+
+
+# ---------------------------------------------------------------- set dressing
+#
+# Qud's own places beside the road (spec "dressing", tools/qud_zones.py): a ZONE entry
+# stands one of Qud's authored 80 x 25 zone templates next to the course at a loop
+# fraction, its walls as voxel blocks, its ponds as water cells, its plants, furniture and
+# villagers as billboards; a SCATTER entry sprinkles one blueprint's tile off the road along
+# the whole loop. Cells the road runs through are left out: the course cuts through the
+# village where the Route says it does.
+var dressing_stats := {}
+
+
+func _dressing_sprite(art: String, p: Vector2, holder: Node3D, rng: RandomNumberGenerator) -> bool:
+	var spr := Sprite3D.new()
+	if art.begins_with("unit:"):
+		var unit := art.substr(5)
+		spr.texture = QUD.unit_idle(unit)
+		spr.hframes = maxi(1, int(QUD.unit_info(unit).get("idle_frames", 1)))
+		spr.frame = rng.randi_range(0, spr.hframes - 1)
+	else:
+		spr.texture = QUD.texture(art)
+	if spr.texture == null:
+		return false
+	spr.pixel_size = U
+	spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	spr.position = to3(p, 36.0)
+	holder.add_child(spr)
+	return true
+
+
+func _build_dressing(rng: RandomNumberGenerator) -> void:
+	var entries: Array = spec.get("dressing", [])
+	if entries.is_empty():
+		return
+	var zones: Dictionary = Shared.load_json(QUD.ROOT + "data/zones.json")
+	var arts: Dictionary = Shared.load_json(QUD.ROOT + "data/dressing.json")
+	var holder := Node3D.new()
+	holder.name = "Dressing"
+	add_child(holder)
+	var half := width * 0.5
+	var stats := {"zones": 0, "sprites": 0, "walls": 0, "liquids": 0, "on_road": 0, "scatter": 0, "missing": 0}
+	var zone_rects := []            # world-space rects the scatter keeps out of
+	var drng := RandomNumberGenerator.new()
+	drng.seed = hash(key) + 7
+	for e in entries:
+		if e.has("zone"):
+			var z: Dictionary = zones.get(String(e["zone"]), {})
+			if z.is_empty():
+				stats["missing"] += 1
+				continue
+			stats["zones"] += 1
+			var i := int(floor(float(e.get("at", 0.0)) * n)) % n
+			var d := direction_at(i)
+			var nrm := Vector2(-d.y, d.x) * signf(float(e.get("side", 1.0)))
+			var cell := float(e.get("cell", 60.0)) * scale_k * 0.5
+			var w := int(z["w"])
+			var h := int(z["h"])
+			var near_edge := half + 14.0 + float(e.get("gap", 140.0)) * scale_k * 0.5
+			# the zone's x runs along the road, its rows stack away from it, row h-1 nearest
+			var origin := points[i] - d * (w * 0.5) * cell + nrm * near_edge
+			var corners := [origin, origin + d * w * cell, origin + nrm * h * cell, origin + d * w * cell + nrm * h * cell]
+			zone_rects.append(corners)
+			# walls first, as runs along each row (the family's run/end models)
+			var grid := {}
+			for o in z["objects"]:
+				if String(o["kind"]) == "wall" and String(o["fam"]) != "":
+					grid[Vector2i(int(o["x"]), int(o["y"]))] = String(o["fam"])
+			for o in z["objects"]:
+				var cx := int(o["x"])
+				var cy := int(o["y"])
+				var p := origin + d * (cx + 0.5) * cell + nrm * (h - 1 - cy + 0.5) * cell
+				if nearest(p, -1).dist < half + 40.0:
+					stats["on_road"] += 1
+					continue
+				match String(o["kind"]):
+					"wall":
+						var fam := String(o["fam"])
+						if fam == "" or not QudVox.available(fam):
+							stats["missing"] += 1
+							continue
+						var c := Vector2i(cx, cy)
+						var west := grid.has(c + Vector2i(-1, 0))
+						var east := grid.has(c + Vector2i(1, 0))
+						var north := grid.has(c + Vector2i(0, -1))
+						var south := grid.has(c + Vector2i(0, 1))
+						var along := d
+						var facing := -nrm
+						if not (west or east) and (north or south):
+							along = nrm
+							facing = d
+						var k := 0
+						var count := 1
+						if along == d:
+							var a := cx
+							while grid.has(Vector2i(a - 1, cy)):
+								a -= 1
+							var b := cx
+							while grid.has(Vector2i(b + 1, cy)):
+								b += 1
+							k = cx - a
+							count = b - a + 1
+						else:
+							var a := cy
+							while grid.has(Vector2i(cx, a - 1)):
+								a -= 1
+							var b := cy
+							while grid.has(Vector2i(cx, b + 1)):
+								b += 1
+							k = cy - a
+							count = b - a + 1
+						if _wall_block(fam, QudVox.run_variant(k, count, along, facing), p, facing, holder):
+							stats["walls"] += 1
+					"liquid":
+						var mi := MeshInstance3D.new()
+						var pm := PlaneMesh.new()
+						pm.size = Vector2(cell * U, cell * U)
+						mi.mesh = pm
+						var mat := StandardMaterial3D.new()
+						mat.albedo_color = Color(0.2, 0.45, 0.85, 0.75)
+						mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+						mi.material_override = mat
+						mi.position = to3(p, 2.5)
+						holder.add_child(mi)
+						stats["liquids"] += 1
+					_:
+						if _dressing_sprite(String(o["art"]), p, holder, drng):
+							stats["sprites"] += 1
+						else:
+							stats["missing"] += 1
+		elif e.has("scatter"):
+			var a: Dictionary = arts.get(String(e["scatter"]), {})
+			if a.is_empty() or String(a.get("art", "")) == "":
+				stats["missing"] += 1
+				continue
+			var want := int(e.get("count", 20))
+			var roadside := bool(e.get("roadside", false))
+			var placed := 0
+			var tries := 0
+			while placed < want and tries < want * 40:
+				tries += 1
+				var p := Vector2(drng.randf_range(0, size.x), drng.randf_range(0, size.y))
+				var dist: float = nearest(p, -1).dist
+				var lo := half + (30.0 if roadside else 70.0) * scale_k * 0.5
+				var hi := half + (110.0 if roadside else 1500.0) * scale_k * 0.5
+				if dist < lo or dist > hi:
+					continue
+				var inside := false
+				for rc in zone_rects:
+					if Geometry2D.is_point_in_polygon(p, PackedVector2Array([rc[0], rc[1], rc[3], rc[2]])):
+						inside = true
+						break
+				if inside:
+					continue
+				if _dressing_sprite(String(a["art"]), p, holder, drng):
+					placed += 1
+			stats["scatter"] += placed
+	dressing_stats = stats
+	print("dressing: %s zones=%d sprites=%d walls=%d liquids=%d on_road=%d scatter=%d missing=%d" % [key, stats["zones"], stats["sprites"], stats["walls"], stats["liquids"], stats["on_road"], stats["scatter"], stats["missing"]])
 
 
 # ---------------------------------------------------------------- polyps (Palladium)

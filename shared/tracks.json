@@ -118,6 +118,36 @@
      }
     }
    ],
+   "dressing": [
+    {
+     "zone": "Joppa",
+     "at": 0.97,
+     "side": -1,
+     "gap": 140,
+     "cell": 60
+    },
+    {
+     "scatter": "Watervine",
+     "count": 260
+    },
+    {
+     "scatter": "Brinestalk",
+     "count": 80
+    },
+    {
+     "scatter": "Dogthorn Tree",
+     "count": 50
+    },
+    {
+     "scatter": "Starapple Tree",
+     "count": 14
+    },
+    {
+     "scatter": "WatervineFarmerJoppa",
+     "count": 8,
+     "roadside": true
+    }
+   ],
    "spells": [
     "Bronze Dagger",
     "Salve Injector",

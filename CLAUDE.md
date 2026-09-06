@@ -290,6 +290,13 @@ Probe `bell:` lines under --hazard-log (rings/tethered/displaced). CREMATORY + T
 vent, fan (mover; pushes along its motion, FAN_PUSH), teleport (`target` fraction → exit
 waypoint; sets pos/vel/heading/next_wp, 2 s cooldown). Mover marks are coloured by kind.
 EVERY COURSE FILE IN THE BIBLE IS BUILT.
+SET DRESSING (2026-09-06): `tools/qud_zones.py` reads Qud's .rpm zone templates (80x25 grid
+of blueprint names); the exporter's dressing step (after the walls export — it needs
+manifest.wall_families) writes data/zones.json, data/dressing.json and dressing/<slug>.png
+(painted tiles); `Track._build_dressing` stands a zone beside the road (walls → voxel runs by
+neighbour scan, ponds → water cells, creatures → unit idle strips, else billboards) and
+scatters blueprints. Course spec `dressing` (see the generator's docstring). Probe: the
+`dressing:` build line. Joppa done; the other courses' zones are listed in docs/tracks.md.
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

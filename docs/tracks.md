@@ -369,6 +369,39 @@ eight karts teleported, all eight were blown, the presses and vents cycled throu
 and the wizard was pressed once. The Tomb's course file is complete, and with it every
 course file in the bible.
 
+## Set dressing: Qud's own places beside the road
+
+The courses were bare ground with a road and random wall runs. Now a course can stand one
+of Qud's authored zones beside it and scatter that place's plants along the loop, all from
+the game's own data (`tools/qud_zones.py`, the exporter's dressing step, and
+`Track._build_dressing`):
+
+- **Zone templates.** Qud ships its hand-built places as 80 × 25 grids of blueprint names
+  (`StreamingAssets/Base/<Zone>.rpm`; the store keeps them under `data/`). A course's
+  `dressing` entry `{"zone": "Joppa", "at": 0.97, "side": -1, "gap": 140, "cell": 60}`
+  stands the whole zone beside the road at that loop fraction, its rows stacking away
+  from the curb. Every object is classified by its blueprint's inheritance: walls become
+  voxel wall blocks of the family its tile names (Joppa's brinestalk huts, its rusted
+  metal), ponds become water cells, creatures use the unit sprites the extractor already
+  made (the watervine farmers, Elder Bob, Nima Ruda, Yrame), and every other tiled thing
+  (watervine, dogthorn and starapple trees, torchposts, beds, chests, tables, signs, the
+  water wheel, the millstone) is painted in its Qud colours into `dressing/<slug>.png` and
+  stood up as a billboard. Floors, paths and widgets are skipped. Cells the road runs
+  through are left out: the course cuts through the village where the Route says it does.
+- **Scatter.** `{"scatter": "Watervine", "count": 260}` sprinkles one blueprint's tile off
+  the road along the whole loop, outside any zone; `"roadside": true` keeps it by the
+  curb (the villagers). Deterministic per course.
+- **Joppa** carries its zone across the start straight and the marsh scattered around
+  the loop: watervine, brinestalk, dogthorn and starapple trees, farmers by the road.
+
+`dressing: <key> zones=N sprites=S walls=W liquids=L on_road=K scatter=X missing=M` prints
+at build. Joppa: 242 billboards, 170 wall blocks and 23 water cells from the zone, 412
+scattered, 153 zone cells under the road, nothing missing. The zones Qud ships for the
+other courses, ready to stand the same way: GritGate, Hydropon, Kyakukya, YdFreehold,
+StiltBase/GroundFloor/South, OmonporchArcade and the Vestibules, Tomb, ThinWorld, the
+Chavvah trunk, root and crown levels, the Columbarium, the Temple of the Rock (Bethesda's
+finish), Ezra, Bey Lah, the Mopango settlement and JoppaRuins.
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
