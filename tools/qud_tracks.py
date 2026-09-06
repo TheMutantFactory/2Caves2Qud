@@ -152,6 +152,13 @@ REPLACED = {
 # control: the loop, drawn so the start (first point) faces +x; width in kart-widths
 # per the bible (4.5 teaching / 3.25 ordinary) at ~55 px per kart width.
 
+def strut(at, side, span=1.0, angle=0.0, height=96):
+    """An occlusion strut: at (loop fraction), side (in half-widths: 0 centre, +-1 the curb,
+    beyond it off the road), span (panel width in half-widths), angle (deg off straight
+    across), height (px). Vision only; a kart drives through it."""
+    return {"at": at, "side": side, "span": span, "angle": angle, "height": height}
+
+
 COURSES = [
     dict(key="joppa", name="Joppa Waterwheel Run", cup="Fresh Water Cup", cup_index=1, difficulty=1.0,
          format="3-lap circuit", target_lap="65-75 s", skill="Wide-to-tight drift timing",
@@ -311,8 +318,16 @@ COURSES = [
          control=[[300, 400], [1000, 300], [1500, 700], [1100, 1100], [1700, 1400], [2400, 1000], [2900, 400],
                   [3300, 900], [3000, 1500], [3300, 2000], [2400, 2200], [1600, 1900], [900, 2100], [300, 1600]],
          hazards=[haz("static", 0.3, -0.3, 130, period=5.0, duty=0.3), haz("static", 0.55, 0.3, 130, period=5.0, duty=0.3, phase=2.5), haz("water", 0.7, 0.0, 200)],
+         # the occlusion struts (Track._build_struts): translucent panels across part of the road,
+         # each a little before a bend of the trellis so the apex behind is hidden at distance, and
+         # widely spaced cover struts on the final deck; luminous edge strips through both sectors
+         # (silver outbound, gold on the return) show through the struts and announce every turn
+         struts=[strut(0.14, -0.55, 0.9, 20), strut(0.20, 0.5, 0.9, -20), strut(0.27, -0.5, 1.0, 15),
+                 strut(0.34, 0.55, 0.9, -15), strut(0.41, -0.45, 1.0, 20), strut(0.47, 0.5, 0.8, 0),
+                 strut(0.82, -1.5, 0.7, 0), strut(0.88, 1.5, 0.7, 0), strut(0.94, -1.5, 0.7, 0)],
+         strut_strips=[[0.10, 0.50, "silver"], [0.78, 0.97, "gold"]],
          spells=["Laser Rifle", "Arc Winder", "Salve Injector", "Eigenrifle", "Sphynx Salt Injector", "Plasma Grenade Mk I", "Hand Rail", "Rubbergum Injector"],
-         gaps=["translucent struts hiding apexes", "plasma jellies venting", "sunslag polyp boost pockets per lap"]),
+         gaps=["plasma jellies venting", "sunslag polyp boost pockets per lap"]),
     dict(key="ydfreehold", name="Yd Freehold Pipeworks", cup="Reef Cup", cup_index=15, difficulty=3.5,
          format="3-lap circuit with parallel rooms (run as one line)", target_lap="78-88 s", skill="Room-route strategy",
          sentence="Follow Yd Freehold's dyed pipework through a lyrical surface community and choose among parallel underground rooms that trade speed, items, and technical difficulty.",

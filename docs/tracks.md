@@ -229,11 +229,33 @@ pulse=` every five seconds and on each section change; `psychic: none on <key>` 
 without overlays. What is left of the course file: the rhythm-rock haptics and the briefly
 solidified echo across two root gaps (a skill route the course has no gaps for).
 
+## The occlusion struts
+
+Palladium's sightline course, from its Route: struts that occlude vision without blocking
+movement, authored so the apex behind each is hidden only after the edge has announced the
+turn. The spec is `struts` (each `at`, `side` in half-widths, `span`, `angle`, `height`) and
+`strut_strips` (loop ranges with a colour).
+
+- **Struts** (`Track._build_struts`): tall translucent silver panels standing across part of
+  the road, six through the trellis a little before each bend and three widely spaced cover
+  struts on the final deck. A kart drives through them. Within a couple of kart lengths of
+  a human a strut goes nearly clear, so the road is always locally readable.
+- **Luminous edge strips**: emissive lines along both curbs through the occluded sectors,
+  silver outbound and gold on the return, drawn with no depth test so they show through
+  the struts and establish every turn before the strut hides it.
+
+`--strut-log` prints the build (`struts: 9 panels, 4 edge strips`) and, every five
+seconds, `struts: total=N clear=k clear_frames=F`: the clear-frame count grows as the
+field passes through the trellis (0 → 349 over the first lap in the check), `struts: none
+on <key>` on a course without them. Screenshots at 16 s and 24 s show a panel across the
+road ahead with the field half-seen behind it and the silver strip along the curb.
+What is left of the course file: the plasma jellies' venting and the sunslag polyps.
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
 (docs/graybox.md) measured the AI field on every course and stretched the loops to the
 bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
 The section races were re-routed as three regions each and run to their targets, and Eyn
-Roj has its psychic overlays and ghost echoes. What remains is presentation the probes
-cannot see: Palladium's occlusion struts and the haptics.
+Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts. What
+remains is the haptics, which want a controller in hand.

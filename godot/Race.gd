@@ -688,6 +688,10 @@ const JUMP_BOOST := 0.35
 var course_hazards: Array = []     # [{h, kind, period, duty, phase, on}]
 var hazard_log := false
 var psychic_log := false        # --psychic-log: the overlays' forms and counts every 5 s
+var strut_log := false          # --strut-log: the occlusion struts' clear count every 5 s
+var strut_clear_frames := 0     # frames in which a strut stood clear for a human (the probe's proof)
+var _said_none := false
+var _said_no_struts := false
 var psy_ghosts := {}            # kart -> {sprite, ring: Array[Vector2], i}
 var psy_section := -1
 const PSY_DELAY := 60           # physics frames a ghost trails its racer (1 s)
@@ -700,6 +704,7 @@ func _spawn_track_hazards() -> void:
 	hazard_log = OS.get_cmdline_user_args().has("--hazard-log")
 	graybox = OS.get_cmdline_user_args().has("--graybox")
 	psychic_log = OS.get_cmdline_user_args().has("--psychic-log")
+	strut_log = OS.get_cmdline_user_args().has("--strut-log")
 	for kart in karts:
 		kart.branch_log = hazard_log
 	for spot in track.hazard_spots():
@@ -821,7 +826,8 @@ func _apply_lap_sets(lap: int) -> void:
 func _update_course_hazards(dt: float) -> void:
 	if track.psychic():
 		_psychic_step()
-	elif psychic_log and Engine.get_physics_frames() == 1:
+	elif psychic_log and not _said_none:
+		_said_none = true
 		print("psychic: none on %s" % track.key)
 	if graybox and state == RACING:
 		for kart in karts:
@@ -3179,6 +3185,19 @@ func _process(_delta: float) -> void:
 		kart.update_visual(track, cam_right, t)
 	if track.psychic():
 		_psychic_visual()
+	if track.has_struts():
+		var hp := []
+		for h in humans:
+			if h.alive:
+				hp.append(h.pos)
+		var clear := track.struts_update(hp)
+		if clear > 0:
+			strut_clear_frames += 1
+		if strut_log and Engine.get_physics_frames() % 300 == 0:
+			print("struts: total=%d clear=%d clear_frames=%d wp=%d t=%.1f" % [track.struts.size(), clear, strut_clear_frames, player.next_wp if player != null else -1, t])
+	elif strut_log and not _said_no_struts:
+		_said_no_struts = true
+		print("struts: none on %s" % track.key)
 	if minimap != null:
 		minimap.queue_redraw()
 	if not panels.is_empty():

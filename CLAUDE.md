@@ -260,6 +260,10 @@ PSYCHIC OVERLAYS (2026-09-06): spec `psychic` (forms per section, envelope, beat
 `Race._psychic_step/_psychic_visual` draw the ghost echoes (1 s ring per kart). Probe
 `--psychic-log`. A windowed `--frames=N` counts RENDER frames: pair with --timescale to reach
 a late section for a screenshot.
+OCCLUSION STRUTS (2026-09-06): spec `struts` + `strut_strips` → `Track._build_struts`
+(panels via `_fence_of`, strips via `_ribbon_of` with no_depth_test) + `struts_update`
+(near a human → alpha 0.14). Probe `--strut-log` (`clear_frames` must GROW). A "none" line
+in `_process` needs its own once-flag (physics frame 1 never lines up with a render frame).
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

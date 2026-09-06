@@ -3254,6 +3254,83 @@
      ]
     }
    ],
+   "struts": [
+    {
+     "at": 0.14,
+     "side": -0.55,
+     "span": 0.9,
+     "angle": 20,
+     "height": 96
+    },
+    {
+     "at": 0.2,
+     "side": 0.5,
+     "span": 0.9,
+     "angle": -20,
+     "height": 96
+    },
+    {
+     "at": 0.27,
+     "side": -0.5,
+     "span": 1.0,
+     "angle": 15,
+     "height": 96
+    },
+    {
+     "at": 0.34,
+     "side": 0.55,
+     "span": 0.9,
+     "angle": -15,
+     "height": 96
+    },
+    {
+     "at": 0.41,
+     "side": -0.45,
+     "span": 1.0,
+     "angle": 20,
+     "height": 96
+    },
+    {
+     "at": 0.47,
+     "side": 0.5,
+     "span": 0.8,
+     "angle": 0,
+     "height": 96
+    },
+    {
+     "at": 0.82,
+     "side": -1.5,
+     "span": 0.7,
+     "angle": 0,
+     "height": 96
+    },
+    {
+     "at": 0.88,
+     "side": 1.5,
+     "span": 0.7,
+     "angle": 0,
+     "height": 96
+    },
+    {
+     "at": 0.94,
+     "side": -1.5,
+     "span": 0.7,
+     "angle": 0,
+     "height": 96
+    }
+   ],
+   "strut_strips": [
+    [
+     0.1,
+     0.5,
+     "silver"
+    ],
+    [
+     0.78,
+     0.97,
+     "gold"
+    ]
+   ],
    "spells": [
     "Laser Rifle",
     "Arc Winder",
@@ -3265,7 +3342,6 @@
     "Rubbergum Injector"
    ],
    "gaps": [
-    "translucent struts hiding apexes",
     "plasma jellies venting",
     "sunslag polyp boost pockets per lap"
    ],

@@ -126,6 +126,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	_build_scenery(rng)
 	_build_cut_walls()
 	_build_psychic(rng)
+	_build_struts()
 
 
 # ---------------------------------------------------------------- city
@@ -1503,6 +1504,84 @@ func psychic_update(t: float, kart_positions: Array, forms: Array, beat: float) 
 		psy_stud_mat.albedo_color = Color(0.55 + 0.45 * pulse, 0.55 + 0.45 * pulse, 0.55 + 0.45 * pulse)
 		psy_studs.visible = not forms.is_empty()
 	return {"edges": shown, "edges_total": psy_chunks.size(), "faded": faded, "sils": sshown, "sils_total": psy_sils.size(), "pulse": pulse}
+
+
+# ---------------------------------------------------------------- occlusion struts
+#
+# Palladium's sightline course (spec "struts"): translucent panels that occlude vision and
+# never block movement. Each strut is a tall vertical panel standing across part of the
+# road or beside it, placed after a turn has been announced so the apex behind it is hidden
+# at distance; within a couple of kart lengths of a human it goes nearly clear, so the road
+# is always locally readable. "strut_strips" are luminous edge lines through the occluded
+# sectors that draw THROUGH the struts (no depth test): the turn is established before the
+# strut hides it. Silver strips outbound, gold on the return.
+
+var struts: Array = []          # [{pos: Vector2, mat: StandardMaterial3D}]
+var strut_strip_count := 0
+
+
+func has_struts() -> bool:
+	return not (spec.get("struts", []) as Array).is_empty()
+
+
+func _build_struts() -> void:
+	if not has_struts():
+		return
+	var holder := Node3D.new()
+	holder.name = "Struts"
+	add_child(holder)
+	var half := width * 0.5
+	var silver := Color(0.78, 0.84, 0.92, 0.82)
+	for st in spec["struts"]:
+		var i := int(floor(float(st.get("at", 0.0)) * n)) % n
+		var d := direction_at(i)
+		var nrm := Vector2(-d.y, d.x)
+		var centre := points[i] + nrm * float(st.get("side", 0.0)) * half
+		var span := float(st.get("span", 1.0)) * half * scale_k * 0.5
+		var ang := deg_to_rad(float(st.get("angle", 0.0)))
+		var along := nrm.rotated(ang)          # the panel runs across the road unless angled
+		var pts := PackedVector2Array([centre - along * span * 0.5, centre + along * span * 0.5])
+		var mi := _fence_of(pts, 0.0, 6.0, float(st.get("height", 96.0)), silver)
+		mi.name = "Strut%d" % struts.size()
+		holder.add_child(mi)
+		struts.append({"pos": centre, "mat": mi.material_override})
+	for rng_f in spec.get("strut_strips", []):
+		var a := clampi(int(floor(float(rng_f[0]) * n)), 0, n - 2)
+		var b := clampi(int(floor(float(rng_f[1]) * n)), a + 1, n - 1)
+		var sub := PackedVector2Array()
+		for j in range(a, b + 1):
+			sub.append(points[j])
+		var gold := String(rng_f[2] if rng_f.size() > 2 else "silver") == "gold"
+		var col := Color(1.0, 0.85, 0.35, 0.95) if gold else Color(0.8, 0.95, 1.0, 0.95)
+		for side in [-1.0, 1.0]:
+			var mi := _ribbon_of(sub, false, side * (half + 1.0), side * (half + 9.0), 11.0, null, col, "Strip%d" % strut_strip_count)
+			if mi.get_parent() != null:
+				mi.reparent(holder)
+			else:
+				holder.add_child(mi)
+			var mat: StandardMaterial3D = mi.material_override
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.no_depth_test = true            # the luminous edge shows through the struts
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			strut_strip_count += 1
+	print("struts: %d panels, %d edge strips" % [struts.size(), strut_strip_count])
+
+
+# One frame: a strut near a human goes nearly clear (the road is locally readable), the
+# rest stand at their occluding alpha. Returns how many are clear.
+func struts_update(human_positions: Array) -> int:
+	var near := 230.0 * scale_k * 0.5
+	var clear := 0
+	for st in struts:
+		var dmin := INF
+		for hp in human_positions:
+			dmin = minf(dmin, (hp as Vector2).distance_to(st["pos"]))
+		var k := clampf((dmin - near * 0.6) / near, 0.0, 1.0)
+		(st["mat"] as StandardMaterial3D).albedo_color.a = lerpf(0.14, 0.82, k)
+		if k < 0.5:
+			clear += 1
+	return clear
 
 
 # ---------------------------------------------------------------- queries
