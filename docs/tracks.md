@@ -236,8 +236,20 @@ is `psychic` on the course: forms per section, an `envelope` in px and a `beat` 
 pulse=` every five seconds and on each section change; `psychic: none on <key>` on a course
 without overlays. `--haptics-log` prints `haptic: <kart> pad=N bend=deg strength=x wp=`
 per rumble (`pad=-1` in a headless run, which has no pads: the intent is logged, the call
-skipped) and `haptic: none on <key>` elsewhere. What is left of the course file: the
-briefly solidified echo across two root gaps, a skill route the course has no gaps for.
+skipped) and `haptic: none on <key>` elsewhere.
+
+- **The echo roots** (the skill route: follow a briefly solidified echo across two root
+  gaps). Two expert branches across the helix carry `echo` (period, duty, phase): the
+  branch is road only while solid, half of every four seconds on the beat, its landing
+  flashing gold in time with the rhythm rock; faded, it is drawn as a magenta echo, seen
+  and not road, and a kart on it falls (`Track.void_here`) and is returned to the main
+  helix below rather than reset. The main road is solid whatever the echo does: the mouth
+  and the landing overlap it, so a kart is only falling once it has left the road
+  (`_main_dist`). The AI commits at the fork only while the echo is solid and may still be
+  caught by the fade. `--hazard-log` prints `echo: <root> solid|fades` on each transition,
+  `branch: <kart> takes echo root N`, `echo: <kart> missed <root>` before its `void:` fall
+  and return. In the check: 37 takes, 8 misses, every miss returned to the helix.
+  Eyn Roj's course file is complete.
 
 ## The occlusion struts
 

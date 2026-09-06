@@ -902,6 +902,7 @@ func _build_branches() -> void:
 			"from_i": from_i, "to_i": to_i, "width": w, "ai_take": float(b.get("ai_take", 0.4)),
 			"hazards": b.get("hazards", []), "laps": b.get("laps", []), "live": true,
 			"bypass": bool(b.get("bypass", false)), "mesh": mesh, "curbs": curbs, "color": color,
+			"echo": b.get("echo", {}), "solid": true,
 			"sealed": bool(b.get("sealed", false))})     # sealed: not a route until a mover cuts it open
 		bi += 1
 	if bi > 0:
@@ -1010,6 +1011,8 @@ func choose_branch(kart) -> void:
 		var br: Dictionary = branches[b]
 		if not bool(br["live"]):
 			continue
+		if not bool(br["solid"]):
+			continue                              # an echo that has faded: the AI waits for the next
 		var fork: int = int(br["from_i"]) - 6
 		if kart.next_wp >= fork and kart.next_wp < int(br["from_i"]) and kart.choice_fork != fork:
 			kart.choice_fork = fork
@@ -1142,6 +1145,41 @@ func _set_branch_live(br: Dictionary, live: bool) -> void:
 		(c as MeshInstance3D).visible = live
 
 
+# The echo roots (branch "echo": period, duty, phase): road only while solid, on the beat.
+# Returns the transitions this frame as [[name, solid], ...] for the log.
+func has_echoes() -> bool:
+	for br in branches:
+		if not (br["echo"] as Dictionary).is_empty():
+			return true
+	return false
+
+
+func echo_update(t: float, beat: float) -> Array:
+	var changes := []
+	for br in branches:
+		var e: Dictionary = br["echo"]
+		if e.is_empty():
+			continue
+		var period := float(e.get("period", 4.0))
+		var solid := fposmod(t + float(e.get("phase", 0.0)), period) < period * float(e.get("duty", 0.5))
+		var road: MeshInstance3D = br["mesh"]
+		var mat: StandardMaterial3D = road.material_override
+		if solid != bool(br["solid"]):
+			br["solid"] = solid
+			changes.append([String(br["name"]), solid])
+			for c in br["curbs"]:
+				(c as MeshInstance3D).visible = solid
+		if solid:
+			# the true landing flashes in time with the rhythm rock
+			var k := 0.5 + 0.5 * maxf(0.0, sin(t * TAU * beat))
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+			mat.albedo_color = (br["color"] as Color).lerp(Color(1.0, 0.9, 0.5), 0.5 * k)
+		else:
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.albedo_color = Color(0.95, 0.5, 1.0, 0.28)     # the echo: seen, not road
+	return changes
+
+
 # A mover cut its way through: the sealed branch becomes a route.
 func unseal_branch(name: String) -> bool:
 	for br in branches:
@@ -1171,12 +1209,32 @@ func blocks_along(mv: Dictionary, radius: float) -> Array:
 	return out
 
 
+# Distance from p to the main route (branches ignored), searched around hint.
+func _main_dist(p: Vector2, hint: int) -> float:
+	var best := INF
+	var lo := hint - 40 if hint >= 0 else 0
+	var hi := hint + 40 if hint >= 0 else n
+	for k in range(lo, hi):
+		var i := ((k % n) + n) % n
+		var j := (i + 1) % n
+		if open and i >= n - 1:
+			continue
+		var q := Geometry2D.get_closest_point_to_segment(p, points[i], points[j])
+		best = minf(best, p.distance_to(q))
+	return best
+
+
 # The void: a kart that falls off this course (spec void_offroad, beyond void_margin px past
 # the curbs) or into a gap/void stretch is returned to the road a little further on.
 func void_here(p: Vector2, hint: int) -> bool:
 	var near := nearest(p, hint)
 	if int(near.get("branch", -1)) >= 0:
-		return false
+		var br: Dictionary = branches[int(near["branch"])]
+		if bool(br["solid"]):
+			return false
+		# an echo root that faded under the kart: a fall only once it has left the main road,
+		# which is solid whatever the echo does (its mouth and landing overlap the road)
+		return _main_dist(p, hint) > width * 0.5 + 14.0
 	var idx := int(near["idx"])
 	var half := width * 0.5
 	if not road_pieces.is_empty() and near.dist <= half and _road_state_at(idx) in ["gap", "void"]:

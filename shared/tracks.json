@@ -2870,10 +2870,7 @@
     "Vibro Dagger",
     "Ubernostrum Injector"
    ],
-   "gaps": [
-    "rhythm rock haptics",
-    "the briefly solidified echo across two root gaps"
-   ],
+   "gaps": [],
    "stretch": 2.49,
    "spoiler": false,
    "floor": [
@@ -2898,7 +2895,64 @@
     "2": "the echoes double",
     "3": "the echoes intensify"
    },
-   "branches": [],
+   "branches": [
+    {
+     "name": "echo root 1",
+     "kind": "expert",
+     "from": 0.4,
+     "to": 0.46,
+     "width": 150,
+     "ai_take": 0.3,
+     "hazards": [],
+     "echo": {
+      "period": 4.0,
+      "duty": 0.5,
+      "phase": 0.0
+     },
+     "control": [
+      [
+       3999,
+       5881
+      ],
+      [
+       4749,
+       6123
+      ],
+      [
+       5460,
+       6462
+      ]
+     ]
+    },
+    {
+     "name": "echo root 2",
+     "kind": "expert",
+     "from": 0.5,
+     "to": 0.56,
+     "width": 150,
+     "ai_take": 0.3,
+     "hazards": [],
+     "echo": {
+      "period": 4.0,
+      "duty": 0.5,
+      "phase": 2.0
+     },
+     "control": [
+      [
+       8754,
+       6569
+      ],
+      [
+       9315,
+       6141
+      ],
+      [
+       9932,
+       5800
+      ]
+     ]
+    }
+   ],
    "profile": [
     [
      0,

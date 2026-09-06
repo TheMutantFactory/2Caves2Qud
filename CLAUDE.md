@@ -279,6 +279,10 @@ bend (`Track.bend_ahead`: >25 deg over 1200 px of road — never count waypoints
 their spacing changes with stretch; the studs' emphasis shares the rule); `_pad_of` maps a seat to its GamepadAdapter.device, the solo
 wizard to the first connected pad. `race.haptics` switch; probe `--haptics-log` (pad=-1
 headless). THE BIBLE'S LISTS ARE CLOSED.
+ECHO ROOTS (2026-09-06): branch `echo` {period,duty,phase} → `Track.echo_update` (solid on the
+beat, magenta echo when faded), `void_here` falls a kart on a faded echo only past the main
+road (`_main_dist`: a branch's mouth overlaps the road — the first cut dropped the whole
+field at the fork), `choose_branch` skips a faded echo. Probe `echo:` lines under --hazard-log.
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

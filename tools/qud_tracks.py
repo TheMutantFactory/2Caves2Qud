@@ -298,7 +298,7 @@ COURSES = [
          # five kart lengths); the rhythm-rock studs pulse at `beat` Hz before every real turn
          psychic={"1": ["edges"], "2": ["edges", "silhouettes"], "3": ["edges", "silhouettes", "ghosts"], "envelope": 300, "beat": 2.0},
          spells=["Sunder Mind" if False else "Eigenpistol", "Stasis Grenade Mk I", "Salve Injector", "Nullray Pistol", "Skulk Injector", "Normality Gas Grenade Mk I", "Vibro Dagger", "Ubernostrum Injector"],
-         gaps=["rhythm rock haptics", "the briefly solidified echo across two root gaps"]),
+         gaps=[]),
 
     dict(key="hinnom", name="Lake Hinnom Causeway", cup="Reef Cup", cup_index=13, difficulty=3.0,
          format="3-lap circuit", target_lap="82-92 s", skill="Causeway-to-water transitions",
@@ -425,13 +425,17 @@ def _loop_points(control, samples=16):
     return pts
 
 
-def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None, laps=None, bypass=False, sealed=False):
+def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None, laps=None, bypass=False, sealed=False, echo=None):
     """laps=[3, 4] makes the branch EXIST only on those laps (drawn as a translucent preview
-    before); bypass=True makes AI karts take it when the loop stretch it skirts is a gap."""
+    before); bypass=True makes AI karts take it when the loop stretch it skirts is a gap.
+    echo={period, duty, phase}: a psychic echo, road only while solid (duty of each period,
+    on the course's beat); a kart on it while it fades falls to the main road below."""
     b = {"name": name, "kind": kind, "from": frm, "to": to, "offset": offset, "width": width,
          "ai_take": ai_take, "hazards": hazards or []}
     if laps:
         b["laps"] = list(laps)
+    if echo:
+        b["echo"] = dict(echo)
     if bypass:
         b["bypass"] = True
     if sealed:
@@ -537,6 +541,10 @@ BRANCHES = {
     "asphalt": [branch("dry outer bend", "safe", 0.45, 0.56, -220, 220, 0.45),
                 branch("drill cut", "expert", 0.30, 0.42, -260, 150, 0.4, sealed=True)],
     "golgotha": [branch("second chute", "expert", 0.05, 0.18, 200, 170, 0.4, [haz("poison", 0.5, 0.0, 150, period=4.0, duty=0.4, phase=2.0)])],
+    # Eyn Roj's skill route: two echo roots across the helix's root gaps, solid for half of
+    # every four seconds on the beat; a missed echo falls onto the lower main helix
+    "eynroj": [branch("echo root 1", "expert", 0.40, 0.46, 260, 150, 0.3, echo={"period": 4.0, "duty": 0.5, "phase": 0.0}),
+               branch("echo root 2", "expert", 0.50, 0.56, 260, 150, 0.3, echo={"period": 4.0, "duty": 0.5, "phase": 2.0})],
     "bethesda": [branch("chrome elevator", "expert", 0.34, 0.42, 240, 150, 0.35, [haz("jump", 0.5, 0.0, 130)])],
     "kyakukya": [branch("root ramp", "safe", 0.28, 0.40, -220, 220, 0.4)],
     "chavvah": [branch("slender branches", "expert", 0.26, 0.34, 260, 130, 0.3, [haz("jump", 0.35, 0.0, 110), haz("jump", 0.7, 0.0, 110)])],

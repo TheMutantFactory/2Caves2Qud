@@ -855,6 +855,10 @@ func _update_course_hazards(dt: float) -> void:
 	if track.psychic():
 		_psychic_step()
 		_haptics()
+		if track.has_echoes():
+			for ch in track.echo_update(t, float((track.spec.get("psychic", {}) as Dictionary).get("beat", 2.0))):
+				if hazard_log:
+					print("echo: %s %s t=%.2f" % [String(ch[0]), "solid" if bool(ch[1]) else "fades", t])
 	else:
 		if haptics_log and not _said_no_haptics:
 			_said_no_haptics = true
@@ -1101,6 +1105,8 @@ func _void_check(kart: Kart, dt: float) -> void:
 	if not kart.alive or kart.air_t > 0.0 or kart.alt > 0.0 or state != RACING:
 		return
 	if track.void_here(kart.pos, kart.next_wp):
+		if hazard_log and kart.branch >= 0:
+			print("echo: %s missed %s t=%.2f" % [kart.display_name, String(track.branches[kart.branch]["name"]), t])
 		kart.void_t = 1.0
 		kart.vel = Vector2.ZERO
 		spawn_effect(QUD.effect("dark"), kart.position, 6, 0.08, -1.0, 1.4)
