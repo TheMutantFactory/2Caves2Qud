@@ -403,6 +403,54 @@ def road_state(frm, to, laps, state):
     return {"from": frm, "to": to, "laps": list(laps), "state": state}
 
 
+# Moving hazards: a patch that travels a path of [at, side] pairs (loop fraction, lateral in
+# half road widths) back and forth (pingpong) or around (loop) in `period` seconds; its path
+# is drawn on the road as the sweep marking. A thrower lands a stone on the road at `at`
+# every `period` seconds after a `cue`-second shadow.
+def mover(name, kind, path, period=6.0, mode="pingpong", radius=140, laps=None, phase=0.0):
+    m = {"name": name, "kind": kind, "path": [list(p) for p in path], "period": period, "mode": mode, "radius": radius, "phase": phase}
+    if laps:
+        m["laps"] = list(laps)
+    return m
+
+
+def thrower(name, at, side=0.0, spread=0.3, period=5.0, cue=1.0, radius=120, damage=6, stun=0.6, laps=None, phase=2.0):
+    t = {"name": name, "at": at, "side": side, "spread": spread, "period": period, "cue": cue, "radius": radius,
+         "damage": damage, "stun": stun, "phase": phase}
+    if laps:
+        t["laps"] = list(laps)
+    return t
+
+
+MOVERS = {
+    "stilt": [mover("pack animals", "cart", [(0.45, -1.1), (0.45, 1.1)], period=8.0, radius=130, laps=[2]),
+              mover("handcarts", "cart", [(0.52, 1.1), (0.52, -1.1)], period=8.0, radius=130, laps=[3])],
+    "asphalt": [mover("drillbot", "barrier", [(0.30, -0.95), (0.40, -0.95)], period=9.0, radius=110)],
+    "rainbowwood": [mover("cyan sludge", "slime", [(0.16, -0.6), (0.16, 0.6)], period=4.0, radius=150),
+                    mover("yellow sludge", "slime", [(0.50, 0.6), (0.50, -0.6)], period=4.0, radius=150, laps=[2, 3]),
+                    mover("magenta sludge", "slime", [(0.83, -0.6), (0.83, 0.6)], period=4.0, radius=150, laps=[3])],
+    "hinnom": [mover("reef current", "water", [(0.60, -1.0), (0.60, 1.0)], period=6.0, radius=160)],
+    "palladium": [mover("plasma jelly", "static", [(0.30, -0.7), (0.30, 0.7)], period=5.0, radius=120),
+                  mover("plasma jelly", "static", [(0.55, 0.7), (0.55, -0.7)], period=5.0, radius=120, phase=2.5)],
+    "tomb": [mover("crematory arm", "barrier", [(0.42, -0.9), (0.42, 0.9)], period=5.0, radius=120),
+             mover("fan", "barrier", [(0.50, 0.9), (0.50, -0.9)], period=5.0, radius=120, phase=2.5, laps=[2, 3])],
+    "golgotha": [mover("small fauna", "slime", [(0.55, -1.0), (0.55, 1.0)], period=7.0, radius=100)],
+}
+THROWERS = {
+    "redrock": [thrower("baboon (outside)", 0.20, 0.55, 0.15, period=5.0, laps=[1]),
+                thrower("baboon (inside)", 0.26, -0.55, 0.15, period=5.0, laps=[1], phase=4.5),
+                thrower("baboon (lane)", 0.23, 0.0, 0.2, period=5.0, laps=[2]),
+                thrower("baboon (outside)", 0.20, 0.5, 0.2, period=5.0, laps=[3]),
+                thrower("baboon (inside)", 0.26, -0.5, 0.2, period=5.0, laps=[3], phase=4.5)],
+    "kyakukya": [thrower("falling cap", 0.80, 0.0, 0.5, period=7.0, damage=4, stun=0.4)],
+}
+# stand-ins the movers and throwers replace (kind, at) on the loop
+MOVER_REPLACES = {
+    "stilt": [("cart", 0.45), ("cart", 0.52)], "rainbowwood": [("slime", 0.16), ("slime", 0.5), ("slime", 0.83), ("slime", 0.20)],
+    "palladium": [("static", 0.3), ("static", 0.55)], "redrock": [("static", 0.20), ("static", 0.26), ("static", 0.23)],
+    "tomb": [("barrier", 0.42), ("barrier", 0.50)],
+}
+
 # Lap-changing geometry: roads that appear, collapse or thin between laps.
 ROAD_STATES = {
     "rustwells": [road_state(0.31, 0.335, [1], "cracked"), road_state(0.31, 0.335, [2, 3], "gap")],
@@ -438,8 +486,7 @@ BRANCHES = {
     "redrock": [branch("cavern bridge", "safe", 0.30, 0.44, -240, 220, 0.45)],
     "rustwells": [branch("wire bridge", "expert", 0.28, 0.40, 220, 140, 0.35, [haz("jump", 0.5, 0.0, 120)]),
                   branch("outer bypass", "safe", 0.29, 0.36, -230, 220, 0.3, laps=[2, 3], bypass=True)],
-    "stilt": [branch("left aisle", "safe", 0.40, 0.56, -210, 240, 0.3, [haz("cart", 0.5, 0.0, 150, period=8.0, duty=0.35, laps=[2])]),
-              branch("right aisle", "safe", 0.40, 0.56, 210, 240, 0.3, [haz("cart", 0.5, 0.0, 150, period=8.0, duty=0.35, phase=4.0, laps=[3])])],
+    "stilt": [branch("left aisle", "safe", 0.40, 0.56, -210, 240, 0.3), branch("right aisle", "safe", 0.40, 0.56, 210, 240, 0.3)],
     "gritgate": [branch("service tunnel", "safe", 0.34, 0.64, -260, 220, 0.45)],
     "asphalt": [branch("dry outer bend", "safe", 0.45, 0.56, -220, 220, 0.45)],
     "golgotha": [branch("second chute", "expert", 0.05, 0.18, 200, 170, 0.4, [haz("poison", 0.5, 0.0, 150, period=4.0, duty=0.4, phase=2.0)])],
@@ -489,6 +536,12 @@ def build():
         t["branches"] = [place_branch(b, t["control"]) for b in BRANCHES.get(t["key"], [])]
         if t["key"] in ROAD_STATES:
             t["road_states"] = ROAD_STATES[t["key"]]
+        gone = MOVER_REPLACES.get(t["key"], [])
+        t["hazards"] = [h for h in t["hazards"] if (h["kind"], h["at"]) not in gone]
+        if t["key"] in MOVERS:
+            t["movers"] = MOVERS[t["key"]]
+        if t["key"] in THROWERS:
+            t["throwers"] = THROWERS[t["key"]]
         t["control"] = [[int(x), int(y)] for x, y in t["control"]]
         tracks.append(t)
     return tracks

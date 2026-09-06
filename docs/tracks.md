@@ -136,6 +136,24 @@ the curbs remain as the edge). AI karts take a `bypass` branch nine times in ten
 stretch is a gap; a jump pad on lap 3 launches the brave across. `--hazard-log` prints
 `lap N: road a-b <state>` and `lap N: branch <name> live|dormant`.
 
+## Moving hazards and throwers
+
+A course's `movers` are patches that travel a path authored as loop-fraction and lateral
+pairs, back and forth or around, in a set period; the path is drawn on the road as an amber
+sweep marking, the bible's cue. The Stilt's pack animals and handcarts cross one aisle on lap
+2 and the other on lap 3, Rainbow Wood's three sludges sway across their river crossings (one
+per lap joining), Palladium's plasma jellies vent across a lane, the Tomb's crematory arm and
+fan sweep the road, a drillbot works the Asphalt Mines' wall, a reef current crosses Lake
+Hinnom's causeway, and small fauna cross Golgotha's chute. A mover takes any hazard kind, so
+it stuns, slows or hurts like the patch it is.
+
+`throwers` land a stone on the road every period: a dark shadow marks the target for a
+second first (the bible's "circular shadows for a full second"), a throw sound warns, then
+the stone hits everyone in its radius with damage and a stun. Red Rock's baboons aim outside
+on lap 1, at the racing lane on lap 2 and alternate on lap 3; a mushroom cap falls on
+Kyakukya's last straight. `--hazard-log` prints `stone: <name> throws, lands t=` and
+`stone: <name> lands t= hits=N`.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
@@ -143,8 +161,8 @@ to data. The big ones:
 
 - **Descent as descent.** The section races are one way, but the road's rise and fall is the
   ground noise, not an authored drop; Golgotha's shafts and the Tomb's climb are not steps.
-- **Moving hazards with a path**: baboon throws aimed at a lane, drillbots cutting walls,
-  reef creatures crossing under the road. Cycling patches stand in for them.
+- **Movers that change the map**: the drillbot's holes in the wall, a collapsing conveyor;
+  a mover sweeps, it does not cut.
 - **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
   level; the branch-to-branch transfers and the shaft drops stay on one road.
 - **Camber and lean** (Chavvah's tilting tree, Moon Stair's rule changes beyond the pads):
@@ -153,5 +171,5 @@ to data. The big ones:
   plus a lap-3 bypass) and routes that split more than once.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: moving hazards
-with a path, authored elevation, and camber.
+The next engine features that would unlock the most courses are, in order: authored
+elevation, camber, and the leaning tree.

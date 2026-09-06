@@ -194,8 +194,15 @@ hologram / cracked / gap; `on_road` is false in a gap; a `bypass` branch is take
 its stretch is a gap). `Track.apply_lap(lap)` runs from `Race._apply_lap_sets` and returns
 the change strings the log prints. `_ribbon_of` returns its MeshInstance3D now.
 
+MOVERS + THROWERS (2026-09-05): spec `movers` ([at, side] paths, pingpong/loop, period; drawn
+as amber MoverMark ribbons; `Track.mover_paths`, static `mover_pos`) ride in `course_hazards`
+with a `mover` dict and are re-placed every frame; `throwers` are `course_hazards` entries
+with a `thrower` dict and no node until a stone flies (`_update_thrower`: shadow Hazard from
+`pad_shadow`, cue seconds, then hit_kart + effect + stone sounds). Probe: `stone: ... lands
+hits=N`, the `hazard` tally bucket, `hazards: ... N moving, M throwers`.
+
 Next, in order:
-1. Moving hazards with a path, then authored elevation, then camber (docs/tracks.md).
+1. Authored elevation, then camber, then the leaning tree (docs/tracks.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

@@ -711,6 +711,35 @@ func _spawn_track_hazards() -> void:
 			"phase": float(spot.get("phase", 0.0)), "on": true, "laps": spot.get("laps", []), "branch": int(spot.get("branch", -1)),
 			"per_lap": spot.get("per_lap", {}), "base": {"period": period, "duty": float(spot.get("duty", 0.5)), "phase": float(spot.get("phase", 0.0))}})
 		n += 1
+	# movers: the same hazard node, carried along its path each frame
+	for mv in track.mover_paths():
+		var spec: Dictionary = HAZARD_KINDS.get(String(mv["kind"]), HAZARD_KINDS["cart"])
+		var h := Items.Hazard.new()
+		h.pos = mv["pts"][0]
+		h.radius = float(mv["radius"])
+		h.damage = float(spec["damage"])
+		h.dtype = String(spec["dtype"])
+		h.slip = bool(spec["slip"])
+		h.stun = float(spec["stun"])
+		h.tick = 0.5
+		h.life = 1.0e9
+		h.owner_kart = null
+		h.position = track.to3(h.pos, 3.0)
+		h.build(QUD.texture("tiles/%s.png" % String(spec["tex"])), 4, spec["tint"], track)
+		add_child(h)
+		hazards.append(h)
+		course_hazards.append({"h": h, "kind": String(mv["kind"]), "period": 0.0, "duty": 1.0, "phase": 0.0, "on": true,
+			"laps": mv["laps"], "branch": -1, "per_lap": {}, "base": {"period": 0.0, "duty": 1.0, "phase": 0.0}, "mover": mv})
+		n += 1
+	# throwers: no node until a stone is in the air; a shadow warns for `cue` seconds first
+	for th in track.spec.get("throwers", []):
+		course_hazards.append({"h": null, "kind": "stone", "period": 0.0, "duty": 1.0, "phase": 0.0, "on": true,
+			"laps": th.get("laps", []), "branch": -1, "per_lap": {}, "base": {"period": 0.0, "duty": 1.0, "phase": 0.0},
+			"thrower": {"name": String(th.get("name", "thrower")), "at": float(th.get("at", 0.2)), "side": float(th.get("side", 0.0)),
+				"spread": float(th.get("spread", 0.3)), "period": float(th.get("period", 5.0)), "cue": float(th.get("cue", 1.0)),
+				"radius": float(th.get("radius", 120.0)), "damage": float(th.get("damage", 6.0)), "stun": float(th.get("stun", 0.6)),
+				"next": float(th.get("phase", 2.0)), "shadow": null, "land_t": -1.0, "target": Vector2.ZERO}})
+		n += 1
 	if n > 0:
 		var cycling := 0
 		var pads := 0
@@ -722,7 +751,14 @@ func _spawn_track_hazards() -> void:
 				pads += 1
 			if not (c["laps"] as Array).is_empty() or not (c["per_lap"] as Dictionary).is_empty():
 				lapped += 1
-		print("hazards: %d course patches (%s), %d cycling, %d jump pads, %d lap-gated" % [n, track.key, cycling, pads, lapped])
+		var moving := 0
+		var throwers := 0
+		for c in course_hazards:
+			if c.has("mover"):
+				moving += 1
+			if c.has("thrower"):
+				throwers += 1
+		print("hazards: %d course patches (%s), %d cycling, %d jump pads, %d lap-gated, %d moving, %d throwers" % [n, track.key, cycling, pads, lapped, moving, throwers])
 	_apply_lap_sets(1)
 
 
@@ -777,7 +813,17 @@ func _update_course_hazards(_dt: float) -> void:
 	if lap != course_lap:
 		_apply_lap_sets(lap)
 	for c in course_hazards:
+		if c.has("thrower"):
+			_update_thrower(c)
+			continue
 		var h: Items.Hazard = c["h"]
+		if c.has("mover"):
+			var mv: Dictionary = c["mover"]
+			var was: Vector2 = h.pos
+			h.pos = Track.mover_pos(mv, t)
+			h.position = track.to3(h.pos, 3.0)
+			if hazard_log and (was - h.pos).length() < 0.5 and Engine.get_physics_frames() % 7 == 0 and bool(c.get("lap_ok", true)):
+				pass
 		var period: float = c["period"]
 		var on: bool = c.get("lap_ok", true)
 		var cue := 0.0
@@ -806,6 +852,47 @@ func _update_course_hazards(_dt: float) -> void:
 						play("sfx_ability_jump", -4.0)
 					if hazard_log:
 						print("jump: %s t=%.2f" % [kart.display_name, t])
+
+
+# A thrower (Red Rock's baboons, Palladium's jellies): every period a target on the road
+# gets a shadow for `cue` seconds, then the stone lands — damage and a stun in its radius.
+func _update_thrower(c: Dictionary) -> void:
+	var th: Dictionary = c["thrower"]
+	if not bool(c.get("lap_ok", true)):
+		return
+	if th["shadow"] == null and t >= float(th["next"]):
+		th["target"] = track.throw_target(float(th["at"]), float(th["side"]), float(th["spread"]), rng)
+		var sh := Items.Hazard.new()
+		sh.pos = th["target"]
+		sh.radius = float(th["radius"]) * 0.6
+		sh.damage = 0.0
+		sh.life = float(th["cue"]) + 0.3
+		sh.owner_kart = null
+		sh.position = track.to3(sh.pos, 2.0)
+		sh.build(QUD.texture("tiles/pad_shadow.png"), 4, Color(0.15, 0.1, 0.1, 1.0), track)
+		add_child(sh)
+		hazards.append(sh)
+		th["shadow"] = sh
+		th["land_t"] = t + float(th["cue"])
+		if player.alive and player.pos.distance_to(th["target"]) < 1400.0:
+			play("sfx_throwing_stone_large_throw", -8.0)
+		if hazard_log:
+			print("stone: %s throws, lands t=%.1f" % [String(th["name"]), float(th["land_t"])])
+	elif th["shadow"] != null and t >= float(th["land_t"]):
+		var target: Vector2 = th["target"]
+		var r := float(th["radius"])
+		var hits := 0
+		for kart in karts:
+			if kart.alive and kart.air_t <= 0.0 and kart.pos.distance_to(target) <= r + kart.RADIUS:
+				hit_kart(kart, float(th["damage"]), "Physical", null, float(th["stun"]), "hazard")
+				hits += 1
+		spawn_effect(QUD.effect("physical"), track.to3(target, 20.0), 6, 0.06, -1.0, 1.6)
+		if player.alive and player.pos.distance_to(target) < 1400.0:
+			play("sfx_throwing_stone_large_impact", -4.0)
+		if hazard_log:
+			print("stone: %s lands t=%.1f hits=%d" % [String(th["name"]), t, hits])
+		th["shadow"] = null
+		th["next"] = t + float(th["period"])
 
 
 # The realm's lairs stand by the road and let out their monster every so often.

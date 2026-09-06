@@ -288,66 +288,6 @@
      "at": 0.97,
      "side": 0.0,
      "radius": 140
-    },
-    {
-     "kind": "static",
-     "at": 0.2,
-     "side": 0.45,
-     "radius": 120,
-     "period": 5.0,
-     "duty": 0.2,
-     "phase": 0.0,
-     "laps": [
-      1
-     ]
-    },
-    {
-     "kind": "static",
-     "at": 0.26,
-     "side": -0.45,
-     "radius": 120,
-     "period": 5.0,
-     "duty": 0.2,
-     "phase": 2.5,
-     "laps": [
-      1
-     ]
-    },
-    {
-     "kind": "static",
-     "at": 0.23,
-     "side": 0.0,
-     "radius": 130,
-     "period": 5.0,
-     "duty": 0.2,
-     "phase": 0.0,
-     "laps": [
-      2
-     ]
-    },
-    {
-     "kind": "static",
-     "at": 0.2,
-     "side": 0.3,
-     "radius": 120,
-     "period": 5.0,
-     "duty": 0.2,
-     "phase": 0.0,
-     "laps": [
-      3
-     ]
-    },
-    {
-     "kind": "static",
-     "at": 0.26,
-     "side": -0.3,
-     "radius": 120,
-     "period": 5.0,
-     "duty": 0.2,
-     "phase": 2.5,
-     "laps": [
-      3
-     ]
     }
    ],
    "spells": [
@@ -414,6 +354,83 @@
        2827,
        1596
       ]
+     ]
+    }
+   ],
+   "throwers": [
+    {
+     "name": "baboon (outside)",
+     "at": 0.2,
+     "side": 0.55,
+     "spread": 0.15,
+     "period": 5.0,
+     "cue": 1.0,
+     "radius": 120,
+     "damage": 6,
+     "stun": 0.6,
+     "phase": 2.0,
+     "laps": [
+      1
+     ]
+    },
+    {
+     "name": "baboon (inside)",
+     "at": 0.26,
+     "side": -0.55,
+     "spread": 0.15,
+     "period": 5.0,
+     "cue": 1.0,
+     "radius": 120,
+     "damage": 6,
+     "stun": 0.6,
+     "phase": 4.5,
+     "laps": [
+      1
+     ]
+    },
+    {
+     "name": "baboon (lane)",
+     "at": 0.23,
+     "side": 0.0,
+     "spread": 0.2,
+     "period": 5.0,
+     "cue": 1.0,
+     "radius": 120,
+     "damage": 6,
+     "stun": 0.6,
+     "phase": 2.0,
+     "laps": [
+      2
+     ]
+    },
+    {
+     "name": "baboon (outside)",
+     "at": 0.2,
+     "side": 0.5,
+     "spread": 0.2,
+     "period": 5.0,
+     "cue": 1.0,
+     "radius": 120,
+     "damage": 6,
+     "stun": 0.6,
+     "phase": 2.0,
+     "laps": [
+      3
+     ]
+    },
+    {
+     "name": "baboon (inside)",
+     "at": 0.26,
+     "side": -0.5,
+     "spread": 0.2,
+     "period": 5.0,
+     "cue": 1.0,
+     "radius": 120,
+     "damage": 6,
+     "stun": 0.6,
+     "phase": 4.5,
+     "laps": [
+      3
      ]
     }
    ]
@@ -787,20 +804,7 @@
      "to": 0.56,
      "width": 240,
      "ai_take": 0.3,
-     "hazards": [
-      {
-       "kind": "cart",
-       "at": 0.5,
-       "side": 0.0,
-       "radius": 150,
-       "period": 8.0,
-       "duty": 0.35,
-       "phase": 0.0,
-       "laps": [
-        2
-       ]
-      }
-     ],
+     "hazards": [],
      "control": [
       [
        3221,
@@ -823,20 +827,7 @@
      "to": 0.56,
      "width": 240,
      "ai_take": 0.3,
-     "hazards": [
-      {
-       "kind": "cart",
-       "at": 0.5,
-       "side": 0.0,
-       "radius": 150,
-       "period": 8.0,
-       "duty": 0.35,
-       "phase": 4.0,
-       "laps": [
-        3
-       ]
-      }
-     ],
+     "hazards": [],
      "control": [
       [
        2890,
@@ -850,6 +841,50 @@
        2812,
        1565
       ]
+     ]
+    }
+   ],
+   "movers": [
+    {
+     "name": "pack animals",
+     "kind": "cart",
+     "path": [
+      [
+       0.45,
+       -1.1
+      ],
+      [
+       0.45,
+       1.1
+      ]
+     ],
+     "period": 8.0,
+     "mode": "pingpong",
+     "radius": 130,
+     "phase": 0.0,
+     "laps": [
+      2
+     ]
+    },
+    {
+     "name": "handcarts",
+     "kind": "cart",
+     "path": [
+      [
+       0.52,
+       1.1
+      ],
+      [
+       0.52,
+       -1.1
+      ]
+     ],
+     "period": 8.0,
+     "mode": "pingpong",
+     "radius": 130,
+     "phase": 0.0,
+     "laps": [
+      3
      ]
     }
    ]
@@ -1220,6 +1255,26 @@
       ]
      ]
     }
+   ],
+   "movers": [
+    {
+     "name": "drillbot",
+     "kind": "barrier",
+     "path": [
+      [
+       0.3,
+       -0.95
+      ],
+      [
+       0.4,
+       -0.95
+      ]
+     ],
+     "period": 9.0,
+     "mode": "pingpong",
+     "radius": 110,
+     "phase": 0.0
+    }
    ]
   },
   {
@@ -1424,6 +1479,26 @@
        520
       ]
      ]
+    }
+   ],
+   "movers": [
+    {
+     "name": "small fauna",
+     "kind": "slime",
+     "path": [
+      [
+       0.55,
+       -1.0
+      ],
+      [
+       0.55,
+       1.0
+      ]
+     ],
+     "period": 7.0,
+     "mode": "pingpong",
+     "radius": 100,
+     "phase": 0.0
     }
    ]
   },
@@ -1818,6 +1893,20 @@
       ]
      ]
     }
+   ],
+   "throwers": [
+    {
+     "name": "falling cap",
+     "at": 0.8,
+     "side": 0.0,
+     "spread": 0.5,
+     "period": 7.0,
+     "cue": 1.0,
+     "radius": 120,
+     "damage": 4,
+     "stun": 0.4,
+     "phase": 2.0
+    }
    ]
   },
   {
@@ -1907,54 +1996,7 @@
      1381
     ]
    ],
-   "hazards": [
-    {
-     "kind": "slime",
-     "at": 0.16,
-     "side": 0.0,
-     "radius": 180,
-     "period": 9.0,
-     "duty": 0.5,
-     "phase": 0.0
-    },
-    {
-     "kind": "slime",
-     "at": 0.5,
-     "side": 0.0,
-     "radius": 180,
-     "period": 9.0,
-     "duty": 0.5,
-     "phase": 3.0,
-     "laps": [
-      2,
-      3
-     ]
-    },
-    {
-     "kind": "slime",
-     "at": 0.83,
-     "side": 0.0,
-     "radius": 180,
-     "period": 9.0,
-     "duty": 0.5,
-     "phase": 6.0,
-     "laps": [
-      3
-     ]
-    },
-    {
-     "kind": "slime",
-     "at": 0.2,
-     "side": 0.3,
-     "radius": 140,
-     "period": 9.0,
-     "duty": 0.5,
-     "phase": 0.0,
-     "laps": [
-      3
-     ]
-    }
-   ],
+   "hazards": [],
    "spells": [
     "Acid Gas Grenade Mk I",
     "Poison Gas Grenade Mk I",
@@ -1996,7 +2038,70 @@
     "2": "the yellow weep joins the soup",
     "3": "magenta, and the rivers mix"
    },
-   "branches": []
+   "branches": [],
+   "movers": [
+    {
+     "name": "cyan sludge",
+     "kind": "slime",
+     "path": [
+      [
+       0.16,
+       -0.6
+      ],
+      [
+       0.16,
+       0.6
+      ]
+     ],
+     "period": 4.0,
+     "mode": "pingpong",
+     "radius": 150,
+     "phase": 0.0
+    },
+    {
+     "name": "yellow sludge",
+     "kind": "slime",
+     "path": [
+      [
+       0.5,
+       0.6
+      ],
+      [
+       0.5,
+       -0.6
+      ]
+     ],
+     "period": 4.0,
+     "mode": "pingpong",
+     "radius": 150,
+     "phase": 0.0,
+     "laps": [
+      2,
+      3
+     ]
+    },
+    {
+     "name": "magenta sludge",
+     "kind": "slime",
+     "path": [
+      [
+       0.83,
+       -0.6
+      ],
+      [
+       0.83,
+       0.6
+      ]
+     ],
+     "period": 4.0,
+     "mode": "pingpong",
+     "radius": 150,
+     "phase": 0.0,
+     "laps": [
+      3
+     ]
+    }
+   ]
   },
   {
    "key": "chavvah",
@@ -2503,6 +2608,26 @@
       ]
      ]
     }
+   ],
+   "movers": [
+    {
+     "name": "reef current",
+     "kind": "water",
+     "path": [
+      [
+       0.6,
+       -1.0
+      ],
+      [
+       0.6,
+       1.0
+      ]
+     ],
+     "period": 6.0,
+     "mode": "pingpong",
+     "radius": 160,
+     "phase": 0.0
+    }
    ]
   },
   {
@@ -2585,24 +2710,6 @@
     ]
    ],
    "hazards": [
-    {
-     "kind": "static",
-     "at": 0.3,
-     "side": -0.3,
-     "radius": 130,
-     "period": 5.0,
-     "duty": 0.3,
-     "phase": 0.0
-    },
-    {
-     "kind": "static",
-     "at": 0.55,
-     "side": 0.3,
-     "radius": 130,
-     "period": 5.0,
-     "duty": 0.3,
-     "phase": 2.5
-    },
     {
      "kind": "water",
      "at": 0.7,
@@ -2695,6 +2802,44 @@
        1941
       ]
      ]
+    }
+   ],
+   "movers": [
+    {
+     "name": "plasma jelly",
+     "kind": "static",
+     "path": [
+      [
+       0.3,
+       -0.7
+      ],
+      [
+       0.3,
+       0.7
+      ]
+     ],
+     "period": 5.0,
+     "mode": "pingpong",
+     "radius": 120,
+     "phase": 0.0
+    },
+    {
+     "name": "plasma jelly",
+     "kind": "static",
+     "path": [
+      [
+       0.55,
+       0.7
+      ],
+      [
+       0.55,
+       -0.7
+      ]
+     ],
+     "period": 5.0,
+     "mode": "pingpong",
+     "radius": 120,
+     "phase": 2.5
     }
    ]
   },
@@ -3569,24 +3714,6 @@
      "radius": 130
     },
     {
-     "kind": "barrier",
-     "at": 0.42,
-     "side": -0.3,
-     "radius": 130,
-     "period": 5.0,
-     "duty": 0.4,
-     "phase": 0.0
-    },
-    {
-     "kind": "barrier",
-     "at": 0.5,
-     "side": 0.3,
-     "radius": 130,
-     "period": 5.0,
-     "duty": 0.4,
-     "phase": 2.5
-    },
-    {
      "kind": "bell",
      "at": 0.5,
      "side": 0.0,
@@ -3671,6 +3798,48 @@
        2430,
        1047
       ]
+     ]
+    }
+   ],
+   "movers": [
+    {
+     "name": "crematory arm",
+     "kind": "barrier",
+     "path": [
+      [
+       0.42,
+       -0.9
+      ],
+      [
+       0.42,
+       0.9
+      ]
+     ],
+     "period": 5.0,
+     "mode": "pingpong",
+     "radius": 120,
+     "phase": 0.0
+    },
+    {
+     "name": "fan",
+     "kind": "barrier",
+     "path": [
+      [
+       0.5,
+       0.9
+      ],
+      [
+       0.5,
+       -0.9
+      ]
+     ],
+     "period": 5.0,
+     "mode": "pingpong",
+     "radius": 120,
+     "phase": 2.5,
+     "laps": [
+      2,
+      3
      ]
     }
    ]

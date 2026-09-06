@@ -105,6 +105,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	_build_ground()
 	_build_road()
 	_build_branches()
+	_build_mover_marks()
 	_build_start_line()
 	_build_scenery(rng)
 
@@ -665,6 +666,72 @@ func _build_branches() -> void:
 		bi += 1
 	if bi > 0:
 		print("branches: %d parallel routes (%s): %s" % [bi, key, ", ".join(branches.map(func(b): return "%s %s" % [b["name"], b["kind"]]))])
+
+
+# Moving hazards (spec "movers"): a patch that travels a path authored as [at, side] pairs
+# (loop fraction, lateral in half road widths), back and forth or around, in `period`
+# seconds. The path is drawn on the road as a faint strip: the bible's sweep markings.
+func mover_paths() -> Array:
+	var out := []
+	for m in spec.get("movers", []):
+		var pts := PackedVector2Array()
+		for ps in m.get("path", []):
+			var i := int(floor(float(ps[0]) * n)) % n
+			var d := direction_at(i)
+			var nrm := Vector2(-d.y, d.x)
+			pts.append(points[i] + nrm * float(ps[1]) * width * 0.5)
+		if pts.size() < 2:
+			continue
+		var seg := PackedFloat32Array()
+		var total := 0.0
+		for j in range(pts.size() - 1):
+			var l := pts[j].distance_to(pts[j + 1])
+			seg.append(l)
+			total += l
+		out.append({"name": String(m.get("name", "mover")), "kind": String(m.get("kind", "cart")), "pts": pts, "seg": seg, "length": total,
+			"period": float(m.get("period", 6.0)), "mode": String(m.get("mode", "pingpong")), "radius": float(m.get("radius", 140.0)),
+			"laps": m.get("laps", []), "phase": float(m.get("phase", 0.0))})
+	return out
+
+
+func _build_mover_marks() -> void:
+	var i := 0
+	for mv in mover_paths():
+		_ribbon_of(mv["pts"], false, -16.0, 16.0, 6.5, null, Color(1.0, 0.75, 0.2, 0.5), "MoverMark%d" % i)
+		var mi: MeshInstance3D = get_node("MoverMark%d" % i)
+		var mat: StandardMaterial3D = mi.material_override
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		i += 1
+
+
+# Where along a mover's path it is at time t (pingpong sweeps back; loop wraps).
+static func mover_pos(mv: Dictionary, t: float) -> Vector2:
+	var pts: PackedVector2Array = mv["pts"]
+	var L: float = mv["length"]
+	if L <= 0.0:
+		return pts[0]
+	var speed := L / maxf(0.1, float(mv["period"]))
+	var s := (t + float(mv["phase"])) * speed
+	if String(mv["mode"]) == "loop":
+		s = fmod(s, L)
+	else:
+		s = fmod(s, 2.0 * L)
+		if s > L:
+			s = 2.0 * L - s
+	var seg: PackedFloat32Array = mv["seg"]
+	for j in seg.size():
+		if s <= seg[j] or j == seg.size() - 1:
+			return pts[j].lerp(pts[j + 1], clampf(s / maxf(0.001, seg[j]), 0.0, 1.0))
+		s -= seg[j]
+	return pts[pts.size() - 1]
+
+
+# A thrower's landing spot: the loop at `at`, `side` half-widths across, jittered by spread.
+func throw_target(at: float, side: float, spread: float, rng: RandomNumberGenerator) -> Vector2:
+	var i := int(floor(clampf(at + rng.randf_range(-spread, spread) * 0.02, 0.0, 0.999) * n)) % n
+	var d := direction_at(i)
+	var nrm := Vector2(-d.y, d.x)
+	return points[i] + nrm * (side + rng.randf_range(-spread, spread)) * width * 0.5
 
 
 # The main-loop index a branch sample stands in for (its share of the way from fork to merge).
