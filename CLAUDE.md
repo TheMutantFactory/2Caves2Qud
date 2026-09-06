@@ -237,9 +237,9 @@ sinks the kart 1 s (`Kart.void_t`) then `return_point` (past the stretch, +3 sam
 `cut: <mover> cut N wall blocks, opens <branch>`, `void: <kart> falls / returns at`.
 
 The bible's engine list is COMPLETE. BALANCE (2026-09-06): the AI field's damage by band is
-tuned (docs/balance.md; 0 deaths in 18 auto-player races, was 11). Next: lap damage for a
-trailing player, a graybox pass over the authored loops, the racer select extras
-(docs/racer-select.md).
+tuned (docs/balance.md; 0 deaths in 18 auto-player races, was 11), and the LAP RULE for a
+trailing wizard is capped at 5 with a 20% HP floor (`Race._lap_penalty`, probe `lap: floor`).
+Next: a graybox pass over the authored loops, the racer select extras (docs/racer-select.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

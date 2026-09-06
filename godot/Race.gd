@@ -1729,9 +1729,23 @@ func _player_lap() -> void:
 		say("LAP IN 1ST: MONSTERS TAKE %d%%" % int(pct * 100), 1.6)
 		play("victory_level")
 	else:
-		var dmg := minf(float(C.get("lap_damage_cap", 8)), float(C.get("lap_damage_per_rank", 2)) * (player.rank - 1))
-		hit_kart(player, dmg, "Dark", null, 0.0, "lap")
-		say("LAP IN %s: -%d HP" % [ordinal(player.rank), int(dmg)], 1.6)
+		var dmg := _lap_penalty(player)
+		if dmg > 0.0:
+			hit_kart(player, dmg, "Dark", null, 0.0, "lap")
+			say("LAP IN %s: -%d HP" % [ordinal(player.rank), int(dmg)], 1.6)
+		else:
+			say("LAP IN %s: TOO WEAK TO PAY" % ordinal(player.rank), 1.6)
+
+
+# What a lap behind costs: per rank behind, capped, and never past the floor — trailing
+# hurts, it does not kill; the field and the hazards do that (docs/balance.md).
+func _lap_penalty(kart: Kart) -> float:
+	var dmg := minf(float(C.get("lap_damage_cap", 8)), float(C.get("lap_damage_per_rank", 2)) * (kart.rank - 1))
+	var floor_hp := float(C.get("lap_damage_floor_pct", 0.0)) * kart.max_hp
+	var paid := maxf(0.0, minf(dmg, kart.hp - floor_hp))
+	if hazard_log and paid < dmg:
+		print("lap: floor holds %s at %d HP (owed %d, pays %d) t=%.1f" % [kart.display_name, int(floor_hp), int(dmg), int(paid), t])
+	return paid
 
 
 func _track_start_hold(kart: Kart, dt: float) -> void:
@@ -2147,8 +2161,9 @@ func _human_lap(kart: Kart) -> void:
 				hit_kart(other, maxf(min_dmg, other.max_hp * pct), "Holy", kart, 0.4, "lap")
 		_say_to(kart, "LAP IN 1ST: MONSTERS TAKE %d%%" % int(pct * 100), 1.6)
 	else:
-		var dmg := minf(float(C.get("lap_damage_cap", 8)), float(C.get("lap_damage_per_rank", 2)) * (kart.rank - 1))
-		hit_kart(kart, dmg, "Dark", null, 0.0, "lap")
+		var dmg := _lap_penalty(kart)
+		if dmg > 0.0:
+			hit_kart(kart, dmg, "Dark", null, 0.0, "lap")
 		_say_to(kart, "LAP IN %s: -%d HP" % [ordinal(kart.rank), int(dmg)], 1.6)
 
 

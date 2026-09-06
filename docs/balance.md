@@ -63,3 +63,23 @@ cd godot && Godot --headless --quit-after 4200 -- --type=campaign --realm=16 --n
 a hit the window absorbed, and the `race:` line with the tally at the end. The tuning is
 read from the asset store's copy (`godot/qud/shared/tuning.json`): copy `shared/tuning.json`
 over or rerun the exporter after editing it, or the probe measures the old values.
+
+## The lap rule for a trailing wizard
+
+Crossing the line behind the leader costs `lap_damage_per_rank` (2) per rank behind, capped
+at `lap_damage_cap`. The cap was 8: in a field of eight, fifth place and last place paid the
+same 16% of max HP a lap, 24 HP over three laps, half the wizard's health on top of the field
+damage above, and it stacked on a wizard already low. Two changes (`Race._lap_penalty`):
+
+- `lap_damage_cap` 8 → 5. Second place pays 2, third 4, fourth and worse 5: 10% of max HP
+  a lap, 30% over a race. The pressure to lead stays; it no longer decides the race alone.
+- `lap_damage_floor_pct` 0.2. Lap damage never takes the wizard below a fifth of max HP;
+  what cannot be paid is forgiven ("TOO WEAK TO PAY"). Trailing hurts, it does not kill —
+  the field and the hazards do that. Party humans use the same rule.
+
+Measured on the same 18 races: lap damage per race for the trailing auto-driven wizard fell
+from 8 a lap to 5 a lap and no run died; HP left at the end of the 200 s window rose to
+28–50 (realm 16 is still the floor of that range). Probe: `hit: lap <damage>` per crossing,
+`lap: floor holds <name> at <floor> HP (owed N, pays M)` when the floor forgives part of it;
+to see the floor fire without a dying wizard, set the store copy's floor to 0.96 for one run (0.9 still lets the whole 5 through).
+

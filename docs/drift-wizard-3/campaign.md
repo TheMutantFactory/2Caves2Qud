@@ -60,8 +60,10 @@ Range is tiles times 90 px, radius tiles times 70 px, duration turns times
 ## Numbers (shared/tuning.json, `campaign`)
 
 Wizard 50 HP, 3 starting spell points, +2 per gate. Lap damage to every
-monster when leading (20% of its max HP, at least 2), 2 per rank behind you otherwise, capped at 8. Hearts
-heal 15. Monster abilities fire every 6 to 12 s when you are in range, at 60% damage in realm 1 rising to 130% by realm 20.
+monster when leading (20% of its max HP, at least 2), 2 per rank behind you otherwise, capped at 5 and
+never below 20% of your max HP. Hearts heal 15. Monster abilities fire every 6 to 12 s when you are in
+range, scaled per band so the mean hit is 2.5 HP in realm 1 rising to 5.3 HP by realm 20, no hit over
+20% of max HP, and a 2.5 s mercy window after each (2Caves2Qud docs/balance.md).
 
 Balance runs: `godot --path godot -- --auto --newrun --mute --seed=N
 --frames=5400 --screenshot=x.png` prints a damage tally by cause;
