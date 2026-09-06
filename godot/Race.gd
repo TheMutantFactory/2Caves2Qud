@@ -217,6 +217,10 @@ func _ready() -> void:
 	countdown = float(Shared.t(["race", "countdown"], 3.6))
 
 	var key: String = args.get("track", Campaign.next_track)
+	if args.has("tour"):
+		if args.has("tour_start") and Campaign.tour_index == 0:
+			Campaign.tour_index = int(args["tour_start"]) - 1
+		key = Tour.key_for(Campaign.tour_index)
 	if args.has("map"):
 		key = String(args["map"])
 	if online and not args.has("map"):
@@ -276,6 +280,10 @@ func _ready() -> void:
 	net_live = true
 	if args.has("free"):
 		_set_free(true)
+	if args.has("tour"):
+		auto_player = true
+		tour = Tour.new(self, track)
+		add_child(tour)
 	if args.has("editor"):
 		_set_free(true)
 		editor = LevelEditor.new(track, self)
@@ -730,6 +738,7 @@ var _said_no_struts := false
 var psy_ghosts := {}            # kart -> {sprite, ring: Array[Vector2], i}
 var psy_section := -1
 const PSY_DELAY := 60           # physics frames a ghost trails its racer (1 s)
+var tour: Tour = null           # --tour: the game drives every course in turn, notes on pause (docs/tour.md)
 var editor: LevelEditor = null  # --editor: the level editor over a free drive (docs/level-editor.md)
 var graybox := false            # --graybox: lap times, off-road, stuck, drops and voids per course (docs/graybox.md)
 var gb := {}                    # kart -> {laps: [s], lap_t, off, stuck, drops, voids}
@@ -3556,7 +3565,7 @@ func _process(_delta: float) -> void:
 			_toggle_slow()
 	if overlay_free and state != GATES and state != DEAD and Input.is_action_just_pressed("free_drive"):
 		_set_free(not free_mode)
-	if overlay_free and state != GATES and Input.is_action_just_pressed("pause"):
+	if overlay_free and state != GATES and tour == null and Input.is_action_just_pressed("pause"):
 		if state == DEAD:
 			get_tree().quit()
 		elif online:

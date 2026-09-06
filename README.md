@@ -210,3 +210,13 @@ display mode / scale / tint / solid / density, per-instance hide, nudge, move an
 floor mode and the zone's position, saved to `shared/levels/<key>.json` and read by every
 race. See docs/level-editor.md.
 
+## The tour
+
+```bash
+cd godot && Godot -- --type=gp --tour
+```
+
+The game drives you through every course in real time. SPACE pauses and opens a note box;
+Enter saves the note with a screenshot to `reports/tour-feedback.md`; N and B skip, T takes
+the wheel. See docs/tour.md.
+

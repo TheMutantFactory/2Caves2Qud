@@ -57,7 +57,7 @@ func _ready() -> void:
 			shot_frames = int(a.substr(9))
 		elif a.begins_with("--screenshot="):
 			shot_path = a.substr(13)
-		elif a in ["--auto", "--newrun"] or a.begins_with("--rig=") or a.begins_with("--map=") or a.begins_with("--realm=") or a.begins_with("--screen=") or a.begins_with("--track=") or a.begins_with("--spells=") or a.begins_with("--sp="):
+		elif a in ["--auto", "--newrun", "--tour"] or a.begins_with("--rig=") or a.begins_with("--map=") or a.begins_with("--realm=") or a.begins_with("--screen=") or a.begins_with("--track=") or a.begins_with("--spells=") or a.begins_with("--sp="):
 			if mode == "":
 				mode = "race"
 	if mode == "dump":

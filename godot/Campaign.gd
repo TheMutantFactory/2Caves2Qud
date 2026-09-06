@@ -190,6 +190,7 @@ func set_slot(i: int, spell: Dictionary) -> String:
 	return "learned"
 
 
+var tour_index := 0            # the tour (Tour.gd): which course is next across scene reloads
 var rift := {}                 # Rift-Type: the run carried from one realm to the next (see RiftType._save_progress)
 var rift_page := false         # Rift-Type: the menu opens on the realm select
 var temp_bonuses: Array = []   # [{bonuses: {key: value}, left: seconds}] from "empower" spells

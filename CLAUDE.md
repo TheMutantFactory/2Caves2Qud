@@ -290,6 +290,11 @@ Probe `bell:` lines under --hazard-log (rings/tethered/displaced). CREMATORY + T
 vent, fan (mover; pushes along its motion, FAN_PUSH), teleport (`target` fraction → exit
 waypoint; sets pos/vel/heading/next_wp, 2 s cooldown). Mover marks are coloured by kind.
 EVERY COURSE FILE IN THE BIBLE IS BUILT.
+TOUR (2026-09-06, docs/tour.md): `--tour` → `Tour.gd` drives every course in Shared.track_order
+(Campaign.tour_index survives scene reloads; Race takes the key from Tour.key_for); SPACE pauses
+(race.paused) + note box; Enter saves to reports/tour-feedback.md + reports/tour/<key>-<stamp>.png
+(shot taken BEFORE the panel shows); N/B/T/A. Race's own pause key is off under the tour.
+Probe `--tour_test` (pause at 3 s, note, advance, quit), `--tour_hold` for a screenshot.
 LEVEL EDITOR (2026-09-06, docs/level-editor.md): `--editor` → `LevelEditor.gd` over free drive;
 `Track` dressing is now COLLECTED (`dressing_items`, stable ids z:/s:/x:) then PLACED through
 `level_overrides` (shared/levels/<key>.json: kinds / hidden / moves / extras / course) by
