@@ -389,8 +389,14 @@ COURSES = [
                   [2000, 2200], [1200, 2500], [500, 2200], [600, 1500], [1300, 1200], [800, 700], [1500, 300],
                   [2200, 600], [2500, 1500], [3400, 1300], [3600, 600], [3000, 250]],
          hazards=[haz("fire", 0.4, -0.3, 160), haz("fire", 0.47, 0.3, 160), haz("fire", 0.55, 0.0, 170), haz("poison", 0.7, 0.3, 150)],
+         # the Bell (Race._update_bell): an authored sector clock; a racer exposed when it rings is
+         # displaced sideways for `displace` seconds, one who has touched a checker sanctuary
+         # since the last ring is tethered and safe; sanctuaries every ~10 s of road at pace, so
+         # the main line meets one before every pulse (Track._build_bell draws them)
+         bell={"period": 12.0, "displace": 1.25, "radius": 150,
+               "sanctuaries": [round(0.03 + k / 18.0, 3) for k in range(18)]},
          spells=["Fullerite Dagger", "Light Rail", "Salve Injector", "Plasma Grenade Mk II", "Spaser Pistol", "Ubernostrum Injector", "High Explosive Grenade Mk III", "Shade Oil Injector"],
-         gaps=["the Bell clock and checkered sanctuaries", "crematory press/arm/vent/fan sequence", "stairwell teleporter"]),
+         gaps=["crematory press/arm/vent/fan sequence", "stairwell teleporter"]),
     dict(key="thinworld", name="Thin World Crossing", cup="Spindle Cup", cup_index=20, difficulty=5.0,
          format="3-lap transformational circuit", target_lap="92-102 s", skill="Committing to recomposed road states", spoiler=True,
          void_offroad=True, void_margin=80,

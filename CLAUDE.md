@@ -283,6 +283,11 @@ ECHO ROOTS (2026-09-06): branch `echo` {period,duty,phase} → `Track.echo_updat
 beat, magenta echo when faded), `void_here` falls a kart on a faded echo only past the main
 road (`_main_dist`: a branch's mouth overlaps the road — the first cut dropped the whole
 field at the fork), `choose_branch` skips a faded echo. Probe `echo:` lines under --hazard-log.
+THE BELL (2026-09-06): spec `bell` → `Track._build_bell` (checker pads on the route + one per
+branch, a generated ImageTexture) + `Race._update_bell` (sector clock, tether per window,
+displace = stun + sideways shove, chimes, HUD `BellRing` inner Control drawing an arc).
+Probe `bell:` lines under --hazard-log (rings/tethered/displaced). Remaining on the Tomb:
+crematory press/arm/vent/fan sequence, stairwell teleporter.
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

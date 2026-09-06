@@ -685,6 +685,12 @@ const HAZARD_KINDS := {
 }
 const JELLY_CHARGE := 2.0          # seconds of swelling before a plasma jelly vents
 const POLYP_RADIUS := 64.0         # px: driving this close plucks a polyp
+const BELL_CHIMES := 3             # escalating chimes in the seconds before the Bell rings
+var bell_ring: Control = null      # the HUD's circular sector clock
+var bell_lbl: Label = null
+var bell_tether := {}              # kart -> true while tethered this window
+var bell_rings := 0
+var bell_chimed := -1              # the last chime index sounded this window
 const SUNSLAG_BOOST := [0.6, 2.5]  # the fixed sunslag boost: strength, seconds
 const POLYP_CHARGE := 2            # coins an ordinary polyp gives (boost charge)
 const SUNSLAG_GLOW_LAP := 3        # from this lap the sunslag polyp pulses gold on approach
@@ -879,6 +885,8 @@ func _update_course_hazards(dt: float) -> void:
 		print("player: t=%.0f road=%s wp=%d/%d branch=%d speed=%d rank=%d h=%d grade=%.2f" % [t, track.on_road(player.pos, player.next_wp), player.next_wp, track.n, player.branch, int(player.speed()), player.rank, int(track.height_px(player.pos)), track.grade(player.pos, player.forward())])
 	if not polyps.is_empty() and state == RACING:
 		_update_polyps(dt)
+	if track.has_bell() and state == RACING:
+		_update_bell()
 	if course_hazards.is_empty():
 		return
 	var lap := _leader_lap()
@@ -966,6 +974,93 @@ func _haptics() -> void:
 			Input.start_joy_vibration(pad, 0.0, strength, 0.12)
 		if haptics_log:
 			print("haptic: %s pad=%d bend=%d strength=%.2f wp=%d t=%.2f" % [kart.display_name, pad, int(rad_to_deg(bend)), strength, i, t])
+
+
+# ---------------------------------------------------------------- the Bell (Tomb of the Eaters)
+#
+# The Bell rings on an authored sector clock (spec bell.period), shown as a circular HUD
+# ring with escalating chimes in the last seconds. A racer who has touched a checker
+# sanctuary since the last ring is tethered and safe; one exposed at zero is displaced
+# sideways and loses bell.displace seconds, never moved backward. Sanctuaries pulse faster
+# as the ring nears.
+class BellRing extends Control:
+	var frac := 0.0
+	var tethered := false
+	var urgent := 0.0
+	func _draw() -> void:
+		var c := size * 0.5
+		var r := size.x * 0.42
+		draw_arc(c, r, 0.0, TAU, 64, Color(0.25, 0.22, 0.18, 0.7), 8.0)
+		var col := Color(1.0, 0.85, 0.3) if tethered else Color(1.0, 0.45, 0.25).lerp(Color(1.0, 0.95, 0.8), urgent)
+		draw_arc(c, r, -PI / 2.0, -PI / 2.0 + TAU * maxf(0.001, frac), 64, col, 8.0)
+		draw_circle(c, 7.0, col)
+
+
+func _update_bell() -> void:
+	var b: Dictionary = track.spec["bell"]
+	var period := float(b.get("period", 12.0))
+	var reach := float(b.get("radius", 150.0)) * track.scale_k * 0.5 + 40.0
+	var ph := fposmod(t, period)
+	var until := period - ph
+	var ring_i := int(floor(t / period))
+	# sanctuaries: touch one, be tethered until the ring
+	for kart in karts:
+		if not kart.alive or bell_tether.get(kart, false):
+			continue
+		for pad in track.bell_pads:
+			if kart.pos.distance_to(pad["pos"]) <= reach:
+				bell_tether[kart] = true
+				if kart.is_player:
+					play("learn_spell", -10.0)
+				spawn_effect(QUD.effect("holy"), kart.position + Vector3(0, 30 * Track.U, 0), 6, 0.06, -1.0, 1.0)
+				if hazard_log:
+					print("bell: %s tethers at %d t=%.2f" % [kart.display_name, int(pad["idx"]), t])
+				break
+	# the escalating chimes
+	var chime := BELL_CHIMES - int(ceil(until)) if until <= float(BELL_CHIMES) else -1
+	if chime >= 0 and chime != bell_chimed:
+		bell_chimed = chime
+		play("item_pickup", -14.0 + 4.0 * chime)
+	# the ring
+	if ring_i > bell_rings:
+		bell_rings = ring_i
+		bell_chimed = -1
+		play("sfx_grenade_resonance_explode", -6.0)
+		var displaced := []
+		var tethered := 0
+		for kart in karts:
+			if not kart.alive:
+				continue
+			if bell_tether.get(kart, false):
+				tethered += 1
+				continue
+			var near := track.nearest(kart.pos, kart.next_wp)
+			var i := int(near.get("idx", kart.next_wp))
+			var d := track.direction_at(i)
+			var nrm := Vector2(-d.y, d.x)
+			var side := signf((kart.pos - track.points[i]).dot(nrm))
+			if side == 0.0:
+				side = 1.0
+			kart.stun(float(b.get("displace", 1.25)))
+			kart.vel = nrm * side * 340.0             # sideways into the recovery corridor, never back
+			spawn_effect(QUD.effect("dark"), kart.position + Vector3(0, 30 * Track.U, 0), 6, 0.06, -1.0, 1.6)
+			displaced.append(kart.display_name)
+			if kart.is_player:
+				say("THE BELL: EXPOSED", 1.4)
+		bell_tether.clear()
+		if hazard_log:
+			print("bell: rings %d t=%.2f tethered=%d displaced=[%s]" % [bell_rings, t, tethered, ", ".join(displaced)])
+	# the pads pulse faster as the ring nears
+	var rate := 1.5 + 6.0 * clampf(1.0 - until / 3.0, 0.0, 1.0)
+	var k := 0.6 + 0.4 * (0.5 + 0.5 * sin(t * TAU * rate))
+	for pad in track.bell_pads:
+		(pad["mat"] as StandardMaterial3D).albedo_color = Color(k, k, k)
+	if bell_ring != null and player != null:
+		bell_ring.frac = ph / period
+		bell_ring.tethered = bool(bell_tether.get(player, false))
+		bell_ring.urgent = clampf(1.0 - until / 3.0, 0.0, 1.0)
+		bell_ring.queue_redraw()
+		bell_lbl.text = "TETHERED" if bell_ring.tethered else ("THE BELL IN %d" % int(ceil(until)) if until <= 5.0 else "EXPOSED")
 
 
 # ---------------------------------------------------------------- polyps (Palladium)
@@ -1458,6 +1553,16 @@ func _build_hud() -> void:
 	lbl_track.position = Vector2(960 - 200, 10)
 	lbl_track.size = Vector2(400, 30)
 	lbl_track.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if track != null and track.has_bell():
+		bell_ring = BellRing.new()
+		bell_ring.position = Vector2(960 - 60, 16)
+		bell_ring.size = Vector2(120, 120)
+		hud.add_child(bell_ring)
+		bell_lbl = _label(20, Color(1.0, 0.85, 0.3))
+		bell_lbl.position = Vector2(960 - 100, 140)
+		bell_lbl.size = Vector2(200, 30)
+		bell_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hud.add_child(bell_lbl)
 	lbl_center = _label(84, Color(1.0, 0.93, 0.35))
 	lbl_center.position = Vector2(0, 400)
 	lbl_center.size = Vector2(1920, 120)

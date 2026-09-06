@@ -311,6 +311,35 @@ charge|sunslag`, `polyp: regrow lap L` and `regrow lap 3  sunslag glows gold`. O
 laps the first kart through plucked all three each lap (the same racer twice), the sunslag
 among them. Palladium's course file is complete.
 
+## The Bell and the checker sanctuaries
+
+The Tomb of the Eaters' timed-route system, from its file: the Bell rings on an authored
+sector clock shown by a large circular HUD ring and escalating chimes; a racer exposed at
+zero is displaced sideways into the recovery corridor, losing about 1.25 s and never moved
+backward; checker sanctuaries pulse and confer clear tethered feedback. The spec is `bell`
+(`period`, `displace`, `radius`, `sanctuaries` as loop fractions).
+
+- **Sanctuaries** (`Track._build_bell`): a road-wide gold-and-black checker pad at each
+  fraction, eighteen of them about ten seconds of road apart so the main line meets one
+  before every pulse, and one in the middle of every branch: the crypts, where a racer
+  tethers early for the price of a few bends. They pulse, faster over the last three
+  seconds before the ring.
+- **The tether** (`Race._update_bell`): touching a pad tethers the racer until the next
+  ring, with a gold burst and, for the wizard, a chime and `TETHERED` on the HUD.
+- **The ring**: every `period` seconds, after three escalating chimes. Every tethered racer
+  is released; every exposed one is stunned for `displace` seconds and shoved sideways
+  toward the nearer edge, never backward, with `THE BELL: EXPOSED` for the wizard.
+- **The HUD ring**: a circular sector clock top-centre, gold while tethered, ember while
+  exposed and whitening as the ring nears, with `EXPOSED`, `THE BELL IN N` or `TETHERED`
+  under it.
+
+Probe: `--hazard-log` prints `bell: 19 sanctuaries, period 12 s` (18 on the route, one in the recovery corridor), `bell: <kart> tethers at
+<idx>`, and `bell: rings N t= tethered=k displaced=[...]` on every ring. In the check the
+Bell rang every twelve seconds; most of the field was tethered at each ring and the
+exposed were displaced (the start pack at the first ring, and racers caught between pads
+later). What is left of the course file: the crematory sequence and the stairwell
+teleporter.
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
@@ -318,5 +347,6 @@ Nothing on the bible's list is left as a rule the engine cannot express. The gra
 bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
 The section races were re-routed as three regions each and run to their targets, and Eyn
 Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts, its venting
-plasma jellies and its sunslag polyps, and the rhythm rocks reach the pad. The bible's
-lists are closed; what remains is playing it.
+plasma jellies and its sunslag polyps, the rhythm rocks reach the pad, and the Tomb has its
+Bell and sanctuaries. What remains of the course files is the Tomb's crematory sequence and
+stairwell teleporter; the bible's lists are otherwise closed, and what remains is playing it.

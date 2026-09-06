@@ -127,6 +127,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	_build_cut_walls()
 	_build_psychic(rng)
 	_build_struts()
+	_build_bell()
 
 
 # ---------------------------------------------------------------- city
@@ -1657,6 +1658,81 @@ func struts_update(human_positions: Array) -> int:
 		if k < 0.5:
 			clear += 1
 	return clear
+
+
+# ---------------------------------------------------------------- the Bell (Tomb of the Eaters)
+#
+# Checker sanctuaries (spec "bell": period, displace, radius, sanctuaries as loop fractions):
+# a road-wide checkered pad at each, gold and black, that Race pulses faster as the Bell
+# nears. A kart that touches one is tethered until the next ring.
+var bell_pads: Array = []       # [{pos: Vector2, idx: int, mat: StandardMaterial3D}]
+
+
+func has_bell() -> bool:
+	return spec.get("bell", {}) is Dictionary and not (spec.get("bell", {}) as Dictionary).is_empty()
+
+
+func _checker_texture() -> ImageTexture:
+	var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	for y in 16:
+		for x in 16:
+			var gold := ((x / 4) + (y / 4)) % 2 == 0
+			img.set_pixel(x, y, Color(1.0, 0.82, 0.3) if gold else Color(0.1, 0.08, 0.06))
+	return ImageTexture.create_from_image(img)
+
+
+func _build_bell() -> void:
+	if not has_bell():
+		return
+	var holder := Node3D.new()
+	holder.name = "Sanctuaries"
+	add_child(holder)
+	var half := width * 0.5
+	var tex := _checker_texture()
+	var reach := int(ceil(float((spec["bell"] as Dictionary).get("radius", 150.0)) * scale_k * 0.5 / maxf(1.0, total_len_est())))
+	for f in (spec["bell"] as Dictionary).get("sanctuaries", []):
+		var i := clampi(int(floor(float(f) * n)), 1, n - 2)
+		var sub := PackedVector2Array()
+		for j in range(maxi(0, i - reach), mini(n, i + reach + 1)):
+			sub.append(points[j])
+		if sub.size() < 2:
+			continue
+		var mi := _ribbon_of(sub, false, -half, half, 8.5, tex, Color.WHITE, "Sanctuary%d" % bell_pads.size())
+		if mi.get_parent() != null:
+			mi.reparent(holder)
+		else:
+			holder.add_child(mi)
+		var mat: StandardMaterial3D = mi.material_override
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		bell_pads.append({"pos": points[i], "idx": i, "mat": mat})
+	# the crypts: every branch carries a sanctuary at its middle (enter intact crypts and
+	# tether early; they add bends but hold the double items)
+	for br in branches:
+		var pts: PackedVector2Array = br["pts"]
+		var mid := pts.size() / 2
+		var sub := PackedVector2Array()
+		for j in range(maxi(0, mid - reach), mini(pts.size(), mid + reach + 1)):
+			sub.append(pts[j])
+		if sub.size() < 2:
+			continue
+		var bw := float(br["width"]) * 0.5
+		var mi := _ribbon_of(sub, false, -bw, bw, 8.5, tex, Color.WHITE, "Sanctuary%d" % bell_pads.size())
+		if mi.get_parent() != null:
+			mi.reparent(holder)
+		else:
+			holder.add_child(mi)
+		var mat: StandardMaterial3D = mi.material_override
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		bell_pads.append({"pos": pts[mid], "idx": int(br["from_i"]), "mat": mat})
+	print("bell: %d sanctuaries, period %.0f s" % [bell_pads.size(), float((spec["bell"] as Dictionary).get("period", 12.0))])
+
+
+# The route's mean waypoint spacing (px), for sizing things in waypoints before cum_len exists.
+func total_len_est() -> float:
+	var acc := 0.0
+	for k in mini(n, 200):
+		acc += seg_len[k]
+	return acc / maxf(1.0, float(mini(n, 200)))
 
 
 # ---------------------------------------------------------------- polyps (Palladium)
