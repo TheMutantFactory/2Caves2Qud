@@ -286,8 +286,12 @@ COURSES = [
                   [1900, 2500], [2800, 2900], [3800, 2700], [4300, 2100], [3600, 1700], [2800, 2000], [3000, 1300],
                   [3600, 900], [4300, 1000], [4600, 400]],
          hazards=[haz("static", 0.45, 0.0, 150, period=5.0, duty=0.4), haz("static", 0.7, 0.3, 140, period=5.0, duty=0.4, phase=2.5)],
+         # the psychic overlays by section (Track._build_psychic): doubled edges, then false
+         # silhouettes, then delayed ghosts of the racers; nothing within the envelope (px,
+         # five kart lengths); the rhythm-rock studs pulse at `beat` Hz before every real turn
+         psychic={"1": ["edges"], "2": ["edges", "silhouettes"], "3": ["edges", "silhouettes", "ghosts"], "envelope": 300, "beat": 2.0},
          spells=["Sunder Mind" if False else "Eigenpistol", "Stasis Grenade Mk I", "Salve Injector", "Nullray Pistol", "Skulk Injector", "Normality Gas Grenade Mk I", "Vibro Dagger", "Ubernostrum Injector"],
-         gaps=["psychic overlays (doubled edges, false silhouettes, ghost racers)", "root helix descent + trunk ascent", "rhythm rock haptics"]),
+         gaps=["rhythm rock haptics", "the briefly solidified echo across two root gaps"]),
 
     dict(key="hinnom", name="Lake Hinnom Causeway", cup="Reef Cup", cup_index=13, difficulty=3.0,
          format="3-lap circuit", target_lap="82-92 s", skill="Causeway-to-water transitions",

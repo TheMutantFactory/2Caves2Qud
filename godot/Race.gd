@@ -687,6 +687,10 @@ const JUMP_BOOST := 0.35
 
 var course_hazards: Array = []     # [{h, kind, period, duty, phase, on}]
 var hazard_log := false
+var psychic_log := false        # --psychic-log: the overlays' forms and counts every 5 s
+var psy_ghosts := {}            # kart -> {sprite, ring: Array[Vector2], i}
+var psy_section := -1
+const PSY_DELAY := 60           # physics frames a ghost trails its racer (1 s)
 var graybox := false            # --graybox: lap times, off-road, stuck, drops and voids per course (docs/graybox.md)
 var gb := {}                    # kart -> {laps: [s], lap_t, off, stuck, drops, voids}
 
@@ -695,6 +699,7 @@ func _spawn_track_hazards() -> void:
 	var n := 0
 	hazard_log = OS.get_cmdline_user_args().has("--hazard-log")
 	graybox = OS.get_cmdline_user_args().has("--graybox")
+	psychic_log = OS.get_cmdline_user_args().has("--psychic-log")
 	for kart in karts:
 		kart.branch_log = hazard_log
 	for spot in track.hazard_spots():
@@ -814,6 +819,10 @@ func _apply_lap_sets(lap: int) -> void:
 # Cycling hazards switch on for `duty` of every `period` seconds, with an amber cue in the
 # second before; jump pads loft any kart that crosses them while live.
 func _update_course_hazards(dt: float) -> void:
+	if track.psychic():
+		_psychic_step()
+	elif psychic_log and Engine.get_physics_frames() == 1:
+		print("psychic: none on %s" % track.key)
 	if graybox and state == RACING:
 		for kart in karts:
 			if not kart.alive or kart.finished:
@@ -3168,6 +3177,8 @@ func _process(_delta: float) -> void:
 
 	for kart in karts:
 		kart.update_visual(track, cam_right, t)
+	if track.psychic():
+		_psychic_visual()
 	if minimap != null:
 		minimap.queue_redraw()
 	if not panels.is_empty():
@@ -3275,6 +3286,73 @@ func _fmt_time(tm: float) -> String:
 	var m := int(tm / 60.0)
 	var s := tm - m * 60.0
 	return "%d:%05.2f" % [m, s]
+
+
+# ---------------------------------------------------------------- psychic overlays (Eyn Roj)
+
+# The forms in play: the wizard's section, none once it is on the last stretch or finished
+# (the chiming rock clears them), none before the start.
+func _psychic_forms() -> Array:
+	if player == null or state != RACING or player.finished:
+		return []
+	if track.open and float(player.next_wp) / float(track.n) > 0.94:
+		return []
+	return track.psychic_forms(track.stage_of(player))
+
+
+func _psychic_step() -> void:
+	for kart in karts:
+		if not psy_ghosts.has(kart):
+			var spr := Sprite3D.new()
+			spr.texture = kart.sprite.texture
+			spr.hframes = kart.sprite.hframes
+			spr.pixel_size = kart.sprite.pixel_size
+			spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+			spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+			spr.modulate = Color(0.85, 0.45, 1.0, 0.0)
+			spr.visible = false
+			add_child(spr)
+			var ring := []
+			ring.resize(PSY_DELAY)
+			ring.fill(kart.pos)
+			psy_ghosts[kart] = {"sprite": spr, "ring": ring, "i": 0}
+		var g: Dictionary = psy_ghosts[kart]
+		var ring: Array = g["ring"]
+		ring[int(g["i"])] = kart.pos
+		g["i"] = (int(g["i"]) + 1) % PSY_DELAY
+
+
+func _psychic_visual() -> void:
+	var forms := _psychic_forms()
+	var positions := []
+	for kart in karts:
+		if kart.alive:
+			positions.append(kart.pos)
+	var stats: Dictionary = track.psychic_update(t, positions, forms, float((track.spec.get("psychic", {}) as Dictionary).get("beat", 2.0)))
+	var env := track.psychic_envelope()
+	var ghosts := 0
+	for kart in psy_ghosts.keys():
+		var g: Dictionary = psy_ghosts[kart]
+		var spr: Sprite3D = g["sprite"]
+		var on: bool = "ghosts" in forms and is_instance_valid(kart) and kart.alive and not kart.finished and kart.void_t <= 0.0
+		if on:
+			var old: Vector2 = g["ring"][int(g["i"])]       # the oldest sample: where it was a second ago
+			for h in humans:
+				if h != kart and h.alive and h.pos.distance_to(old) < env:
+					on = false                              # never inside a human's driving envelope
+					break
+			if on:
+				spr.position = track.to3(old, kart.frame_size * 0.5)
+				spr.frame = kart.sprite.frame
+				spr.flip_h = kart.sprite.flip_h
+				spr.modulate.a = 0.45
+				ghosts += 1
+		spr.visible = on
+	var section := track.stage_of(player) if player != null else 0
+	if psychic_log and (Engine.get_physics_frames() % 300 == 0 or section != psy_section):
+		psy_section = section
+		print("psychic: section=%d forms=%s edges=%d/%d faded=%d sils=%d/%d ghosts=%d pulse=%.2f t=%.1f" % [section, JSON.stringify(forms), stats["edges"], stats["edges_total"], stats["faded"], stats["sils"], stats["sils_total"], ghosts, stats["pulse"], t])
 
 
 func _gb(kart: Kart) -> Dictionary:

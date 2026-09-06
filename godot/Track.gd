@@ -125,6 +125,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	_build_start_line()
 	_build_scenery(rng)
 	_build_cut_walls()
+	_build_psychic(rng)
 
 
 # ---------------------------------------------------------------- city
@@ -1310,6 +1311,198 @@ func _build_cut_walls() -> void:
 					placed += 1
 	if placed > 0:
 		print("walls: %d voxel blocks across the cuts (%s)" % [placed, fam])
+
+
+# ---------------------------------------------------------------- psychic overlays
+#
+# Eyn Roj's perception course (spec "psychic": forms per section). Three authored forms
+# that alter what is seen, never what is driven: doubled road EDGES (a second, translucent
+# magenta edge beyond the real curb), false distant SILHOUETTES (racers that are not there,
+# off the road), and delayed GHOSTS of the racers (Race draws those). None of it inside the
+# driving envelope: every overlay fades to nothing within `envelope` px of a kart. The
+# rhythm-rock STUDS along the true edge pulse on the beat and brighter before a real turn,
+# the one thing that is always trustworthy. The forms come by section and vanish at the
+# finish (Race passes [] once the wizard is on the last stretch).
+
+var psy_chunks: Array = []      # [{mid: Vector2, mats: [StandardMaterial3D, ...]}]
+var psy_sils: Array = []        # [{sprite: Sprite3D, pos: Vector2}]
+var psy_studs: MultiMeshInstance3D = null
+var psy_stud_mat: StandardMaterial3D = null
+const PSY_CHUNK := 8
+
+
+func psychic() -> bool:
+	return spec.get("psychic", {}) is Dictionary and not (spec.get("psychic", {}) as Dictionary).is_empty()
+
+
+func psychic_forms(section: int) -> Array:
+	var ps: Dictionary = spec.get("psychic", {})
+	return ps.get(str(section), [])
+
+
+func psychic_envelope() -> float:
+	return float((spec.get("psychic", {}) as Dictionary).get("envelope", 300.0)) * scale_k * 0.5
+
+
+func _build_psychic(rng: RandomNumberGenerator) -> void:
+	if not psychic():
+		return
+	var holder := Node3D.new()
+	holder.name = "Psychic"
+	add_child(holder)
+	var half := width * 0.5
+	var edge := Color(1.0, 0.55, 1.0, 0.0)
+	# doubled edges: a low translucent fence a little beyond the real curb (a flat strip
+	# vanishes against the ground at speed), in chunks so each can fade on its own near a kart
+	var i := 0
+	while i < n - 1:
+		var sub := PackedVector2Array()
+		for j in range(i, mini(n, i + PSY_CHUNK + 1)):
+			sub.append(points[j])
+		if sub.size() >= 2:
+			var mats := []
+			for side in [-1.0, 1.0]:
+				var mi := _fence_of(sub, side * (half + 36.0), 9.0, 34.0, edge)
+				mi.name = "Echo%d" % i
+				holder.add_child(mi)
+				mats.append(mi.material_override)
+			psy_chunks.append({"mid": sub[sub.size() / 2], "mats": mats})
+		i += PSY_CHUNK
+	# false silhouettes: racers that are not there, well off the road
+	var units: Array = QUD.manifest.get("units", {}).keys()
+	var count := int(18 * scale_k * 0.5)
+	var tries := 0
+	while psy_sils.size() < count and tries < count * 30 and not units.is_empty():
+		tries += 1
+		var p := Vector2(rng.randf_range(0, size.x), rng.randf_range(0, size.y))
+		var d: float = nearest(p, -1).dist
+		if d < half + 160.0 * scale_k * 0.5 or d > half + 620.0 * scale_k * 0.5:
+			continue
+		var unit: String = units[rng.randi_range(0, units.size() - 1)]
+		var tex := QUD.unit_idle(unit)
+		if tex == null:
+			continue
+		var spr := Sprite3D.new()
+		spr.texture = tex
+		spr.hframes = maxi(1, int(QUD.unit_info(unit).get("idle_frames", 1)))
+		spr.pixel_size = U * 2.2
+		spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+		spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		spr.modulate = Color(1.0, 0.6, 1.0, 0.0)
+		spr.position = to3(p, 70.0)
+		holder.add_child(spr)
+		psy_sils.append({"sprite": spr, "pos": p})
+	# rhythm-rock studs on the true edge, emphasised before a real turn
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	var quad := QuadMesh.new()
+	quad.size = Vector2(16.0 * U, 16.0 * U)
+	mm.mesh = quad
+	var studs := []
+	var step_px := 150.0
+	var acc := 0.0
+	for k in range(n - 1 if open else n):
+		acc += seg_len[k]
+		if acc < step_px:
+			continue
+		acc = 0.0
+		var d := direction_at(k)
+		var ahead := direction_at((k + 6) % n)
+		var bend := absf(d.angle_to(ahead))
+		var emph := 1.0 if bend > deg_to_rad(22.0) else 0.45
+		var nrm := Vector2(-d.y, d.x)
+		for side in [-1.0, 1.0]:
+			studs.append([points[k] + nrm * side * (half + 8.0), emph])
+	mm.instance_count = studs.size()
+	for si in studs.size():
+		var xf := Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), to3(studs[si][0], 9.5))
+		mm.set_instance_transform(si, xf)
+		mm.set_instance_color(si, Color(0.6, 0.95, 1.0, 1.0) * float(studs[si][1]))
+	psy_studs = MultiMeshInstance3D.new()
+	psy_studs.multimesh = mm
+	psy_stud_mat = StandardMaterial3D.new()
+	psy_stud_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	psy_stud_mat.vertex_color_use_as_albedo = true
+	psy_stud_mat.albedo_color = Color.WHITE
+	psy_studs.material_override = psy_stud_mat
+	holder.add_child(psy_studs)
+	print("psychic: %d edge chunks, %d silhouettes, %d studs" % [psy_chunks.size(), psy_sils.size(), studs.size()])
+
+
+# A translucent vertical strip along a polyline: the doubled edge as a low fence.
+func _fence_of(pts: PackedVector2Array, offset: float, lift_a: float, lift_b: float, color: Color) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var m := pts.size()
+	var prev_lo: Vector3
+	var prev_hi: Vector3
+	for i in m:
+		var d := _dir_of(pts, i, false)
+		var nrm := Vector2(-d.y, d.x)
+		var q := pts[i] + nrm * offset
+		var lo := to3(q, lift_a)
+		var hi := to3(q, lift_b)
+		if i > 0:
+			st.add_vertex(prev_lo); st.add_vertex(hi); st.add_vertex(prev_hi)
+			st.add_vertex(prev_lo); st.add_vertex(lo); st.add_vertex(hi)
+			st.add_vertex(prev_lo); st.add_vertex(prev_hi); st.add_vertex(hi)   # both faces
+			st.add_vertex(prev_lo); st.add_vertex(hi); st.add_vertex(lo)
+		prev_lo = lo
+		prev_hi = hi
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = mat
+	return mi
+
+
+# One frame of the overlays: which forms are on, and how far every kart is from each one.
+# Returns counts for the log.
+func psychic_update(t: float, kart_positions: Array, forms: Array, beat: float) -> Dictionary:
+	var env := psychic_envelope()
+	var edges := "edges" in forms
+	var sils := "silhouettes" in forms
+	var shown := 0
+	var faded := 0
+	for ci in psy_chunks.size():
+		var c: Dictionary = psy_chunks[ci]
+		var a := 0.0
+		if edges:
+			var dmin := INF
+			for kp in kart_positions:
+				dmin = minf(dmin, (kp as Vector2).distance_to(c["mid"]))
+			var fade := clampf((dmin - env) / env, 0.0, 1.0)
+			a = 0.55 * fade * (0.8 + 0.2 * sin(t * 1.3 + ci))
+			if fade < 1.0:
+				faded += 1
+			if a > 0.01:
+				shown += 1
+		for mat in c["mats"]:
+			(mat as StandardMaterial3D).albedo_color.a = a
+	var sshown := 0
+	for sd in psy_sils:
+		var a := 0.0
+		if sils:
+			var dmin := INF
+			for kp in kart_positions:
+				dmin = minf(dmin, (kp as Vector2).distance_to(sd["pos"]))
+			a = 0.5 * clampf((dmin - env * 1.5) / env, 0.0, 1.0)
+			if a > 0.01:
+				sshown += 1
+		var spr: Sprite3D = sd["sprite"]
+		spr.modulate.a = a
+		spr.frame = int(t / 0.25) % maxi(1, spr.hframes)
+	var pulse := 0.0
+	if psy_stud_mat != null:
+		pulse = 0.5 + 0.5 * maxf(0.0, sin(t * TAU * beat))
+		psy_stud_mat.albedo_color = Color(0.55 + 0.45 * pulse, 0.55 + 0.45 * pulse, 0.55 + 0.45 * pulse)
+		psy_studs.visible = not forms.is_empty()
+	return {"edges": shown, "edges_total": psy_chunks.size(), "faded": faded, "sils": sshown, "sils_total": psy_sils.size(), "pulse": pulse}
 
 
 # ---------------------------------------------------------------- queries

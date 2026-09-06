@@ -207,11 +207,33 @@ over the void, Chavvah's deep sky catches a fall on a lower leaf), sinks for a s
 returned to the road just past where it fell, slow and facing forward, with a translocation.
 Rust Wells' collapsed bridge is a fall now, not a drive across the ground.
 
+## The psychic overlays and the ghost echoes
+
+Eyn Roj's perception course, from its Route: three authored forms that alter what is seen
+and never what is driven, arriving by section and vanishing at the chiming rock. The spec
+is `psychic` on the course: forms per section, an `envelope` in px and a `beat` in Hz.
+
+- **Doubled edges** (section 1 on): a second, translucent magenta edge beyond the real curb,
+  built in short chunks so each fades on its own.
+- **False silhouettes** (section 2 on): racers that are not there, Qud creatures standing
+  well off the road in magenta, breathing through their idle frames.
+- **Ghost echoes** (section 3): each racer's delayed image, its own sprite in magenta drawn
+  where it was a second ago (a ring of positions in `Race._psychic_step`).
+- **Nothing inside the envelope.** Every overlay fades to nothing within five kart lengths
+  of a kart, and a ghost is never drawn inside a human's envelope.
+- **Rhythm rocks.** Studs along the true edge (one multimesh) pulse on the beat and sit
+  brighter where a real turn is ahead: the one thing that is always trustworthy.
+
+`--psychic-log` prints `psychic: section=N forms=[...] edges=k/K faded=F sils=s/S ghosts=G
+pulse=` every five seconds and on each section change; `psychic: none on <key>` on a course
+without overlays. What is left of the course file: the rhythm-rock haptics and the briefly
+solidified echo across two root gaps (a skill route the course has no gaps for).
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
 (docs/graybox.md) measured the AI field on every course and stretched the loops to the
 bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
-The section races were re-routed as three regions each and run to their targets. What
-remains is presentation the probes cannot see: the psychic overlays, ghost echoes and
-occlusion struts.
+The section races were re-routed as three regions each and run to their targets, and Eyn
+Roj has its psychic overlays and ghost echoes. What remains is presentation the probes
+cannot see: Palladium's occlusion struts and the haptics.

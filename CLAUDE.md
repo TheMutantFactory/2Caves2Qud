@@ -255,6 +255,11 @@ and run 0.88-0.93 of the bible's run. The race ENDS when the wizard finishes: a 
 (key 8) / keyboard search (/), 3D pedestal preview (SubViewport per quad; the vehicle IS the
 sprite), spoken names (OS TTS, `--spoken`), reduced motion. Probes: `--select_log` +
 `--select_keys=seat:action,...` (runs BEFORE the Menu seats --party players: start with 0:a).
+PSYCHIC OVERLAYS (2026-09-06): spec `psychic` (forms per section, envelope, beat) →
+`Track._build_psychic` (edge chunks, silhouettes, stud multimesh) + `psychic_update`;
+`Race._psychic_step/_psychic_visual` draw the ghost echoes (1 s ring per kart). Probe
+`--psychic-log`. A windowed `--frames=N` counts RENDER frames: pair with --timescale to reach
+a late section for a screenshot.
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

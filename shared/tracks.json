@@ -2844,6 +2844,22 @@
      ]
     }
    ],
+   "psychic": {
+    "1": [
+     "edges"
+    ],
+    "2": [
+     "edges",
+     "silhouettes"
+    ],
+    "3": [
+     "edges",
+     "silhouettes",
+     "ghosts"
+    ],
+    "envelope": 300,
+    "beat": 2.0
+   },
    "spells": [
     "Eigenpistol",
     "Stasis Grenade Mk I",
@@ -2855,9 +2871,8 @@
     "Ubernostrum Injector"
    ],
    "gaps": [
-    "psychic overlays (doubled edges, false silhouettes, ghost racers)",
-    "root helix descent + trunk ascent",
-    "rhythm rock haptics"
+    "rhythm rock haptics",
+    "the briefly solidified echo across two root gaps"
    ],
    "stretch": 2.49,
    "spoiler": false,
