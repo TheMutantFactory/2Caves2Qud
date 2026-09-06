@@ -5,7 +5,9 @@
     "racers": 8,
     "track_scale": 4.0,
     "countdown": 3.6,
-    "waypoint_spacing": 90
+    "waypoint_spacing": 90,
+    "item_set_seconds": 18.0,
+    "item_pace_px": 850.0
   },
   "kart": {
     "max_speed": 780,
@@ -585,5 +587,10 @@
     "boss_hp_per_realm": 45,
     "xp_base": 24,
     "xp_power": 1.45
+  },
+  "select": {
+    "lock_band": 6,
+    "spoken_names": false,
+    "reduced_motion": false
   }
 }

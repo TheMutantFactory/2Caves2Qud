@@ -215,7 +215,7 @@ COURSES = [
          spells=["Thermal Grenade Mk I", "Flamethrower", "Laser Rifle", "High Explosive Grenade Mk I", "Salve Injector", "Steel Dagger", "Plasma Grenade Mk I", "Blaze Injector"],
          gaps=["two-level shaft descent and turbine lift", "drillbot wall cuts", "fire snout bursts", "oil ribbons added per lap"]),
     dict(key="golgotha", name="Golgotha Drop", cup="Chrome Cup", cup_index=7, difficulty=3.0,
-         format="3-section race", target_lap="section race", skill="Forced-movement lane changes",
+         format="3-section race", target_lap="section race", target_run="160-180 s", skill="Forced-movement lane changes",
          sentence="Commit to a one-way plunge through Golgotha's conveyor-fed trash chutes, dodge vent cycles, and outrun the refuse into the Cloaca.",
          tileset="rust", offroad="bile", wallset="metal", road=[84, 90, 70], ground=[60, 86, 40],
          width=210, elevation=160, laps=3,
@@ -226,7 +226,7 @@ COURSES = [
          spells=["Acid Gas Grenade Mk I", "Poison Gas Grenade Mk I", "Chaingun", "Salve Injector", "Gaslight Kris", "Grappling Gun", "Hulk Honey Injector", "Freeze Grenade Mk I"],
          gaps=["one-way section race with four chute mouths", "conveyor belts", "vent cycles with cues", "shaft drops"]),
     dict(key="bethesda", name="Bethesda Susa Deep Freeze", cup="Chrome Cup", cup_index=8, difficulty=3.5,
-         format="3-section race", target_lap="section race", skill="Progressive ice control",
+         format="3-section race", target_lap="section race", target_run="170-190 s", skill="Progressive ice control",
          sentence="Descend Bethesda Susa as every sector grows colder, earn three gate keys through racing lines, and survive the cryobarrios before the warm Temple of the Rock.",
          tileset="marble", offroad="jungle", wallset="marble", road=[128, 132, 136], ground=[40, 84, 44],
          width=230, elevation=120, laps=3,
@@ -269,7 +269,7 @@ COURSES = [
          spells=["Crysteel Dagger", "Turbow", "Salve Injector", "Light Rail", "Blaze Injector", "Time Dilation Grenade Mk I", "Compound Bow", "Rubbergum Injector"],
          gaps=["spiral stair-road around the trunk", "leaf ramps and branch jumps", "tree lean per lap"]),
     dict(key="eynroj", name="Eyn Roj Dreamroot", cup="Canopy Cup", cup_index=12, difficulty=4.0,
-         format="3-section descent and ascent", target_lap="section race", skill="Reading psychic route echoes",
+         format="3-section descent and ascent", target_lap="section race", target_run="165-185 s", skill="Reading psychic route echoes",
          sentence="Dive beneath Eyn Roj through crystalline roots where psychic echoes show several possible roads but only solid rhythm rock marks the immediate racing line.",
          tileset="marble", offroad="crystal", wallset="crystal1", road=[150, 150, 160], ground=[110, 60, 140],
          width=220, elevation=170, laps=3,
@@ -342,7 +342,7 @@ COURSES = [
          spells=["Etched Cleaver" if False else "Carbide Dagger", "Sniper Rifle", "Salve Injector", "Arc Cannon", "Gravity Grenade Mk I", "Hulk Honey Injector", "Missile Launcher", "Ubernostrum Injector"],
          gaps=["magnetic roadway up the Spindle with release windows", "paired-statue slalom", "gate murals lighting in order"]),
     dict(key="tomb", name="Tomb of the Eaters Bell Run", cup="Spindle Cup", cup_index=19, difficulty=5.0,
-         format="3-section ascent", target_lap="section race", skill="Timed sanctuary routing", spoiler=True,
+         format="3-section ascent", target_lap="section race", target_run="190-215 s", skill="Timed sanctuary routing", spoiler=True,
          sentence="Ascend the Tomb of the Eaters from bone catacombs through its lethal crematory, reaching checkered Places of Rest before each Bell pulse displaces exposed racers.",
          tileset="bone", offroad="blackmarble", wallset="bone", road=[170, 160, 130], ground=[30, 26, 22],
          width=210, elevation=160, laps=3,
@@ -354,7 +354,7 @@ COURSES = [
          gaps=["the Bell clock and checkered sanctuaries", "crematory press/arm/vent/fan sequence", "stairwell teleporter"]),
     dict(key="thinworld", name="Thin World Crossing", cup="Spindle Cup", cup_index=20, difficulty=5.0,
          format="3-lap transformational circuit", target_lap="92-102 s", skill="Committing to recomposed road states", spoiler=True,
-         void_offroad=True, void_margin=40,
+         void_offroad=True, void_margin=80,
          sentence="Cross the Thin World on a road that recomposes from solid azzurum to holographic geometry, where falling cannot end the race but returns the kart through a different line.",
          tileset="hologram", offroad="void", wallset="filigree", road=[60, 150, 180], ground=[8, 8, 14],
          width=220, elevation=120, laps=3,
@@ -551,12 +551,52 @@ LEAN = {"chavvah": {2: [0.012, 0.0], 3: [-0.008, 0.006]}}
 
 CUPS = ["Fresh Water Cup", "Chrome Cup", "Canopy Cup", "Reef Cup", "Spindle Cup"]
 
+# The graybox pass (docs/graybox.md): the loops as first drawn lapped in about half the bible's
+# target time (the AI field at racing pace runs ~850 px/s), and the section courses ran in a
+# sixth of their target run. stretch scales a course's control points and size (widths stay
+# in kart widths, hazards and movers sit at fractions, mover periods scale with the path) by
+# target / measured lap, capped near 2.2 for a circuit (Chavvah 2.6) and 3.0 for a section race; what a cap
+# leaves short is a gap on the course.
+STRETCH = {
+    "joppa": 1.81, "redrock": 2.1, "rustwells": 1.10, "stilt": 2.6, "gritgate": 1.79, "asphalt": 2.05,
+    "golgotha": 3.0, "bethesda": 3.0, "kyakukya": 2.2, "rainbowwood": 1.8, "chavvah": 2.6, "eynroj": 3.0,
+    "hinnom": 2.7, "palladium": 1.9, "ydfreehold": 2.15, "moonstair": 2.1, "hydropon": 1.54,
+    "omonporch": 2.7, "tomb": 3.0, "thinworld": 2.17,
+}
+
+
+def smooth_cusps(control, max_turn=120.0, cut=0.28):
+    """The graybox's sightline proxy found cusps where two ellipses join (Rainbowwood 167 deg,
+    Rust Wells 169): a control point turning more than max_turn becomes two, chamfered a
+    share of the way along each neighbouring segment, so the spline rounds the corner."""
+    n = len(control)
+    if n < 4:
+        return control
+    out = []
+    for i in range(n):
+        a, b, c = control[i - 1], control[i], control[(i + 1) % n]
+        v1 = (b[0] - a[0], b[1] - a[1])
+        v2 = (c[0] - b[0], c[1] - b[1])
+        turn = abs(math.degrees(math.atan2(v1[0] * v2[1] - v1[1] * v2[0], v1[0] * v2[0] + v1[1] * v2[1])))
+        if turn > max_turn:
+            out.append([b[0] - v1[0] * cut, b[1] - v1[1] * cut])
+            out.append([b[0] + v2[0] * cut, b[1] + v2[1] * cut])
+        else:
+            out.append([b[0], b[1]])
+    return out
+
 
 def build():
     tracks = []
     for c in COURSES:
         t = dict(c)
         t.setdefault("size", [W, H])
+        t["control"] = smooth_cusps([list(p) for p in t["control"]])
+        k = STRETCH.get(t["key"], 1.0)
+        if k != 1.0:
+            t["control"] = [[x * k, y * k] for x, y in t["control"]]
+            t["size"] = [t["size"][0] * k, t["size"][1] * k]
+            t["stretch"] = k
         t.setdefault("laps", 3)
         if int(t.get("sections", 0)) > 0:
             t["laps"] = 1                 # one way: the far end is the finish
@@ -580,7 +620,7 @@ def build():
         gone = MOVER_REPLACES.get(t["key"], [])
         t["hazards"] = [h for h in t["hazards"] if (h["kind"], h["at"]) not in gone]
         if t["key"] in MOVERS:
-            t["movers"] = MOVERS[t["key"]]
+            t["movers"] = [dict(m, period=m["period"] * k) for m in MOVERS[t["key"]]]
         if t["key"] in PROFILES:
             t["profile"] = PROFILES[t["key"]]
         if t["key"] in CAMBER:

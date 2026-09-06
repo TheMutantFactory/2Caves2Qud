@@ -245,7 +245,10 @@ Every loop lapped SHORT (~0.5 of the bible's lap; sections ~0.16 of the run) →
 `STRETCH` in qud_tracks.py scales control + size (widths stay in kart widths, mover periods
 scale). Item sets are spaced by road length at 850 px/s (race.item_set_seconds/item_pace_px).
 `--frames` is PHYSICS frames (60/s) regardless of --timescale: 20000 = 333 s. Batch 20
-courses with xargs -P 6 (~12 min). RACER SELECT EXTRAS (2026-09-06, docs/racer-select.md): locks by band (`select.lock_band`
+courses with xargs -P 6 (~12 min). GOTCHA: waypoint samples per control segment must scale
+with stretch (Track.advance needs the next point within width x 0.7) — the first stretched
+batch read 47-82% off-road on the sections for that reason. Circuits now lap 0.90-1.14 of
+target; sections 0.54-0.67 (want more route, not more stretch). RACER SELECT EXTRAS (2026-09-06, docs/racer-select.md): locks by band (`select.lock_band`
 6 + Campaign.unlocked), twin rule (next free variant, told), per-seat filters (key 9) / sort
 (key 8) / keyboard search (/), 3D pedestal preview (SubViewport per quad; the vehicle IS the
 sprite), spoken names (OS TTS, `--spoken`), reduced motion. Probes: `--select_log` +

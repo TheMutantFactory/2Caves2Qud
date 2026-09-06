@@ -80,7 +80,9 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	for c in spec["control"]:
 		control.append(Vector2(c[0], c[1]) * scale_k)
 	var spacing := float(Shared.t(["race", "waypoint_spacing"], 90.0))
-	var samples := maxi(4, int(round(8.0 * scale_k * 90.0 / spacing)))
+	# waypoints per control segment: dense enough that a kart cutting a corner still passes
+	# within width x 0.7 of the next one (Track.advance), so a stretched loop gets more
+	var samples := maxi(4, int(round(8.0 * scale_k * float(spec.get("stretch", 1.0)) * 90.0 / spacing)))
 	sections = int(spec.get("sections", 0))
 	open = sections > 0
 	if open:
@@ -1402,7 +1404,12 @@ func hazard_spots() -> Array:
 
 func item_positions() -> Array:
 	var out := []
-	var step := maxi(8, int(n / (5.0 * scale_k)))
+	# the bible's item rhythm: one decision-bearing set every 12-18 s of racing, so the sets
+	# are spaced by road length at racing pace (race.item_set_seconds x race.item_pace_px)
+	_ensure_cum()
+	var gap_px := float(Shared.t(["race", "item_set_seconds"], 15.0)) * float(Shared.t(["race", "item_pace_px"], 600.0))
+	var sets := clampi(int(round(total_len / maxf(1.0, gap_px))), 3, 12)
+	var step := maxi(8, int(n / sets))
 	var i := step
 	while i < n:
 		var d := direction_at(i)

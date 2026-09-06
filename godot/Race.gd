@@ -687,11 +687,14 @@ const JUMP_BOOST := 0.35
 
 var course_hazards: Array = []     # [{h, kind, period, duty, phase, on}]
 var hazard_log := false
+var graybox := false            # --graybox: lap times, off-road, stuck, drops and voids per course (docs/graybox.md)
+var gb := {}                    # kart -> {laps: [s], lap_t, off, stuck, drops, voids}
 
 
 func _spawn_track_hazards() -> void:
 	var n := 0
 	hazard_log = OS.get_cmdline_user_args().has("--hazard-log")
+	graybox = OS.get_cmdline_user_args().has("--graybox")
 	for kart in karts:
 		kart.branch_log = hazard_log
 	for spot in track.hazard_spots():
@@ -810,7 +813,16 @@ func _apply_lap_sets(lap: int) -> void:
 
 # Cycling hazards switch on for `duty` of every `period` seconds, with an amber cue in the
 # second before; jump pads loft any kart that crosses them while live.
-func _update_course_hazards(_dt: float) -> void:
+func _update_course_hazards(dt: float) -> void:
+	if graybox and state == RACING:
+		for kart in karts:
+			if not kart.alive or kart.finished:
+				continue
+			var g: Dictionary = _gb(kart)
+			if not track.on_road(kart.pos, kart.next_wp):
+				g["off"] += dt
+			if kart.speed() < 15.0 and kart.air_t <= 0.0 and kart.void_t <= 0.0 and race_time > 4.0:
+				g["stuck"] += dt
 	if hazard_log and player != null and player.alive and Engine.get_physics_frames() % 300 == 0:
 		print("player: t=%.0f road=%s wp=%d/%d branch=%d speed=%d rank=%d h=%d grade=%.2f" % [t, track.on_road(player.pos, player.next_wp), player.next_wp, track.n, player.branch, int(player.speed()), player.rank, int(track.height_px(player.pos)), track.grade(player.pos, player.forward())])
 	if course_hazards.is_empty():
@@ -896,6 +908,8 @@ func _void_check(kart: Kart, dt: float) -> void:
 			play("death_player", -8.0)
 		if hazard_log:
 			print("void: %s falls t=%.1f" % [kart.display_name, t])
+		if graybox:
+			_gb(kart)["voids"] += 1
 
 
 # A thrower (Red Rock's baboons, Palladium's jellies): every period a target on the road
@@ -1460,7 +1474,13 @@ func _physics_process(dt: float) -> void:
 				play("sfx_throwing_stone_large_impact", -10.0)
 			if hazard_log:
 				print("drop: %s fell %d px t=%.1f" % [kart.display_name, int(kart.landed_from), t])
+			if graybox:
+				_gb(kart)["drops"] += 1
 		if track.advance(kart):
+			if graybox:
+				var g: Dictionary = _gb(kart)
+				g["laps"].append(race_time - float(g["lap_t"]))
+				g["lap_t"] = race_time
 			if track.open:
 				pass                        # a section race has no lap rule: the far end is the finish
 			elif party and kart.human >= 0 and state == RACING:
@@ -3257,6 +3277,73 @@ func _fmt_time(tm: float) -> String:
 	return "%d:%05.2f" % [m, s]
 
 
+func _gb(kart: Kart) -> Dictionary:
+	if not gb.has(kart):
+		gb[kart] = {"laps": [], "lap_t": 0.0, "off": 0.0, "stuck": 0.0, "drops": 0, "voids": 0}
+	return gb[kart]
+
+
+# The graybox summary: what the bible's checklist can measure without eyes — lap times against
+# the target, the road as the AI field drives it (off-road and stuck seconds), falls, void
+# returns, the item rhythm and the tightest bend.
+func _graybox_report() -> void:
+	track._ensure_cum()
+	var laps_all := []
+	var best := INF
+	var off := 0.0
+	var stuck := 0.0
+	var drops := 0
+	var voids := 0
+	var fin := 0
+	var racing := 0.0
+	var per := []
+	var field := 0
+	for kart in gb.keys():          # every kart that raced, including ones the finish despawned
+		if not is_instance_valid(kart):
+			continue
+		field += 1
+		var g: Dictionary = _gb(kart)
+		for l in g["laps"]:
+			laps_all.append(float(l))
+			best = minf(best, float(l))
+		off += float(g["off"])
+		stuck += float(g["stuck"])
+		drops += int(g["drops"])
+		voids += int(g["voids"])
+		if kart.finished:
+			fin += 1
+		racing += minf(race_time, kart.finish_time if kart.finished else race_time)
+		per.append("%s:%s" % [kart.display_name, "/".join(g["laps"].map(func(l): return "%.0f" % l))])
+	laps_all.sort()
+	var med: float = laps_all[laps_all.size() / 2] if not laps_all.is_empty() else 0.0
+	# item rhythm: distinct item sets along the loop, in seconds of the median lap
+	var sets := {}
+	for b in item_boxes:
+		if String(b.get_meta("kind", "")) == "coin":
+			continue
+		var p: Vector2 = b.get_meta("pos")
+		var near := track.nearest(p, -1)
+		sets[int(near["idx"]) / 6] = true
+	var gap: float = med / maxf(1.0, float(sets.size())) if med > 0.0 else 0.0
+	# tightest bend: heading change over ~180 px of road, degrees per 100 px, and where
+	var tight := 0.0
+	var tight_at := 0.0
+	var span := maxi(2, int(180.0 / maxf(1.0, track.total_len / maxf(1, track.n))))
+	for i in track.n:
+		if track.open and i + span >= track.n:
+			break
+		var a := track.direction_at(i)
+		var b := track.direction_at((i + span) % track.n)
+		var deg := rad_to_deg(absf(a.angle_to(b))) / (180.0 / 100.0)
+		if deg > tight:
+			tight = deg
+			tight_at = float(i) / float(track.n)
+	print("graybox: track=%s open=%s laps=%d target=%s len=%d width=%d lap_best=%.1f lap_med=%.1f nlaps=%d finished=%d/%d offroad=%.1f%% stuck=%.1fs drops=%d voids=%d items=%d item_gap=%.1fs tight=%.0f at=%.2f" % [
+		track.key, track.open, laps, String(track.spec.get("target_run", track.spec.get("target_lap", "?"))), int(track.total_len), int(track.width),
+		best if best < INF else 0.0, med, laps_all.size(), fin, field, 100.0 * off / maxf(1.0, racing), stuck, drops, voids, sets.size(), gap, tight, tight_at])
+	print("graybox laps: " + "  ".join(per))
+
+
 func _finish_screenshot() -> void:
 	if DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
@@ -3265,6 +3352,8 @@ func _finish_screenshot() -> void:
 		img.save_png(screenshot_path)
 		print("saved ", screenshot_path)
 	print("ui: picker=%s enemies=%s shop=%s paused=%s npcs=%d" % [picker != null, enemies != null, shop != null, paused, karts.size() - 1])
+	if graybox:
+		_graybox_report()
 	if online:
 		print("online: role=%s seat=%d ready=%s karts=%d lap=%d progress=%.2f rank=%d spells=%d pickups=%d" % ["host" if host else "guest", player.human, str(guest_ready or host), karts.size(), player.lap, player.progress if host else track.progress(player), player.rank, player.spells.size(), item_boxes.size()])
 	print("race: state=%s realm=%d lap=%d rank=%d karts=%d hp=%d sp=%d spells=%d slain=%d fps=%d tally=%s" % [

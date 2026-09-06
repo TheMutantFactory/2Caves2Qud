@@ -209,7 +209,9 @@ Rust Wells' collapsed bridge is a fall now, not a drive across the ground.
 
 ## What the bible asks for that the engine cannot build yet
 
-Nothing on the bible's list is left as a rule the engine cannot express. What remains is
-craft: the courses are authored as data from the Route paragraphs and want a graybox pass
-(widths, lap times, sightlines, respawn placement), the AI field's damage wants balancing
-by band, and the psychic overlays, ghost echoes and occlusion struts are presentation.
+Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
+(docs/graybox.md) measured the AI field on every course and stretched the loops to the
+bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
+What remains is craft the probes cannot do: the section races want about three times the
+road of a circuit lap, and the psychic overlays, ghost echoes and occlusion struts are
+presentation.
