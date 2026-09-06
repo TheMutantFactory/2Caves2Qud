@@ -1967,6 +1967,14 @@ func rebuild_dressing() -> void:
 		if moves.has(id):
 			it["pos"] = Vector2(float(moves[id][0]), float(moves[id][1]))
 			it["on_road"] = nearest(it["pos"], -1).dist < width * 0.5 + 40.0
+		var inst: Dictionary = (level_overrides.get("inst", {}) as Dictionary).get(id, {})
+		if not inst.is_empty():
+			ks = ks.duplicate()
+			ks["scale"] = float(ks.get("scale", 1.0)) * float(inst.get("scale", 1.0))
+			ks["rot"] = float(inst.get("rot", 0.0))
+			ks["flip"] = bool(inst.get("flip", false))
+			if inst.has("display"):
+				ks["display"] = inst["display"]
 		var display := String(ks.get("display", {"wall": "wall", "liquid": "water"}.get(String(it["kind"]), "billboard")))
 		if bool(it["on_road"]) and display != "road":
 			stats["on_road"] += 1
@@ -2013,9 +2021,12 @@ func _place_item(it: Dictionary, ks: Dictionary, display: String) -> Node3D:
 				return null
 			var variant := QudVox.run_variant(int(it.get("run_k", 0)), int(it.get("run_n", 1)), it["along"], it["facing"])
 			var before := scenery_blocks.size()
-			if not _wall_block(fam, variant, p, it["facing"], dressing_holder):
+			var facing: Vector2 = Vector2(it["facing"]).rotated(deg_to_rad(float(ks.get("rot", 0.0))))
+			if not _wall_block(fam, variant, p, facing, dressing_holder):
 				return null
-			return (scenery_blocks[before] as Dictionary)["node"]
+			var blk: Node3D = (scenery_blocks[before] as Dictionary)["node"]
+			blk.scale = Vector3.ONE * sc
+			return blk
 		"water":
 			var mi := MeshInstance3D.new()
 			var pm := PlaneMesh.new()
@@ -2048,6 +2059,7 @@ func _place_item(it: Dictionary, ks: Dictionary, display: String) -> Node3D:
 			spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD if alpha >= 0.99 else SpriteBase3D.ALPHA_CUT_DISABLED
 			spr.modulate = col
 			var th := float(spr.texture.get_height()) / float(maxi(1, spr.vframes))
+			spr.flip_h = bool(ks.get("flip", false))
 			if display == "billboard":
 				spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 				spr.position = to3(p, th * 0.5 * sc + lift)
@@ -2065,7 +2077,7 @@ func _place_item(it: Dictionary, ks: Dictionary, display: String) -> Node3D:
 					dressing_holder.add_child(sh)
 			else:
 				spr.axis = Vector3.AXIS_Y            # flat on the ground: floor, road, offroad
-				spr.rotation.y = -Vector2(it["along"]).angle()
+				spr.rotation.y = -Vector2(it["along"]).angle() + deg_to_rad(float(ks.get("rot", 0.0)))
 				spr.position = to3(p, (9.5 if display == "road" else 3.0) + lift)
 			dressing_holder.add_child(spr)
 			return spr

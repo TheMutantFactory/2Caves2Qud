@@ -26,6 +26,16 @@ var selected_id := ""
 var mode := ""                      # "" | "move" | "place"
 var controls := {}                  # prop -> Control
 var panel: PanelContainer
+var undo_stack: Array = []          # JSON snapshots of the overrides before each change
+var redo_stack: Array = []
+var palette: ItemList
+var palette_box: LineEdit
+var palette_names: Array = []
+var fly: Camera3D = null            # the free-flying camera (F2)
+var fly_yaw := 0.0
+var fly_pitch := -0.5
+var _dragging := false
+const UNDO_MAX := 60
 
 
 func _init(p_track: Track, p_race: Node3D) -> void:
@@ -43,9 +53,14 @@ func _ready() -> void:
 	sb.set_corner_radius_all(6)
 	panel.add_theme_stylebox_override("panel", sb)
 	add_child(panel)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(440, 1040)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(scroll)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 4)
-	panel.add_child(vb)
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(vb)
 	var title := _label("LEVEL EDITOR  " + track.key, 22, Color(1.0, 0.93, 0.35))
 	vb.add_child(title)
 	status = _label("click a sprite in the world, or a blueprint in the tree", 13, Color(0.7, 0.7, 0.7))
@@ -55,10 +70,13 @@ func _ready() -> void:
 	vb.add_child(row)
 	row.add_child(_button("SAVE", func(): save()))
 	row.add_child(_button("RELOAD", func(): reload()))
+	row.add_child(_button("UNDO", func(): undo()))
+	row.add_child(_button("REDO", func(): redo()))
 	row.add_child(_button("RESET KIND", func(): reset_kind()))
-	row.add_child(_button("CLOSE", func(): panel.visible = false))
+	row.add_child(_button("FLY (F2)", func(): toggle_fly()))
+	row.add_child(_button("CLOSE (F1)", func(): panel.visible = false))
 	tree = Tree.new()
-	tree.custom_minimum_size = Vector2(0, 360)
+	tree.custom_minimum_size = Vector2(0, 250)
 	tree.hide_root = true
 	tree.item_selected.connect(_on_tree_select)
 	vb.add_child(tree)
@@ -178,6 +196,28 @@ func _build_props() -> void:
 	irow.add_child(_button("MOVE", func(): _arm("move")))
 	irow.add_child(_button("PLACE", func(): _arm("place")))
 	props.add_child(irow)
+	controls["i_scale"] = _slider("inst scale", 0.25, 3.0, 0.05, 1.0, "i_scale")
+	controls["i_rot"] = _slider("inst rotation", 0.0, 360.0, 5.0, 0.0, "i_rot")
+	var fl := CheckBox.new()
+	fl.text = "flip horizontally"
+	fl.toggled.connect(func(v): _set_prop("i_flip", v))
+	props.add_child(fl)
+	controls["i_flip"] = fl
+	props.add_child(_label("PALETTE (every Qud sprite; pick, then PLACE)", 13, Color(0.7, 0.7, 0.7)))
+	palette_box = LineEdit.new()
+	palette_box.placeholder_text = "search a blueprint..."
+	palette_box.text_changed.connect(func(_t): _fill_palette())
+	props.add_child(palette_box)
+	palette = ItemList.new()
+	palette.custom_minimum_size = Vector2(0, 120)
+	palette.item_selected.connect(func(i): selected_name = String(palette.get_item_text(i)); selected_id = ""; _refresh_props(); status.text = "%s from the palette: PLACE, then click the ground" % selected_name)
+	props.add_child(palette)
+	var arts: Dictionary = Shared.load_json(QUD.ROOT + "data/dressing.json")
+	for nm in arts.keys():
+		if String((arts[nm] as Dictionary).get("art", "")) != "" and String((arts[nm] as Dictionary).get("kind", "")) != "skip":
+			palette_names.append(String(nm))
+	palette_names.sort()
+	_fill_palette()
 	var nrow := HBoxContainer.new()
 	for n in [["W", Vector2(0, -20)], ["A", Vector2(-20, 0)], ["S", Vector2(0, 20)], ["D", Vector2(20, 0)]]:
 		nrow.add_child(_button("nudge " + n[0], func(dv = n[1]): nudge(dv)))
@@ -206,9 +246,26 @@ func _slider(text: String, lo: float, hi: float, step: float, dflt: float, prop 
 	return sl
 
 
+func _fill_palette() -> void:
+	palette.clear()
+	var q := palette_box.text.to_lower()
+	var shown := 0
+	for nm in palette_names:
+		if q != "" and not String(nm).to_lower().contains(q):
+			continue
+		palette.add_item(String(nm))
+		shown += 1
+		if shown >= 400:
+			break
+
+
 func _refresh_props() -> void:
 	var ks := track.kind_settings(selected_name)
+	var inst: Dictionary = (track.level_overrides.get("inst", {}) as Dictionary).get(selected_id, {}) if selected_id != "" else {}
 	_updating = true
+	(controls["i_scale"] as HSlider).value = float(inst.get("scale", 1.0))
+	(controls["i_rot"] as HSlider).value = float(inst.get("rot", 0.0))
+	(controls["i_flip"] as CheckBox).button_pressed = bool(inst.get("flip", false))
 	(controls["hidden"] as CheckBox).button_pressed = bool(ks.get("hidden", false))
 	var disp := String(ks.get("display", "billboard"))
 	(controls["display"] as OptionButton).select(maxi(0, Track.DISPLAYS.find(disp)))
@@ -229,12 +286,46 @@ var _updating := false
 
 
 func _set_prop(prop: String, value) -> void:
-	if _updating or selected_name == "":
+	if _updating:
+		return
+	if prop.begins_with("i_"):
+		if selected_id != "":
+			set_instance(selected_id, prop.substr(2), value)
+		return
+	if selected_name == "":
 		return
 	set_kind(selected_name, prop, value)
 
 
+func _snapshot() -> void:
+	undo_stack.append(JSON.stringify(track.level_overrides))
+	while undo_stack.size() > UNDO_MAX:
+		undo_stack.pop_front()
+	redo_stack.clear()
+
+
+func undo() -> void:
+	if undo_stack.is_empty():
+		status.text = "nothing to undo"
+		return
+	redo_stack.append(JSON.stringify(track.level_overrides))
+	track.level_overrides = JSON.parse_string(undo_stack.pop_back())
+	_apply(true)
+	_refresh_props()
+	status.text = "undone (%d left)" % undo_stack.size()
+
+
+func redo() -> void:
+	if redo_stack.is_empty():
+		return
+	undo_stack.append(JSON.stringify(track.level_overrides))
+	track.level_overrides = JSON.parse_string(redo_stack.pop_back())
+	_apply(true)
+	_refresh_props()
+
+
 func set_kind(name: String, prop: String, value) -> void:
+	_snapshot()
 	var kinds: Dictionary = track.level_overrides.get("kinds", {})
 	var ks: Dictionary = kinds.get(name, {})
 	ks[prop] = value
@@ -243,9 +334,20 @@ func set_kind(name: String, prop: String, value) -> void:
 	_apply(prop in ["density", "band_min", "band_max"])
 
 
+func set_instance(id: String, prop: String, value) -> void:
+	_snapshot()
+	var insts: Dictionary = track.level_overrides.get("inst", {})
+	var i: Dictionary = insts.get(id, {})
+	i[prop] = value
+	insts[id] = i
+	track.level_overrides["inst"] = insts
+	_apply()
+
+
 func reset_kind() -> void:
 	if selected_name == "":
 		return
+	_snapshot()
 	(track.level_overrides.get("kinds", {}) as Dictionary).erase(selected_name)
 	_apply(true)
 	_refresh_props()
@@ -297,6 +399,7 @@ func _course_set(prop: String, value) -> void:
 
 
 func _zone_set(prop: String, value: float) -> void:
+	_snapshot()
 	var c: Dictionary = track.level_overrides.get("course", {})
 	var z: Dictionary = c.get("zone", {})
 	z[prop] = value
@@ -322,6 +425,7 @@ func _arm(m: String) -> void:
 func hide_instance() -> void:
 	if selected_id == "":
 		return
+	_snapshot()
 	var hidden: Array = track.level_overrides.get("hidden", [])
 	if not hidden.has(selected_id):
 		hidden.append(selected_id)
@@ -348,6 +452,7 @@ func _instance_pos(id: String) -> Vector2:
 
 
 func _move_to(id: String, p: Vector2) -> void:
+	_snapshot()
 	var moves: Dictionary = track.level_overrides.get("moves", {})
 	moves[id] = [p.x, p.y]
 	track.level_overrides["moves"] = moves
@@ -355,19 +460,80 @@ func _move_to(id: String, p: Vector2) -> void:
 
 
 func place_extra(name: String, p: Vector2) -> void:
+	_snapshot()
 	var extras: Array = track.level_overrides.get("extras", [])
 	extras.append({"name": name, "x": p.x, "y": p.y})
 	track.level_overrides["extras"] = extras
 	_apply(true)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not panel.visible:
-		if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
-			panel.visible = true
+# The free-flying camera: F2 toggles it; IJKL fly, U/O rise and sink, shift is fast, the
+# right mouse button drags the view. The wizard stays where it is.
+func toggle_fly() -> void:
+	if fly == null:
+		fly = Camera3D.new()
+		fly.fov = 60
+		race.add_child(fly)
+		var rc := get_viewport().get_camera_3d()
+		if rc != null:
+			fly.global_transform = rc.global_transform
+			fly_yaw = rc.rotation.y
+			fly_pitch = rc.rotation.x
+		fly.current = true
+		status.text = "flying: IJKL move, U/O up/down, shift fast, right-drag looks, F2 back"
+	else:
+		fly.queue_free()
+		fly = null
+		if "cam" in race and race.cam != null:
+			race.cam.current = true
+		status.text = "back on the wizard"
+
+
+func _process(dt: float) -> void:
+	if fly == null:
 		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
-		panel.visible = false
+	var speed := (3000.0 if Input.is_key_pressed(KEY_SHIFT) else 900.0) * Track.U * dt
+	var fwd := -fly.global_transform.basis.z
+	var right := fly.global_transform.basis.x
+	var mv := Vector3.ZERO
+	if Input.is_key_pressed(KEY_I):
+		mv += fwd
+	if Input.is_key_pressed(KEY_K):
+		mv -= fwd
+	if Input.is_key_pressed(KEY_L):
+		mv += right
+	if Input.is_key_pressed(KEY_J):
+		mv -= right
+	if Input.is_key_pressed(KEY_U):
+		mv += Vector3.UP
+	if Input.is_key_pressed(KEY_O):
+		mv -= Vector3.UP
+	fly.global_position += mv * speed
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F1:
+			panel.visible = not panel.visible
+			return
+		if event.keycode == KEY_F2:
+			toggle_fly()
+			return
+		if event.keycode == KEY_Z and event.ctrl_pressed:
+			if event.shift_pressed:
+				redo()
+			else:
+				undo()
+			return
+	if fly != null and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		_dragging = event.pressed
+		return
+	if fly != null and _dragging and event is InputEventMouseMotion:
+		fly_yaw -= event.relative.x * 0.004
+		fly_pitch = clampf(fly_pitch - event.relative.y * 0.004, -1.5, 1.5)
+		fly.rotation = Vector3(fly_pitch, fly_yaw, 0.0)
+		return
+	if not panel.visible:
 		return
 	if not (event is InputEventMouseButton) or not event.pressed or event.button_index != MOUSE_BUTTON_LEFT:
 		return
@@ -450,20 +616,41 @@ func reload() -> void:
 	_refresh_props()
 
 
-# --level_edit="Name:prop=value;Name:prop=value"  (value: true/false, a number, or a word)
+# --level_edit="Name:prop=value;@<instance id>:prop=value;+Name@x,y;undo"  (value: true/false,
+# a number, or a word). A test's way through the editor without a window.
 func apply_cli(script: String) -> void:
 	for part in script.split(";"):
-		var nm_rest := part.split(":", true, 1)
-		if nm_rest.size() < 2:
+		if part == "undo":
+			undo()
+			print("editor: undo -> %d items placed" % (int(track.dressing_stats.get("sprites", 0)) + int(track.dressing_stats.get("walls", 0))))
 			continue
-		var kv := String(nm_rest[1]).split("=", true, 1)
-		if kv.size() < 2:
+		if part.begins_with("+"):
+			var at := part.substr(1).split("@", true, 1)
+			if at.size() == 2:
+				var xy := String(at[1]).split(",")
+				place_extra(String(at[0]), Vector2(xy[0].to_float(), xy[1].to_float()))
+				print("editor: placed %s at %s" % [String(at[0]), String(at[1])])
 			continue
-		var v: Variant = kv[1]
-		if kv[1] == "true" or kv[1] == "false":
-			v = kv[1] == "true"
-		elif kv[1].is_valid_float():
-			v = kv[1].to_float()
-		selected_name = String(nm_rest[0])
-		set_kind(selected_name, kv[0], v)
-		print("editor: %s %s=%s" % [selected_name, kv[0], str(v)])
+		var target := part
+		var is_inst := part.begins_with("@")
+		if is_inst:
+			target = part.substr(1)
+		var eq := target.rfind("=")
+		var colon := target.rfind(":", eq)
+		if eq < 0 or colon < 0:
+			continue
+		var name := target.substr(0, colon)
+		var prop := target.substr(colon + 1, eq - colon - 1)
+		var raw := target.substr(eq + 1)
+		var v: Variant = raw
+		if raw == "true" or raw == "false":
+			v = raw == "true"
+		elif raw.is_valid_float():
+			v = raw.to_float()
+		if is_inst:
+			set_instance(name, prop, v)
+			print("editor: instance %s %s=%s" % [name, prop, str(v)])
+		else:
+			selected_name = name
+			set_kind(name, prop, v)
+			print("editor: %s %s=%s" % [name, prop, str(v)])

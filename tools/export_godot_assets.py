@@ -799,6 +799,10 @@ def main(argv=None):
                 zones[d["zone"]] = dx.zone(d["zone"])
             if d.get("scatter"):
                 scatter[d["scatter"]] = dx.art_for(d["scatter"])
+    # the level editor's palette: every tiled blueprint, so a tester can place anything
+    for name in bp.names():
+        if not bp.is_abstract(name) and (bp.render(name) or {}).get("Tile"):
+            dx.art_for(name)
     with open(os.path.join(out, "data", "zones.json"), "w", encoding="utf-8") as f:
         json.dump(zones, f, indent=0)
     with open(os.path.join(out, "data", "dressing.json"), "w", encoding="utf-8") as f:

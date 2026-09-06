@@ -30,7 +30,20 @@ Select a blueprint to edit its kind:
 
 **Instances.** Click a sprite in the world to select it (the nearest on screen within 28 px);
 HIDE removes that one, the nudge buttons move it 20 px, MOVE then a click on the ground moves
-it there, PLACE (with a blueprint selected in the tree) then a click adds a new one.
+it there, PLACE (with a blueprint selected in the tree or the palette) then a click adds a
+new one. The instance's own scale (multiplied over its kind's), rotation (flat sprites and
+wall blocks) and horizontal flip sit under the buttons.
+
+**The palette.** Every tiled Qud blueprint, 4000 of them, painted by the exporter: type in
+the search box, pick one, PLACE, click the ground. A blueprint placed this way joins the
+tree under "placed by hand" and gets kind settings like any other.
+
+**The free-flying camera.** F2 (or FLY) leaves the wizard and flies: IJKL move, U and O rise
+and sink, shift is fast, the right mouse button drags the view; F2 again returns to the
+wizard's camera. Picking and placing work from the air.
+
+**Undo and redo.** Every change snapshots the overrides first: UNDO / Ctrl+Z and REDO /
+Ctrl+Shift+Z walk them, sixty deep.
 
 **The course.** The floor mode (tiled ground or the Qud floor of dots and grasses) and, when
 the course stands a Qud zone, where it stands: `at` (loop fraction), `side`, `gap` from the
@@ -46,14 +59,16 @@ the game shows, and it is committed like any course data. Shape:
 ```json
 {"kinds": {"Watervine": {"hidden": true}, "Torchpost": {"solid": true, "display": "billboard"}},
  "hidden": ["z:Joppa:12:7:Bed"], "moves": {"s:Dogthorn Tree:3": [4120.0, 2210.5]},
+ "inst": {"z:Joppa:40:12:Starapple Tree": {"scale": 1.8, "rot": 90, "flip": true}},
  "extras": [{"name": "Starapple Tree", "x": 3000.0, "y": 1800.0}],
  "course": {"floor_mode": "qud", "zone": {"at": 0.97, "side": -1, "gap": 140}}}
 ```
 
 ## The probe
 
-`--level_edit="Name:prop=value;Name:prop=value"` applies settings from the command line and
-`--level_save` saves, so a test can run without a window:
+`--level_edit="Name:prop=value;@<instance id>:prop=value;+Name@x,y;undo"` applies kind and
+instance settings, places an extra and undoes from the command line, and `--level_save`
+saves, so a test can run without a window:
 
 ```bash
 Godot --headless --quit-after 400 -- --type=gp --track=joppa --newrun --auto --noattacks --frames=300 --editor "--level_edit=Watervine:hidden=true;Torchpost:solid=true;Noisegrass:density=0.5" --level_save
@@ -66,8 +81,7 @@ the file being read.
 
 ## Ideas not built yet
 
-Per-instance scale and rotation; a palette of every blueprint (today PLACE offers the
-blueprints the course already dresses with, so add new kinds through the sprite browser's
-plan first); painting the road's width and camber from inside; a free-flying camera;
-undo. The pieces are in place for each: instances already have ids, the browser already
-knows every sprite, and the overrides file is plain JSON.
+Painting the road's width and camber from inside (the road mesh is built once from the
+course data; a slider would want a track rebuild), group selection, and copying a set of
+instance edits from one course to another. The overrides file is plain JSON, so the last
+two are a text editor away today.
