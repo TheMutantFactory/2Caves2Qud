@@ -296,6 +296,10 @@ Qud .rpm zones hold it and how many, which courses use it); `--serve 8765` serve
 tools/browser/index.html (tree / search / kind / zone filters, detail with "how displayed",
 a placement helper that writes `dressing` entries and a per-course plan in localStorage).
 Launch config "sprites" in ~/.claude/launch.json (preview pane reads the HOME launch.json).
+QUD FLOOR (2026-09-06): spec `floor_mode: "qud"` / `race.floor_mode` → `Track._build_qud_floor`
+(60x90 cells, per-cell UV into `tiles/track_<key>_floor.png`, weights from
+manifest.track_tiles[key].floor_weights); exporter `FLOOR_SETS` per offroad biome, atlas
+composited over 0.3 x the course ground colour (a transparent atlas rendered BLACK ground).
 SET DRESSING (2026-09-06): `tools/qud_zones.py` reads Qud's .rpm zone templates (80x25 grid
 of blueprint names); the exporter's dressing step (after the walls export — it needs
 manifest.wall_families) writes data/zones.json, data/dressing.json and dressing/<slug>.png

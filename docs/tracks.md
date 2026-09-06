@@ -402,6 +402,21 @@ StiltBase/GroundFloor/South, OmonporchArcade and the Vestibules, Tomb, ThinWorld
 Chavvah trunk, root and crown levels, the Columbarium, the Temple of the Rock (Bethesda's
 finish), Ezra, Bey Lah, the Mopango settlement and JoppaRuins.
 
+## The Qud floor
+
+A course with `floor_mode: "qud"` (or `race.floor_mode` in tuning for all of them) draws its
+ground the way a Qud zone reads: an array of the game's own floor cells at Qud's 16 × 24
+proportion (60 × 90 world px), each cell one variant from the course's floor atlas, dots
+mostly and grasses among them, weighted, over a dark base tinted with the course's ground
+colour (Qud's floor is dots on black). The exporter paints the atlas per offroad biome
+(`FLOOR_SETS`: salt, moss and jungle mix the four ground-dot tiles with the three grass
+floors; dune and desert use Qud's twelve ground variants; any other biome gets the dots in
+its own colours) as `tiles/track_<key>_floor.png` with the weights in the manifest, and
+`Track._build_qud_floor` builds the cell mesh with per-cell UVs. The tufts are dressing:
+Joppa scatters Noisegrass and Slime Grass along the loop. The build line reads
+`floor: qud, 465 x 214 cells, 7 variants`. Joppa is the first course on it; the tiled
+ground texture remains the default elsewhere.
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass

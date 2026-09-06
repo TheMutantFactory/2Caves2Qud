@@ -176,7 +176,9 @@ COURSES = [
          # set dressing (tools/qud_zones.py, Track._build_dressing): Qud's own Joppa zone stood
          # beside the start straight, its huts as voxel walls, its pond, torchposts, farms and
          # villagers as billboards; then the marsh scattered along the rest of the loop
+         floor_mode="qud",     # the ground as Qud's array of dots and grasses (Track._build_qud_floor)
          dressing=[{"zone": "Joppa", "at": 0.97, "side": -1, "gap": 140, "cell": 60},
+                   {"scatter": "Noisegrass", "count": 320}, {"scatter": "Slime Grass", "count": 90},
                    {"scatter": "Watervine", "count": 260}, {"scatter": "Brinestalk", "count": 80},
                    {"scatter": "Dogthorn Tree", "count": 50}, {"scatter": "Starapple Tree", "count": 14},
                    {"scatter": "WatervineFarmerJoppa", "count": 8, "roadside": True}],

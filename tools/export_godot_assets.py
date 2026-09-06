@@ -100,6 +100,37 @@ TILESETS = {
 }
 CHASMS = {"lava": TILESETS["lava"], "water": TILESETS["water"]}
 
+# The Qud floor (floor_mode "qud"): the ground as an array of Qud's own floor cells, dots
+# and grasses, instead of one tiled texture. Per offroad biome a list of (tile, main, detail,
+# weight) variants painted into one atlas row; the engine picks a variant per cell.
+_DOTS = ["terrain/sw_ground_dots%d.png" % i for i in range(1, 5)]
+_GRASS = ["Terrain/sw_grass1.bmp", "Terrain/sw_grass2.bmp", "Terrain/sw_grass3.bmp"]
+FLOOR_SETS = {
+    "salt": [(t, "y", "Y", 5) for t in _DOTS] + [(t, "g", "G", 2) for t in _GRASS],
+    "moss": [(t, "g", "G", 5) for t in _DOTS] + [(t, "G", "g", 3) for t in _GRASS],
+    "jungle": [(t, "g", "G", 4) for t in _DOTS] + [(t, "G", "g", 4) for t in _GRASS],
+    "dune": [("Terrain/sw_ground_dune_%d.bmp" % i, "W", "w", 1) for i in range(1, 13)],
+    "desert": [("Terrain/sw_ground_desert_%d.bmp" % i, "w", "W", 1) for i in range(1, 13)],
+}
+
+
+def floor_atlas(biome, fallback, base_rgb):
+    """The biome's floor variants painted side by side (48 x 72 each) over a dark, biome-tinted
+    base (Qud's floor is dots on black; the course keeps a hint of its ground colour); the
+    weights list."""
+    variants = FLOOR_SETS.get(biome)
+    if not variants:
+        q, m, d = fallback
+        variants = [(t, m, d, 1) for t in _DOTS] if "dots" in q or "ground" in q else [(q, m, d, 1)]
+    tiles = [scaled(tile_or_blank(t, m, d)) for t, m, d, _w in variants]
+    w, h = tiles[0].width, tiles[0].height
+    base = tuple(int(c * 0.3) for c in base_rgb) + (255,)
+    out = Image.new("RGBA", (w * len(tiles), h), base)
+    for i, im in enumerate(tiles):
+        out.alpha_composite(im.resize((w, h), Image.NEAREST), (i * w, 0))
+    out.putalpha(255)
+    return out, [v[3] for v in variants]
+
 
 def wall_family(wallset):
     """'brinestalk' -> 'wall_brinestalk'; a stem that already names a family passes through."""
@@ -524,7 +555,10 @@ def export_track_tiles(out, manifest, tiles_dir):
         off = _biome(t, "offroad", "offroad", "moss").replace("chasm_", "")
         oq, om, od = TILESETS.get(off, TILESETS["moss"])
         tileable(tile_or_blank(oq, om, od), t.get("ground", [8, 12, 6])).save(os.path.join(tdir, "track_%s_ground.png" % key))
-        manifest["track_tiles"][key] = {"road": "track_%s_road.png" % key, "ground": "track_%s_ground.png" % key, "tile_px": 96}
+        atlas, weights = floor_atlas(off, (oq, om, od), t.get("ground", [8, 12, 6]))
+        atlas.save(os.path.join(tdir, "track_%s_floor.png" % key))
+        manifest["track_tiles"][key] = {"road": "track_%s_road.png" % key, "ground": "track_%s_ground.png" % key, "tile_px": 96,
+                                        "floor": "track_%s_floor.png" % key, "floor_weights": weights}
         ws = _biome(t, "wallset", "walls", ts)
         fam = wall_family(ws)
         manifest["wall_families"][ws] = fam

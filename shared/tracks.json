@@ -118,6 +118,7 @@
      }
     }
    ],
+   "floor_mode": "qud",
    "dressing": [
     {
      "zone": "Joppa",
@@ -125,6 +126,14 @@
      "side": -1,
      "gap": 140,
      "cell": 60
+    },
+    {
+     "scatter": "Noisegrass",
+     "count": 320
+    },
+    {
+     "scatter": "Slime Grass",
+     "count": 90
     },
     {
      "scatter": "Watervine",

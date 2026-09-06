@@ -778,7 +778,63 @@ func _material(tex: Texture2D, color := Color.WHITE) -> StandardMaterial3D:
 	return m
 
 
+# The Qud floor (spec floor_mode "qud" or race.floor_mode): the ground as an array of Qud's
+# floor cells at the game's 16 x 24 proportion, each cell one variant from the course's
+# floor atlas (dots and grasses, weighted), the way a Qud zone reads as a field of dots.
+func _build_qud_floor(tex: Texture2D, weights: Array) -> void:
+	var margin := 900.0
+	var cw := 60.0
+	var ch := 90.0
+	var K := maxi(1, weights.size())
+	var total := 0.0
+	for w in weights:
+		total += float(w)
+	var x0 := -margin
+	var y0 := -margin
+	var cols := int(ceil((size.x + 2.0 * margin) / cw))
+	var rows := int(ceil((size.y + 2.0 * margin) / ch))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var frng := RandomNumberGenerator.new()
+	frng.seed = hash(key) + 11
+	for r in rows:
+		for c in cols:
+			var pick := frng.randf() * total
+			var v := 0
+			for i in K:
+				pick -= float(weights[i])
+				if pick <= 0.0:
+					v = i
+					break
+			var ua := float(v) / float(K)
+			var ub := float(v + 1) / float(K)
+			var a := Vector2(x0 + c * cw, y0 + r * ch)
+			var b := a + Vector2(cw, 0)
+			var cc := a + Vector2(cw, ch)
+			var d := a + Vector2(0, ch)
+			for tri in [[a, Vector2(ua, 0), b, Vector2(ub, 0), cc, Vector2(ub, 1)], [a, Vector2(ua, 0), cc, Vector2(ub, 1), d, Vector2(ua, 1)]]:
+				for i in range(0, 6, 2):
+					st.set_uv(tri[i + 1])
+					st.add_vertex(to3(tri[i]))
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.name = "Ground"
+	mi.mesh = st.commit()
+	var mat := _material(tex)
+	mat.texture_repeat = false
+	mi.material_override = mat
+	add_child(mi)
+	print("floor: qud, %d x %d cells, %d variants" % [cols, rows, K])
+
+
 func _build_ground() -> void:
+	var mode := String(spec.get("floor_mode", Shared.t(["race", "floor_mode"], "")))
+	if mode == "qud":
+		var tt: Dictionary = QUD.manifest.get("track_tiles", {}).get(key, {})
+		var tex: Texture2D = QUD.texture("tiles/" + String(tt.get("floor", ""))) if tt.has("floor") else null
+		if tex != null:
+			_build_qud_floor(tex, tt.get("floor_weights", [1]))
+			return
 	var margin := 900.0
 	var cell := 80.0  # finer than the waypoint spacing so the ground follows the road's height closely
 	var x0 := -margin
