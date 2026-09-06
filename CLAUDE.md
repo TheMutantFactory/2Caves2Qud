@@ -239,7 +239,19 @@ sinks the kart 1 s (`Kart.void_t`) then `return_point` (past the stretch, +3 sam
 The bible's engine list is COMPLETE. BALANCE (2026-09-06): the AI field's damage by band is
 tuned (docs/balance.md; 0 deaths in 18 auto-player races, was 11), and the LAP RULE for a
 trailing wizard is capped at 5 with a 20% HP floor (`Race._lap_penalty`, probe `lap: floor`).
-Next: a graybox pass over the authored loops, the racer select extras (docs/racer-select.md).
+GRAYBOX PASS (2026-09-06, docs/graybox.md): `--graybox` prints one `graybox:` line per race
+(lap best/med vs target, offroad %, stuck s, drops, voids, item sets + gap, tightest bend).
+Every loop lapped SHORT (~0.5 of the bible's lap; sections ~0.16 of the run) → per-course
+`STRETCH` in qud_tracks.py scales control + size (widths stay in kart widths, mover periods
+scale). Item sets are spaced by road length at 850 px/s (race.item_set_seconds/item_pace_px).
+`--frames` is PHYSICS frames (60/s) regardless of --timescale: 20000 = 333 s. Batch 20
+courses with xargs -P 6 (~12 min). RACER SELECT EXTRAS (2026-09-06, docs/racer-select.md): locks by band (`select.lock_band`
+6 + Campaign.unlocked), twin rule (next free variant, told), per-seat filters (key 9) / sort
+(key 8) / keyboard search (/), 3D pedestal preview (SubViewport per quad; the vehicle IS the
+sprite), spoken names (OS TTS, `--spoken`), reduced motion. Probes: `--select_log` +
+`--select_keys=seat:action,...` (runs BEFORE the Menu seats --party players: start with 0:a).
+Next: play it — the graybox and select passes are numeric; a human lap and a human select
+session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.
