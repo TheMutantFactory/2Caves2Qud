@@ -264,6 +264,11 @@ OCCLUSION STRUTS (2026-09-06): spec `struts` + `strut_strips` → `Track._build_
 (panels via `_fence_of`, strips via `_ribbon_of` with no_depth_test) + `struts_update`
 (near a human → alpha 0.14). Probe `--strut-log` (`clear_frames` must GROW). A "none" line
 in `_process` needs its own once-flag (physics frame 1 never lines up with a render frame).
+PLASMA JELLIES (2026-09-06): hazard kind `jelly` → `Track.hazard_spots` expands to an emitter
++ three `plasma` patches across one lane sharing the cycle; `Race._update_jelly` swells the
+sprite for JELLY_CHARGE s before the vent. Probe `jelly: N charging / vents` under
+--hazard-log. GOTCHA: a key set on a hazard SPOT must be copied into the course_hazards
+ENTRY (the spawner rebuilds the dict) — the first probe cycled the patches with no jelly.
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

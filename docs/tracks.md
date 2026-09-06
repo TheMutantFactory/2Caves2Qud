@@ -251,11 +251,30 @@ on <key>` on a course without them. Screenshots at 16 s and 24 s show a panel ac
 road ahead with the field half-seen behind it and the silver strip along the curb.
 What is left of the course file: the plasma jellies' venting and the sunslag polyps.
 
+## The plasma jellies
+
+Palladium's lane hazard, from its file: plasma jellies charge with a bright swelling
+animation before venting across one lane. A course hazard of kind `jelly` (`at`, `side`
+beyond ±1 so it sits just off a curb, `radius`, `period`, `duty`, `phase`) expands in
+`Track.hazard_spots` into the emitter and three `plasma` patches from that curb to the
+road's centre that share its cycle, so the far lane is always open. `Race._update_jelly`
+is the telegraph: for the two seconds before a vent the Plasma Jelly sprite (Qud's own)
+swells to 1.6× and brightens to plasma blue with a sound; while venting it throbs and the
+patches are live (3 damage, a 0.6 s stun, Lightning); then it subsides. Palladium carries
+two, at 0.30 on the left and 0.55 on the right, on a six-second cycle offset by three, in
+place of the sweeping static patches they replace.
+
+Probe: `--hazard-log` prints `jelly: N charging t=` two seconds before each `jelly: N
+vents t=` (and the three `hazard: plasma on/off` lines of its patches), and over three laps
+the wizard takes `hit: hazard 3.0` from a vent. Screenshots around the first jelly show
+the trellis strut before it hiding the lane, which is the course working as designed, so
+the log is the proof here. What is left of the course file: the sunslag polyps.
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
 (docs/graybox.md) measured the AI field on every course and stretched the loops to the
 bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
 The section races were re-routed as three regions each and run to their targets, and Eyn
-Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts. What
-remains is the haptics, which want a controller in hand.
+Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts and its
+venting plasma jellies. What remains is the haptics, which want a controller in hand.

@@ -1663,11 +1663,29 @@ func hazard_spots() -> Array:
 				"radius": float(h.get("radius", 150.0)), "period": float(h.get("period", 0.0)),
 				"duty": float(h.get("duty", 0.5)), "phase": float(h.get("phase", 0.0)),
 				"laps": h.get("laps", []), "per_lap": h.get("per_lap", {}), "branch": branches.find(br)})
+	var jellies := 0
 	for h in spec.get("hazards", []):
 		var i := int(floor(float(h.get("at", 0.0)) * n)) % n
 		var d := direction_at(i)
 		var nrm := Vector2(-d.y, d.x)
-		out.append({"kind": String(h.get("kind", "fire")), "pos": points[i] + nrm * float(h.get("side", 0.0)) * width * 0.5,
+		var kind := String(h.get("kind", "fire"))
+		if kind == "jelly":
+			# a plasma jelly sits just off one curb (side beyond +-1) and vents across the lane
+			# on its side: three plasma patches from the curb to the road's centre share its
+			# cycle; the emitter rides on the first so Race can swell it as the vent charges
+			var sgn := signf(float(h.get("side", 1.0)))
+			var emitter := points[i] + nrm * float(h.get("side", 1.2)) * width * 0.5
+			for k in 3:
+				var spot := {"kind": "plasma", "pos": points[i] + nrm * sgn * (0.78 - 0.3 * k) * width * 0.5,
+					"radius": minf(float(h.get("radius", 110.0)), width * 0.2), "period": float(h.get("period", 6.0)),
+					"duty": float(h.get("duty", 0.25)), "phase": float(h.get("phase", 0.0)),
+					"laps": h.get("laps", []), "per_lap": h.get("per_lap", {})}
+				if k == 0:
+					spot["emitter"] = {"pos": emitter, "id": jellies, "facing": -nrm * sgn}
+				out.append(spot)
+			jellies += 1
+			continue
+		out.append({"kind": kind, "pos": points[i] + nrm * float(h.get("side", 0.0)) * width * 0.5,
 			"radius": float(h.get("radius", 150.0)), "period": float(h.get("period", 0.0)),
 			"duty": float(h.get("duty", 0.5)), "phase": float(h.get("phase", 0.0)),
 			"laps": h.get("laps", []), "per_lap": h.get("per_lap", {})})

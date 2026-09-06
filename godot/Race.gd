@@ -681,7 +681,9 @@ const HAZARD_KINDS := {
 	"cart": {"tex": "cloud_thunder_cloud", "dtype": "Physical", "damage": 1.0, "slip": true, "stun": 0.3, "tint": Color(0.8, 0.65, 0.4)},
 	"bell": {"tex": "cloud_ice_cloud", "dtype": "Arcane", "damage": 0.0, "slip": false, "stun": 0.8, "tint": Color(1.0, 0.85, 0.3)},
 	"jump": {"tex": "pad_jump", "dtype": "Physical", "damage": 0.0, "slip": false, "stun": 0.0, "tint": Color(1.0, 1.0, 1.0)},
+	"plasma": {"tex": "cloud_thunder_cloud", "dtype": "Lightning", "damage": 3.0, "slip": false, "stun": 0.6, "tint": Color(0.45, 0.75, 1.0)},
 }
+const JELLY_CHARGE := 2.0          # seconds of swelling before a plasma jelly vents
 const JUMP_SECONDS := 0.9
 const JUMP_BOOST := 0.35
 
@@ -726,9 +728,24 @@ func _spawn_track_hazards() -> void:
 		if kind != "jump":
 			hazards.append(h)      # damage / slip / stun through the ordinary hazard loop
 		var period := float(spot.get("period", 0.0))
-		course_hazards.append({"h": h, "kind": kind, "period": period, "duty": float(spot.get("duty", 0.5)),
+		if spot.has("emitter"):
+			var em: Dictionary = spot["emitter"]
+			var jl := Sprite3D.new()
+			jl.texture = QUD.unit_idle("plasma_jelly")
+			jl.hframes = maxi(1, int(QUD.unit_info("plasma_jelly").get("idle_frames", 1)))
+			jl.pixel_size = Track.U * 1.4
+			jl.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+			jl.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			jl.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+			jl.position = track.to3(em["pos"], 50.0)
+			add_child(jl)
+			spot["jelly"] = {"sprite": jl, "id": int(em["id"]), "charging": false, "pos": em["pos"]}
+		var entry := {"h": h, "kind": kind, "period": period, "duty": float(spot.get("duty", 0.5)),
 			"phase": float(spot.get("phase", 0.0)), "on": true, "laps": spot.get("laps", []), "branch": int(spot.get("branch", -1)),
-			"per_lap": spot.get("per_lap", {}), "base": {"period": period, "duty": float(spot.get("duty", 0.5)), "phase": float(spot.get("phase", 0.0))}})
+			"per_lap": spot.get("per_lap", {}), "base": {"period": period, "duty": float(spot.get("duty", 0.5)), "phase": float(spot.get("phase", 0.0))}}
+		if spot.has("jelly"):
+			entry["jelly"] = spot["jelly"]
+		course_hazards.append(entry)
 		n += 1
 	# movers: the same hazard node, carried along its path each frame
 	for mv in track.mover_paths():
@@ -871,6 +888,8 @@ func _update_course_hazards(dt: float) -> void:
 			if not on:
 				var until := period - ph
 				cue = clampf(1.0 - until, 0.0, 1.0)
+		if c.has("jelly"):
+			_update_jelly(c, on, period)
 		if on != bool(c["on"]):
 			c["on"] = on
 			if on and player.alive and player.pos.distance_to(h.pos) < 1100.0:
@@ -889,6 +908,38 @@ func _update_course_hazards(dt: float) -> void:
 						play("sfx_ability_jump", -4.0)
 					if hazard_log:
 						print("jump: %s t=%.2f" % [kart.display_name, t])
+
+
+# A plasma jelly charges with a bright swelling for JELLY_CHARGE seconds, vents across its
+# lane (the three plasma patches go live), then subsides. The sprite is the telegraph.
+func _update_jelly(c: Dictionary, on: bool, period: float) -> void:
+	var j: Dictionary = c["jelly"]
+	var spr: Sprite3D = j["sprite"]
+	var charge := 0.0
+	if not on and period > 0.0 and bool(c.get("lap_ok", true)):
+		var ph := fposmod(t + float(c["phase"]), period)
+		charge = clampf(1.0 - (period - ph) / JELLY_CHARGE, 0.0, 1.0)
+	var charging := charge > 0.0
+	if charging != bool(j["charging"]):
+		j["charging"] = charging
+		if charging:
+			if hazard_log:
+				print("jelly: %d charging t=%.2f" % [int(j["id"]), t])
+			if player.alive and player.pos.distance_to(j["pos"]) < 1400.0:
+				play("sfx_ability_forcefield_create", -12.0)
+	if on:
+		var throb := 0.5 + 0.5 * sin(t * 18.0)
+		spr.scale = Vector3.ONE * (1.35 + 0.1 * throb)
+		spr.modulate = Color(0.7 + 0.3 * throb, 0.9, 1.0)
+		if not bool(j.get("venting", false)):
+			j["venting"] = true
+			if hazard_log:
+				print("jelly: %d vents t=%.2f" % [int(j["id"]), t])
+	else:
+		j["venting"] = false
+		spr.scale = Vector3.ONE * (1.0 + 0.6 * charge)
+		spr.modulate = Color(1.0, 1.0, 1.0).lerp(Color(0.75, 0.95, 1.0) * (1.0 + charge), charge)
+	spr.frame = int(t / 0.25) % maxi(1, spr.hframes)
 
 
 # The void fall (bible: falling cannot end the race but returns the kart through a different

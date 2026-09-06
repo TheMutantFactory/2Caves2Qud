@@ -317,7 +317,11 @@ COURSES = [
          width=210, elevation=90, laps=3,
          control=[[300, 400], [1000, 300], [1500, 700], [1100, 1100], [1700, 1400], [2400, 1000], [2900, 400],
                   [3300, 900], [3000, 1500], [3300, 2000], [2400, 2200], [1600, 1900], [900, 2100], [300, 1600]],
-         hazards=[haz("static", 0.3, -0.3, 130, period=5.0, duty=0.3), haz("static", 0.55, 0.3, 130, period=5.0, duty=0.3, phase=2.5), haz("water", 0.7, 0.0, 200)],
+         # the plasma jellies (Track.hazard_spots expands "jelly"): each sits just off one curb,
+         # swells brightly for two seconds (Race._update_jelly), then vents plasma across the
+         # lane on its side for a quarter of its cycle; the far lane is always open
+         hazards=[haz("jelly", 0.30, -1.2, 110, period=6.0, duty=0.25), haz("jelly", 0.55, 1.2, 110, period=6.0, duty=0.25, phase=3.0),
+                  haz("water", 0.7, 0.0, 200)],
          # the occlusion struts (Track._build_struts): translucent panels across part of the road,
          # each a little before a bend of the trellis so the apex behind is hidden at distance, and
          # widely spaced cover struts on the final deck; luminous edge strips through both sectors
@@ -327,7 +331,7 @@ COURSES = [
                  strut(0.82, -1.5, 0.7, 0), strut(0.88, 1.5, 0.7, 0), strut(0.94, -1.5, 0.7, 0)],
          strut_strips=[[0.10, 0.50, "silver"], [0.78, 0.97, "gold"]],
          spells=["Laser Rifle", "Arc Winder", "Salve Injector", "Eigenrifle", "Sphynx Salt Injector", "Plasma Grenade Mk I", "Hand Rail", "Rubbergum Injector"],
-         gaps=["plasma jellies venting", "sunslag polyp boost pockets per lap"]),
+         gaps=["sunslag polyp boost pockets per lap"]),
     dict(key="ydfreehold", name="Yd Freehold Pipeworks", cup="Reef Cup", cup_index=15, difficulty=3.5,
          format="3-lap circuit with parallel rooms (run as one line)", target_lap="78-88 s", skill="Room-route strategy",
          sentence="Follow Yd Freehold's dyed pipework through a lyrical surface community and choose among parallel underground rooms that trade speed, items, and technical difficulty.",
@@ -470,8 +474,6 @@ MOVERS = {
                     mover("yellow sludge", "slime", [(0.50, 0.6), (0.50, -0.6)], period=4.0, radius=150, laps=[2, 3]),
                     mover("magenta sludge", "slime", [(0.83, -0.6), (0.83, 0.6)], period=4.0, radius=150, laps=[3])],
     "hinnom": [mover("reef current", "water", [(0.60, -1.0), (0.60, 1.0)], period=6.0, radius=160)],
-    "palladium": [mover("plasma jelly", "static", [(0.30, -0.7), (0.30, 0.7)], period=5.0, radius=120),
-                  mover("plasma jelly", "static", [(0.55, 0.7), (0.55, -0.7)], period=5.0, radius=120, phase=2.5)],
     "tomb": [mover("crematory arm", "barrier", [(0.42, -0.9), (0.42, 0.9)], period=5.0, radius=120),
              mover("fan", "barrier", [(0.50, 0.9), (0.50, -0.9)], period=5.0, radius=120, phase=2.5, laps=[2, 3])],
     "golgotha": [mover("small fauna", "slime", [(0.55, -1.0), (0.55, 1.0)], period=7.0, radius=100)],
@@ -487,7 +489,7 @@ THROWERS = {
 # stand-ins the movers and throwers replace (kind, at) on the loop
 MOVER_REPLACES = {
     "stilt": [("cart", 0.45), ("cart", 0.52)], "rainbowwood": [("slime", 0.16), ("slime", 0.5), ("slime", 0.83), ("slime", 0.20)],
-    "palladium": [("static", 0.3), ("static", 0.55)], "redrock": [("static", 0.20), ("static", 0.26), ("static", 0.23)],
+    "redrock": [("static", 0.20), ("static", 0.26), ("static", 0.23)],
     "tomb": [("barrier", 0.42), ("barrier", 0.50)],
 }
 
