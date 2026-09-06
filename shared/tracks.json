@@ -4536,25 +4536,47 @@
      "radius": 130
     },
     {
-     "kind": "bell",
-     "at": 0.5,
+     "kind": "teleport",
+     "at": 0.3,
      "side": 0.0,
-     "radius": 900,
-     "period": 14.0,
-     "duty": 0.1,
+     "radius": 140,
+     "target": 0.34
+    },
+    {
+     "kind": "press",
+     "at": 0.38,
+     "side": -0.4,
+     "radius": 120,
+     "period": 5.0,
+     "duty": 0.35,
      "phase": 0.0
     },
     {
-     "kind": "fire",
-     "at": 0.46,
-     "side": 0.0,
-     "radius": 150,
+     "kind": "vent",
+     "at": 0.48,
+     "side": 0.4,
+     "radius": 130,
      "period": 5.0,
      "duty": 0.4,
-     "phase": 1.25,
-     "laps": [
-      3
-     ]
+     "phase": 1.0
+    },
+    {
+     "kind": "press",
+     "at": 0.58,
+     "side": -0.4,
+     "radius": 120,
+     "period": 5.0,
+     "duty": 0.35,
+     "phase": 0.0
+    },
+    {
+     "kind": "vent",
+     "at": 0.61,
+     "side": 0.4,
+     "radius": 130,
+     "period": 5.0,
+     "duty": 0.4,
+     "phase": 2.5
     }
    ],
    "bell": {
@@ -4592,10 +4614,7 @@
     "High Explosive Grenade Mk III",
     "Shade Oil Injector"
    ],
-   "gaps": [
-    "crematory press/arm/vent/fan sequence",
-    "stairwell teleporter"
-   ],
+   "gaps": [],
    "stretch": 2.9,
    "floor": [
     "tiles",
@@ -4616,8 +4635,8 @@
     130
    ],
    "lap_notes": {
-    "2": "the crematory sequences combine",
-    "3": "press, arm, vent, fan at once"
+    "2": "the crematory: press, arm, vent, fan, then all at once",
+    "3": "the climb: tether before the Bell"
    },
    "branches": [
     {
@@ -4647,14 +4666,14 @@
    "movers": [
     {
      "name": "crematory arm",
-     "kind": "barrier",
+     "kind": "arm",
      "path": [
       [
-       0.42,
+       0.43,
        -0.9
       ],
       [
-       0.42,
+       0.43,
        0.9
       ]
      ],
@@ -4665,25 +4684,57 @@
     },
     {
      "name": "fan",
-     "kind": "barrier",
+     "kind": "fan",
      "path": [
       [
-       0.5,
+       0.53,
        0.9
       ],
       [
-       0.5,
+       0.53,
+       -0.9
+      ]
+     ],
+     "period": 14.5,
+     "mode": "pingpong",
+     "radius": 140,
+     "phase": 2.5
+    },
+    {
+     "name": "crematory arm",
+     "kind": "arm",
+     "path": [
+      [
+       0.595,
+       0.9
+      ],
+      [
+       0.595,
        -0.9
       ]
      ],
      "period": 14.5,
      "mode": "pingpong",
      "radius": 120,
-     "phase": 2.5,
-     "laps": [
-      2,
-      3
-     ]
+     "phase": 1.25
+    },
+    {
+     "name": "fan",
+     "kind": "fan",
+     "path": [
+      [
+       0.625,
+       -0.9
+      ],
+      [
+       0.625,
+       0.9
+      ]
+     ],
+     "period": 14.5,
+     "mode": "pingpong",
+     "radius": 140,
+     "phase": 3.75
     }
    ],
    "profile": [

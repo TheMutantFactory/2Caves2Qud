@@ -32,7 +32,7 @@ def ellipse(cx, cy, rx, ry, n=10, start=0.0, wobble=None):
     return pts
 
 
-def haz(kind, at, side=0.0, radius=150, period=0.0, duty=0.5, phase=0.0, laps=None, per_lap=None):
+def haz(kind, at, side=0.0, radius=150, period=0.0, duty=0.5, phase=0.0, laps=None, per_lap=None, target=None):
     """A surface patch at a fraction of the loop. period > 0 makes it CYCLE: live for
     `duty` of every `period` seconds (offset by `phase`), with an amber cue the second
     before it goes live. kind "jump" is a pad that lofts karts crossing it while live.
@@ -44,6 +44,8 @@ def haz(kind, at, side=0.0, radius=150, period=0.0, duty=0.5, phase=0.0, laps=No
         h.update({"period": period, "duty": duty, "phase": phase})
     if laps:
         h["laps"] = list(laps)
+    if target is not None:
+        h["target"] = target      # a teleporter: the loop fraction it sends the kart to
     if per_lap:
         h["per_lap"] = {str(k): v for k, v in per_lap.items()}
     return h
@@ -77,7 +79,6 @@ LAPPED = {
     "moonstair": [haz("jump", 0.40, 0.0, 130, laps=[2, 3]), haz("jump", 0.70, 0.0, 130, laps=[2, 3])],
     "hydropon": [haz("water", 0.35, 0.0, 180, laps=[1, 2]), haz("jump", 0.50, 0.0, 120, laps=[3, 4, 5])],
     "omonporch": [haz("jump", 0.62, 0.0, 160, period=6.0, duty=0.6, per_lap={2: {"duty": 0.4}, 3: {"duty": 0.4}}), haz("jump", 0.68, 0.0, 140, period=6.0, duty=0.4, phase=3.0, laps=[3])],
-    "tomb": [haz("fire", 0.46, 0.0, 150, period=5.0, duty=0.4, phase=1.25, laps=[3])],
     "thinworld": [haz("static", 0.3, 0.0, 170), haz("static", 0.55, -0.3, 150, laps=[2, 3]), haz("static", 0.8, 0.3, 170, laps=[3])],
 }
 # entries a LAPPED set REPLACES: (course, kind, at) of the always-on version
@@ -110,7 +111,7 @@ LAP_NOTES = {
     "moonstair": {2: "warm static: ELASTIC", 3: "warm static: TWINNED"},
     "hydropon": {3: "new leaves span the centre", 4: "the lilies keep growing", 5: "the bloom"},
     "omonporch": {2: "the magnetic window shortens", 3: "a second release point"},
-    "tomb": {2: "the crematory sequences combine", 3: "press, arm, vent, fan at once"},
+    "tomb": {2: "the crematory: press, arm, vent, fan, then all at once", 3: "the climb: tether before the Bell"},
     "thinworld": {2: "the road thins: the void shows through", 3: "only the edges remain"},
 }
 
@@ -138,8 +139,12 @@ TIMED = {
     "moonstair": [haz("jump", 0.40, 0.0, 130), haz("jump", 0.70, 0.0, 130)],
     "hydropon": [haz("jump", 0.60, 0.0, 120, period=3.0, duty=0.6)],
     "omonporch": [haz("jump", 0.62, 0.0, 160, period=6.0, duty=0.6)],
-    "tomb": [haz("jump", 0.15, 0.0, 130), haz("barrier", 0.42, -0.3, 130, period=5.0, duty=0.4), haz("barrier", 0.50, 0.3, 130, period=5.0, duty=0.4, phase=2.5),
-             haz("bell", 0.50, 0.0, 900, period=14.0, duty=0.1)],
+    # the Tomb: the stairwell teleporter out of the bone channels, then the crematory sector
+    # teaching press and vent alone (the arm and fan are MOVERS below), then the combined
+    # sequence at 0.58-0.63 with a lane always open: press and vent on opposite sides, out of phase
+    "tomb": [haz("jump", 0.15, 0.0, 130), haz("teleport", 0.30, 0.0, 140, target=0.34),
+             haz("press", 0.38, -0.4, 120, period=5.0, duty=0.35), haz("vent", 0.48, 0.4, 130, period=5.0, duty=0.4, phase=1.0),
+             haz("press", 0.58, -0.4, 120, period=5.0, duty=0.35), haz("vent", 0.61, 0.4, 130, period=5.0, duty=0.4, phase=2.5)],
     "thinworld": [haz("jump", 0.35, 0.0, 130), haz("jump", 0.85, 0.0, 140)],
 }
 # hazards a timed entry REPLACES (the same idea, now cycling)
@@ -396,7 +401,7 @@ COURSES = [
          bell={"period": 12.0, "displace": 1.25, "radius": 150,
                "sanctuaries": [round(0.03 + k / 18.0, 3) for k in range(18)]},
          spells=["Fullerite Dagger", "Light Rail", "Salve Injector", "Plasma Grenade Mk II", "Spaser Pistol", "Ubernostrum Injector", "High Explosive Grenade Mk III", "Shade Oil Injector"],
-         gaps=["crematory press/arm/vent/fan sequence", "stairwell teleporter"]),
+         gaps=[]),
     dict(key="thinworld", name="Thin World Crossing", cup="Spindle Cup", cup_index=20, difficulty=5.0,
          format="3-lap transformational circuit", target_lap="92-102 s", skill="Committing to recomposed road states", spoiler=True,
          void_offroad=True, void_margin=80,
@@ -488,8 +493,10 @@ MOVERS = {
                     mover("yellow sludge", "slime", [(0.50, 0.6), (0.50, -0.6)], period=4.0, radius=150, laps=[2, 3]),
                     mover("magenta sludge", "slime", [(0.83, -0.6), (0.83, 0.6)], period=4.0, radius=150, laps=[3])],
     "hinnom": [mover("reef current", "water", [(0.60, -1.0), (0.60, 1.0)], period=6.0, radius=160)],
-    "tomb": [mover("crematory arm", "barrier", [(0.42, -0.9), (0.42, 0.9)], period=5.0, radius=120),
-             mover("fan", "barrier", [(0.50, 0.9), (0.50, -0.9)], period=5.0, radius=120, phase=2.5, laps=[2, 3])],
+    "tomb": [mover("crematory arm", "arm", [(0.43, -0.9), (0.43, 0.9)], period=5.0, radius=120),
+             mover("fan", "fan", [(0.53, 0.9), (0.53, -0.9)], period=5.0, radius=140, phase=2.5),
+             mover("crematory arm", "arm", [(0.595, 0.9), (0.595, -0.9)], period=5.0, radius=120, phase=1.25),
+             mover("fan", "fan", [(0.625, -0.9), (0.625, 0.9)], period=5.0, radius=140, phase=3.75)],
     "golgotha": [mover("small fauna", "slime", [(0.55, -1.0), (0.55, 1.0)], period=7.0, radius=100)],
 }
 THROWERS = {
@@ -504,7 +511,7 @@ THROWERS = {
 MOVER_REPLACES = {
     "stilt": [("cart", 0.45), ("cart", 0.52)], "rainbowwood": [("slime", 0.16), ("slime", 0.5), ("slime", 0.83), ("slime", 0.20)],
     "redrock": [("static", 0.20), ("static", 0.26), ("static", 0.23)],
-    "tomb": [("barrier", 0.42), ("barrier", 0.50)],
+    "tomb": [],
 }
 
 # Lap-changing geometry: roads that appear, collapse or thin between laps.

@@ -286,8 +286,10 @@ field at the fork), `choose_branch` skips a faded echo. Probe `echo:` lines unde
 THE BELL (2026-09-06): spec `bell` → `Track._build_bell` (checker pads on the route + one per
 branch, a generated ImageTexture) + `Race._update_bell` (sector clock, tether per window,
 displace = stun + sideways shove, chimes, HUD `BellRing` inner Control drawing an arc).
-Probe `bell:` lines under --hazard-log (rings/tethered/displaced). Remaining on the Tomb:
-crematory press/arm/vent/fan sequence, stairwell teleporter.
+Probe `bell:` lines under --hazard-log (rings/tethered/displaced). CREMATORY + TELEPORTER (2026-09-06): hazard kinds press (block + shadow cue), arm (mover),
+vent, fan (mover; pushes along its motion, FAN_PUSH), teleport (`target` fraction → exit
+waypoint; sets pos/vel/heading/next_wp, 2 s cooldown). Mover marks are coloured by kind.
+EVERY COURSE FILE IN THE BIBLE IS BUILT.
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

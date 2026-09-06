@@ -340,6 +340,35 @@ exposed were displaced (the start pack at the first ring, and racers caught betw
 later). What is left of the course file: the crematory sequence and the stairwell
 teleporter.
 
+## The crematory sector and the stairwell teleporter
+
+The last of the Tomb's file. **The stairwell teleporter** (hazard kind `teleport` with a
+`target` fraction): a cyan pad on the main line at 0.30 that sends every kart crossing it
+to the access corridor at 0.34, facing forward at its speed, with a translocation at both
+ends and a two-second cooldown; the exit is marked by a second pad. **The crematory
+sector** teaches each hazard alone and then all at once, with a lane always open:
+
+- **The press** (kind `press`): a stone block hanging above one lane that slams down on its
+  cycle, stunning and hurting what is under it; its cue is its shadow, which darkens on the
+  lane over the second before the slam as the block descends.
+- **The arm** (mover kind `arm`): the crematory arm sweeping across the road, a barrier on
+  the move; its cue is the dark sweep mark along its path.
+- **The vent** (kind `vent`): a flare of fire on one lane; its cue is the amber glow every
+  cycling patch shows the second before it goes live.
+- **The fan** (mover kind `fan`): sweeping across the road, it blows a kart sideways along
+  its motion rather than hurting it; its cue is the pale streamers along its path, which
+  wave while it blows.
+
+Taught alone at 0.38, 0.43, 0.48 and 0.53, then combined at 0.58–0.63 with press and vent
+on opposite lanes out of phase and the arm and fan sweeping from opposite ends. The old
+stand-ins (barrier patches and a giant bell patch) are gone.
+
+Probe: `--hazard-log` prints `teleport: <kart> -> <exit>`, `fan: blows <kart>`, the
+`hazard: press|vent on/off` cycles and the wizard's `hit: hazard` lines. In the check all
+eight karts teleported, all eight were blown, the presses and vents cycled through the run
+and the wizard was pressed once. The Tomb's course file is complete, and with it every
+course file in the bible.
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
@@ -348,5 +377,5 @@ bible's lap times; the AI field's damage and the lap rule are balanced (docs/bal
 The section races were re-routed as three regions each and run to their targets, and Eyn
 Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts, its venting
 plasma jellies and its sunslag polyps, the rhythm rocks reach the pad, and the Tomb has its
-Bell and sanctuaries. What remains of the course files is the Tomb's crematory sequence and
-stairwell teleporter; the bible's lists are otherwise closed, and what remains is playing it.
+Bell and sanctuaries, its crematory sector and its stairwell teleporter. Every course file
+in the bible is built; what remains is playing it.

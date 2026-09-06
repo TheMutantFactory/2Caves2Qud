@@ -47,6 +47,7 @@ var vz := 0.0             # vertical speed of that fall (px/s)
 var abs_h := 0.0          # the kart's absolute height last step
 var landed_from := 0.0    # set for one step when a fall ends: how far it fell (px)
 var void_t := 0.0         # falling into the void: sinks for a moment, then is returned to the road
+var teleport_cd := 0.0    # seconds until a stairwell teleporter may take this kart again
 const GRAVITY := 1400.0
 var branch := -1          # the parallel route this kart is on (Track.branches index), -1 = the loop
 var branch_idx := 0       # its sample along that branch

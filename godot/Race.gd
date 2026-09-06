@@ -682,7 +682,17 @@ const HAZARD_KINDS := {
 	"bell": {"tex": "cloud_ice_cloud", "dtype": "Arcane", "damage": 0.0, "slip": false, "stun": 0.8, "tint": Color(1.0, 0.85, 0.3)},
 	"jump": {"tex": "pad_jump", "dtype": "Physical", "damage": 0.0, "slip": false, "stun": 0.0, "tint": Color(1.0, 1.0, 1.0)},
 	"plasma": {"tex": "cloud_thunder_cloud", "dtype": "Lightning", "damage": 3.0, "slip": false, "stun": 0.6, "tint": Color(0.45, 0.75, 1.0)},
+	# the Tomb's crematory sector: the press slams (a block above the lane, its shadow the cue),
+	# the arm sweeps (a mover, dark sweep marks), the vent flares (amber glow the second before),
+	# the fan blows a kart across the lane (a mover, pale streamers), the stairwell teleports
+	"press": {"tex": "pad_barrier", "dtype": "Physical", "damage": 2.0, "slip": false, "stun": 0.9, "tint": Color(0.6, 0.6, 0.65)},
+	"arm": {"tex": "pad_barrier", "dtype": "Physical", "damage": 2.0, "slip": false, "stun": 0.9, "tint": Color(0.75, 0.65, 0.5)},
+	"vent": {"tex": "cloud_thunder_cloud", "dtype": "Fire", "damage": 3.0, "slip": false, "stun": 0.0, "tint": Color(1.0, 0.55, 0.2)},
+	"fan": {"tex": "cloud_ice_cloud", "dtype": "Physical", "damage": 0.0, "slip": false, "stun": 0.0, "tint": Color(0.8, 0.95, 1.0)},
+	"teleport": {"tex": "pad_jump", "dtype": "Physical", "damage": 0.0, "slip": false, "stun": 0.0, "tint": Color(0.4, 1.0, 1.0)},
 }
+const FAN_PUSH := 900.0            # px/s^2 across the lane while a fan blows over a kart
+const PRESS_HEIGHT := 110.0        # px the press block hangs above the lane before it slams
 const JELLY_CHARGE := 2.0          # seconds of swelling before a plasma jelly vents
 const POLYP_RADIUS := 64.0         # px: driving this close plucks a polyp
 const BELL_CHIMES := 3             # escalating chimes in the seconds before the Bell rings
@@ -743,6 +753,38 @@ func _spawn_track_hazards() -> void:
 		if kind != "jump":
 			hazards.append(h)      # damage / slip / stun through the ordinary hazard loop
 		var period := float(spot.get("period", 0.0))
+		if kind == "press":
+			var box := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(h.radius * 1.5 * Track.U, 60.0 * Track.U, h.radius * 1.5 * Track.U)
+			box.mesh = bm
+			var bmat := StandardMaterial3D.new()
+			bmat.albedo_color = Color(0.35, 0.33, 0.3)
+			box.material_override = bmat
+			box.position = track.to3(h.pos, PRESS_HEIGHT + 30.0)
+			add_child(box)
+			var sh := MeshInstance3D.new()
+			var pm := PlaneMesh.new()
+			pm.size = Vector2(h.radius * 1.5 * Track.U, h.radius * 1.5 * Track.U)
+			sh.mesh = pm
+			var smat := StandardMaterial3D.new()
+			smat.albedo_color = Color(0.0, 0.0, 0.0, 0.1)
+			smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			sh.material_override = smat
+			sh.position = track.to3(h.pos, 4.0)
+			add_child(sh)
+			spot["press"] = {"box": box, "shadow": smat}
+		if kind == "teleport" and spot.has("target"):
+			var exit_pad := Sprite3D.new()
+			exit_pad.texture = QUD.texture("tiles/pad_jump.png")
+			exit_pad.pixel_size = Track.U * 1.6
+			exit_pad.modulate = Color(0.4, 1.0, 1.0, 0.8)
+			exit_pad.axis = Vector3.AXIS_Y
+			exit_pad.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			exit_pad.position = track.to3(track.points[int(spot["target"])], 5.0)
+			add_child(exit_pad)
+			spot["teleport"] = int(spot["target"])
 		if spot.has("emitter"):
 			var em: Dictionary = spot["emitter"]
 			var jl := Sprite3D.new()
@@ -758,8 +800,9 @@ func _spawn_track_hazards() -> void:
 		var entry := {"h": h, "kind": kind, "period": period, "duty": float(spot.get("duty", 0.5)),
 			"phase": float(spot.get("phase", 0.0)), "on": true, "laps": spot.get("laps", []), "branch": int(spot.get("branch", -1)),
 			"per_lap": spot.get("per_lap", {}), "base": {"period": period, "duty": float(spot.get("duty", 0.5)), "phase": float(spot.get("phase", 0.0))}}
-		if spot.has("jelly"):
-			entry["jelly"] = spot["jelly"]
+		for extra in ["jelly", "press", "teleport"]:
+			if spot.has(extra):
+				entry[extra] = spot[extra]
 		course_hazards.append(entry)
 		n += 1
 	_spawn_polyps()
@@ -920,8 +963,50 @@ func _update_course_hazards(dt: float) -> void:
 				cue = clampf(1.0 - until, 0.0, 1.0)
 		if c.has("jelly"):
 			_update_jelly(c, on, period)
+		if c.has("press"):
+			var pr: Dictionary = c["press"]
+			(pr["box"] as MeshInstance3D).position = track.to3(h.pos, 30.0 + PRESS_HEIGHT * (1.0 - (1.0 if on else cue)))
+			(pr["shadow"] as StandardMaterial3D).albedo_color.a = 0.6 if on else 0.1 + 0.45 * cue
+		if String(c["kind"]) == "fan" and on:
+			var mvf: Dictionary = c.get("mover", {})
+			var blow := (Track.mover_pos(mvf, t + 0.05) - h.pos).normalized() if not mvf.is_empty() else Vector2.ZERO
+			if blow.length_squared() > 0.0:
+				for kart in karts:
+					if kart.alive and kart.air_t <= 0.0 and kart.pos.distance_to(h.pos) <= h.radius + kart.RADIUS:
+						kart.vel += blow * FAN_PUSH * dt
+						if hazard_log and not (c.get("pushed", {}) as Dictionary).has(kart):
+							if not c.has("pushed"):
+								c["pushed"] = {}
+							c["pushed"][kart] = true
+							print("fan: blows %s t=%.2f" % [kart.display_name, t])
+		if c.has("mover") and String(c["kind"]) == "fan":
+			var mk = c["mover"].get("mark")
+			if mk != null:
+				(mk as StandardMaterial3D).albedo_color.a = 0.25 + 0.25 * (0.5 + 0.5 * sin(t * 9.0)) if on else 0.15
+		if c.has("teleport"):
+			var target: int = c["teleport"]
+			for kart in karts:
+				kart.teleport_cd = maxf(0.0, kart.teleport_cd - dt)
+				if not kart.alive or kart.air_t > 0.0 or kart.teleport_cd > 0.0 or kart.void_t > 0.0:
+					continue
+				if kart.pos.distance_to(h.pos) > h.radius + kart.RADIUS:
+					continue
+				var d := track.direction_at(target)
+				spawn_effect(QUD.effect("translocation"), kart.position + Vector3(0, 30 * Track.U, 0), 6, 0.06, -1.0, 1.4)
+				kart.pos = track.points[target] + d * 30.0
+				kart.vel = d * maxf(kart.speed(), 300.0)
+				kart.heading = d.angle()
+				kart.next_wp = (target + 1) % track.n
+				kart.teleport_cd = 2.0
+				kart.position = track.to3(kart.pos)
+				spawn_effect(QUD.effect("translocation"), kart.position + Vector3(0, 30 * Track.U, 0), 6, 0.06, -1.0, 1.4)
+				if kart.is_player:
+					play("teleport", -4.0)
+				if hazard_log:
+					print("teleport: %s -> %d t=%.2f" % [kart.display_name, target, t])
 		if on != bool(c["on"]):
 			c["on"] = on
+			c.erase("pushed")
 			if on and player.alive and player.pos.distance_to(h.pos) < 1100.0:
 				play("sfx_ability_forcefield_create" if String(c["kind"]) in ["barrier", "wheel", "bell"] else "start_level", -10.0)
 			if hazard_log:

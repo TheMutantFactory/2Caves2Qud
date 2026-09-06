@@ -940,10 +940,22 @@ func mover_paths() -> Array:
 func _build_mover_marks() -> void:
 	var i := 0
 	for mv in mover_paths():
-		_ribbon_of(mv["pts"], false, -16.0, 16.0, 6.5, null, Color(1.0, 0.75, 0.2, 0.5), "MoverMark%d" % i)
+		# the cue: amber for a sweeping patch, dark sweep marks for the crematory arm, pale
+		# streamers for the fan (Race waves those)
+		var col := Color(1.0, 0.75, 0.2, 0.5)
+		var wide := 16.0
+		match String(mv["kind"]):
+			"arm":
+				col = Color(0.25, 0.2, 0.18, 0.6)
+				wide = 22.0
+			"fan":
+				col = Color(0.8, 0.95, 1.0, 0.45)
+				wide = 30.0
+		_ribbon_of(mv["pts"], false, -wide, wide, 6.5, null, col, "MoverMark%d" % i)
 		var mi: MeshInstance3D = get_node("MoverMark%d" % i)
 		var mat: StandardMaterial3D = mi.material_override
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mv["mark"] = mat
 		i += 1
 
 
@@ -1853,10 +1865,13 @@ func hazard_spots() -> Array:
 				out.append(spot)
 			jellies += 1
 			continue
-		out.append({"kind": kind, "pos": points[i] + nrm * float(h.get("side", 0.0)) * width * 0.5,
+		var spot := {"kind": kind, "pos": points[i] + nrm * float(h.get("side", 0.0)) * width * 0.5,
 			"radius": float(h.get("radius", 150.0)), "period": float(h.get("period", 0.0)),
 			"duty": float(h.get("duty", 0.5)), "phase": float(h.get("phase", 0.0)),
-			"laps": h.get("laps", []), "per_lap": h.get("per_lap", {})})
+			"laps": h.get("laps", []), "per_lap": h.get("per_lap", {})}
+		if h.has("target"):
+			spot["target"] = int(floor(float(h["target"]) * n)) % n      # a teleporter's exit waypoint
+		out.append(spot)
 	return out
 
 
