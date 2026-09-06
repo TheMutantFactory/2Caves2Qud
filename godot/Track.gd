@@ -114,7 +114,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 		for h in profile_h:
 			lo = minf(lo, h)
 			hi = maxf(hi, h)
-		print("elevation: %s authored %d..%d px over the route" % [key, int(lo), int(hi)])
+		print("elevation: %s authored %d..%d px over the route, %d steps" % [key, int(lo), int(hi), steps.size()])
 
 	_build_ground()
 	_build_road()
@@ -507,6 +507,7 @@ static func catmull_rom(pts: Array, samples: int) -> PackedVector2Array:
 # rises and falls by the profile, and the ground around it follows within a few road widths
 # (a shelf), fading to the terrain noise in the far field. Sampled from a grid built once.
 var profile_h := PackedFloat32Array()     # per route point
+var steps: Array = []                     # route indices where the road drops (or rises) a ledge
 var hgrid := PackedFloat32Array()
 var hg_cols := 0
 var hg_rows := 0
@@ -525,8 +526,15 @@ func _build_profile() -> void:
 		return
 	# smooth interpolation between the keypoints (cosine), wrapping on a loop
 	var keys := []
+	steps.clear()
 	for k in prof:
-		keys.append(Vector2(clampf(float(k[0]), 0.0, 1.0), float(k[1]) * scale_k))
+		var at := clampf(float(k[0]), 0.0, 1.0)
+		if k.size() > 2 and String(k[2]) == "step":
+			# a ledge: the height jumps at `at`; the previous keypoint's height holds until then
+			var prev_h: float = keys[keys.size() - 1].y if keys.size() > 0 else 0.0
+			keys.append(Vector2(at - 0.0001, prev_h))
+			steps.append(int(ceil(at * n)))      # the first sample whose f >= at takes the new height
+		keys.append(Vector2(at, float(k[1]) * scale_k))
 	keys.sort_custom(func(a, b): return a.x < b.x)
 	for i in n:
 		var f := float(i) / n
@@ -608,25 +616,35 @@ func _build_camber() -> void:
 func _route_lateral(p: Vector2) -> Dictionary:
 	var best := INF
 	var bi := 0
-	for i in range(0, n, 2):
+	var stride := 1 if not steps.is_empty() else 2
+	for i in range(0, n, stride):
 		var d := p.distance_squared_to(points[i])
 		if d < best:
 			best = d
 			bi = i
 	var dir := direction_at(bi)
 	var nrm := Vector2(-dir.y, dir.x)
-	return {"i": bi, "lateral": (p - points[bi]).dot(nrm), "dist": sqrt(best)}
+	# how far along the route past sample bi the point lies (-1..1 samples), for interpolation
+	var along := (p - points[bi]).dot(dir) / maxf(1.0, seg_len[bi])
+	return {"i": bi, "lateral": (p - points[bi]).dot(nrm), "dist": sqrt(best), "along": clampf(along, -1.0, 1.0)}
 
 
-func camber_at(p: Vector2) -> float:
+func camber_at(p: Vector2, rl: Dictionary = {}) -> float:
 	if camber_px <= 0.0:
 		return 0.0
-	var rl := _route_lateral(p)
+	if rl.is_empty():
+		rl = _route_lateral(p)
 	var half := width * 0.5
 	var lat: float = rl["lateral"]
 	var fade := 1.0 if absf(lat) <= half + 14.0 else clampf(1.0 - (absf(lat) - half - 14.0) / half, 0.0, 1.0)
+	# the bank between neighbouring samples, so it never steps under a moving kart
+	var i: int = rl["i"]
+	var along: float = rl.get("along", 0.0)
+	var j := i + 1 if along >= 0.0 else i - 1
+	j = clampi(j, 0, n - 1) if open else (j + n) % n
+	var b := lerpf(bank[i], bank[j], absf(along))
 	# a right turn (bank > 0) raises the LEFT edge (negative lateral)
-	return -bank[rl["i"]] * clampf(lat / half, -1.0, 1.0) * fade
+	return -b * clampf(lat / half, -1.0, 1.0) * fade
 
 
 # 0..1: how banked the road is under p (for the grip bonus).
@@ -659,9 +677,25 @@ func _process(dt: float) -> void:
 	transform = Transform3D(b, c - b * c)
 
 
-func authored_height(p: Vector2) -> float:
+# Near the road the route point's EXACT profile height (so a step is a cliff, not a ramp
+# across a grid cell); the shelf grid beyond it. `rl` is a _route_lateral result to reuse.
+func authored_height(p: Vector2, rl: Dictionary = {}) -> float:
 	if hgrid.is_empty():
 		return 0.0
+	if rl.is_empty():
+		rl = _route_lateral(p)
+	if float(rl["dist"]) <= width * 1.5:
+		# smooth along the route between neighbouring samples, except across a step (a cliff)
+		var i: int = rl["i"]
+		var along: float = rl.get("along", 0.0)
+		var j := i + 1 if along >= 0.0 else i - 1
+		if open:
+			j = clampi(j, 0, n - 1)
+		else:
+			j = (j + n) % n
+		if steps.has(maxi(i, j)) or j == i:
+			return profile_h[i]
+		return lerpf(profile_h[i], profile_h[j], absf(along))
 	var g := (p - hg_origin) / HG_CELL
 	var c := clampi(int(floor(g.x)), 0, hg_cols - 2)
 	var r := clampi(int(floor(g.y)), 0, hg_rows - 2)
@@ -675,7 +709,10 @@ func authored_height(p: Vector2) -> float:
 
 
 func height_px(p: Vector2) -> float:
-	return noise.get_noise_2d(p.x, p.y) * elev_amp + authored_height(p) + camber_at(p) + lean_h(p)
+	var rl := {}
+	if not hgrid.is_empty() or camber_px > 0.0:
+		rl = _route_lateral(p)
+	return noise.get_noise_2d(p.x, p.y) * elev_amp + authored_height(p, rl) + camber_at(p, rl) + lean_h(p)
 
 
 # The road's grade under a kart: rise per px along `fwd` (positive = uphill).
@@ -989,7 +1026,7 @@ func _build_road() -> void:
 	_ribbon(half, half + curb, 7.0, null, Color(0.88, 0.84, 0.76), "CurbR")
 	road_pieces.clear()
 	var states: Array = spec.get("road_states", [])
-	if states.is_empty():
+	if states.is_empty() and steps.is_empty():
 		_ribbon(-half, half, 7.5, road_tex, Color.WHITE, "Road")
 		return
 	# cut points: every stretch boundary, in order; pieces between them
@@ -997,6 +1034,8 @@ func _build_road() -> void:
 	for rs in states:
 		cuts.append(clampi(int(floor(float(rs.get("from", 0.0)) * n)), 1, n - 2))
 		cuts.append(clampi(int(floor(float(rs.get("to", 0.0)) * n)), 1, n - 2))
+	for st in steps:
+		cuts.append(clampi(st, 1, n - 2))
 	cuts.append(n - 1 if open else n)
 	cuts.sort()
 	var uniq := []
@@ -1007,7 +1046,9 @@ func _build_road() -> void:
 		var a: int = uniq[i]
 		var b: int = uniq[i + 1]
 		var sub := PackedVector2Array()
-		for j in range(a, mini(b + 1, n)):
+		# a piece that ends at a ledge stops one point short, so no strip hangs down the shaft
+		var last := mini(b + 1, n) if not steps.has(b) else b
+		for j in range(a, last):
 			sub.append(points[j])
 		if not open and b == n:
 			sub.append(points[0])

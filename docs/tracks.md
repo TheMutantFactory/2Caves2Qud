@@ -181,13 +181,25 @@ sway is the preview, the built course rotates about its centre as one piece, and
 hazards and pickups follow because every height comes from the same function. The grade
 under the kart includes the lean, so the fast line really does change with it.
 
+## Steps and shafts
+
+A profile keypoint marked `step` is a ledge: the height holds until that point and jumps
+there, the road is cut so no strip hangs down the face, and the ground shelf forms the shaft
+wall. A kart carries its absolute height from step to step, so when the road under it drops
+away it keeps its height and falls under gravity with a third of its steering (the bible's
+"controlled shaft drop with an aerial steering choice"), landing with a thud and a puff.
+A small riser works the other way: the kart pops up it, which is a stair. Golgotha's two
+shaft drops are real drops now (its jump pads there are gone), Eyn Roj dives through the
+hole between the mirrored leaves, Red Rock drops through the cracked opening, and the Thin
+World's unsupported stair climbs three risers. `--hazard-log` prints `drop: <kart> fell N px`.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
 to data. The big ones:
 
-- **Steps and shafts.** Elevation is a smooth profile; Golgotha's shaft drops and the
-  Tomb's stairwell are slopes, not falls.
+- **Falls that end the line.** A fall lands on the road below; the bible's deep hazards
+  that return the kart through a different line (the Thin World's void) are not modelled.
 - **Movers that change the map**: the drillbot's holes in the wall, a collapsing conveyor;
   a mover sweeps, it does not cut.
 - **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
@@ -198,5 +210,5 @@ to data. The big ones:
   plus a lap-3 bypass) and routes that split more than once.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-What is left is shape: steps and shafts where a slope stands in for a drop, and movers that
-cut the map rather than sweep it.
+What is left: movers that cut the map rather than sweep it, and the Thin World's fall that
+returns the kart through a different line.

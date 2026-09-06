@@ -42,6 +42,11 @@ var net_heading := 0.0
 var stun_t := 0.0
 var slip_t := 0.0
 var air_t := 0.0          # a jump pad's hop: no off-road drag, drawn lifted on an arc
+var alt := 0.0            # height above the road under the kart (px): falling off a ledge
+var vz := 0.0             # vertical speed of that fall (px/s)
+var abs_h := 0.0          # the kart's absolute height last step
+var landed_from := 0.0    # set for one step when a fall ends: how far it fell (px)
+const GRAVITY := 1400.0
 var branch := -1          # the parallel route this kart is on (Track.branches index), -1 = the loop
 var branch_idx := 0       # its sample along that branch
 var branch_choice := -1   # an AI kart's pick at the next fork
@@ -274,9 +279,10 @@ func launch(seconds: float, strength: float) -> void:
 
 
 func lift_px() -> float:
-	if air_t <= 0.0 or air_len <= 0.0:
-		return 0.0
-	return sin(PI * (1.0 - air_t / air_len)) * 55.0
+	var hop := 0.0
+	if air_t > 0.0 and air_len > 0.0:
+		hop = sin(PI * (1.0 - air_t / air_len)) * 55.0
+	return maxf(hop, alt)
 
 
 func add_boost(name: String, strength: float, time: float) -> void:
@@ -325,11 +331,25 @@ func apply_control(dt: float, throttle: float, steer: float, drift: bool, track:
 	var on_road := track.on_road(pos, next_wp)
 	# the road's grade: uphill caps speed and drags, downhill frees it (authored elevation)
 	var grade := clampf(track.grade(pos, forward()), -0.4, 0.4)   # the shelf's off-road edge is steeper than any road
-	if grade != 0.0 and air_t <= 0.0:
+	if grade != 0.0 and air_t <= 0.0 and alt <= 0.0:
 		vel += forward() * (-grade) * 420.0 * dt
 	if air_t > 0.0:
 		air_t = maxf(0.0, air_t - dt)
 		on_road = true             # airborne: whatever is below does not slow the kart
+	# a ledge: the road under the kart dropped away, so it falls until it meets the road again
+	landed_from = 0.0
+	var ground_h := track.height_px(pos)
+	if alt <= 0.0 and abs_h - ground_h > 30.0 and abs_h != 0.0:
+		alt = abs_h - ground_h        # drove off a step: keep the old height, start falling
+		vz = 0.0
+	if alt > 0.0:
+		vz -= GRAVITY * dt
+		alt = maxf(0.0, alt + vz * dt)
+		on_road = true
+		if alt <= 0.0:
+			landed_from = -vz / GRAVITY * (-vz) * 0.5   # the height it fell, back from the speed
+			vz = 0.0
+	abs_h = ground_h + alt
 	var stunned := stun_t > 0.0
 	if stunned:
 		throttle = 0.0
@@ -389,6 +409,8 @@ func apply_control(dt: float, throttle: float, steer: float, drift: bool, track:
 
 	var grip := float(D.get("grip", 1.7)) if drifting else GRIP
 	grip *= 1.0 + 0.2 * track.banking(pos)      # a banked corner holds the kart
+	if alt > 0.0:
+		grip *= 0.35                               # in the air: some steering, not much
 	if slip_t > 0.0:
 		grip *= 0.12
 	if not on_road:

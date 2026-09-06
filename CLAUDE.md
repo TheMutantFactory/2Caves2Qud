@@ -216,9 +216,19 @@ adds `lean_h` so Race-owned things (karts, hazards, boxes) match. `height_px` = 
 authored + camber + lean. Build prints `camber: <key> N px, steepest bank M px`; the log
 prints `lap N: lean dx,dy`.
 
-Next: steps/shafts (a drop, not a slope) and map-cutting movers are all that is left of the
-bible's list; otherwise the courses are complete as data and the work moves to balance and
-the racer select's remaining items (docs/racer-select.md).
+STEPS + SHAFTS (2026-09-06): profile keypoint `[at, h, "step"]` → `Track.steps` (route
+indices = ceil(at*n), the first sample with the new height — floor was off by one and lerped
+across the cliff), the road pieces cut there WITHOUT sharing the point (no vertical strip),
+the shelf grid makes the shaft wall. Near the road `authored_height` is the EXACT route
+height interpolated along the segment (`_route_lateral.along`), never across a step; the
+grid (160 px cells) only serves the far field — a grid-smoothed ledge was a ramp and karts
+fell in pieces. Camber's `bank` is interpolated the same way. Kart: `alt`/`vz`/`abs_h` — when `abs_h - height_px(pos) > 12` the
+kart falls (GRAVITY 1400 px/s², grip ×0.35 in the air), `landed_from` for one step, Race plays
+the thud + effect and logs `drop: <kart> fell N px`. Build prints `... N steps`.
+
+Next: map-cutting movers and the Thin World's void fall are all that is left of the bible's
+list; otherwise the courses are complete as data and the work moves to balance (the AI field
+is lethal at higher realms) and the racer select's remaining items (docs/racer-select.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

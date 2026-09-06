@@ -1379,6 +1379,12 @@ func _physics_process(dt: float) -> void:
 		if use and kart.item != "" and state == RACING:
 			_net_ev(["item", kart.net_id, kart.item])
 			Items.use(self, kart)
+		if kart.landed_from > 60.0:      # a ledge, not a bump
+			spawn_effect(QUD.effect("physical"), kart.position, 6, 0.05, -1.0, 1.2)
+			if kart.is_player:
+				play("sfx_throwing_stone_large_impact", -10.0)
+			if hazard_log:
+				print("drop: %s fell %d px t=%.1f" % [kart.display_name, int(kart.landed_from), t])
 		if track.advance(kart):
 			if track.open:
 				pass                        # a section race has no lap rule: the far end is the finish
