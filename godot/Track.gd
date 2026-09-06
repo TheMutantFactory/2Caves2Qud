@@ -1584,6 +1584,23 @@ func struts_update(human_positions: Array) -> int:
 	return clear
 
 
+# ---------------------------------------------------------------- polyps (Palladium)
+
+# The soft gates of the skill route (spec "polyps": [{at, side}], "sunslag": which one
+# hides the fixed sunslag boost): positions on the loop for Race to grow, pluck and regrow.
+func polyp_spots() -> Array:
+	var out := []
+	var sun := int(spec.get("sunslag", -1))
+	var i := 0
+	for pl in spec.get("polyps", []):
+		var idx := int(floor(float(pl.get("at", 0.0)) * n)) % n
+		var d := direction_at(idx)
+		var nrm := Vector2(-d.y, d.x)
+		out.append({"pos": points[idx] + nrm * float(pl.get("side", 0.0)) * width * 0.5, "sunslag": i == sun, "id": i})
+		i += 1
+	return out
+
+
 # ---------------------------------------------------------------- queries
 
 # Nearest point on the loop. hint < 0 searches everything; otherwise a window

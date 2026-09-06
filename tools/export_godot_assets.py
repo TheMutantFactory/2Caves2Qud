@@ -446,6 +446,9 @@ PICKUP_ICONS = {
     "lightning_form": ("Items/sw_injector.bmp", "R", "Y"),
     "freeze": ("Items/sw_grenade_mki.bmp", "C", "Y"),
     "wolf": ("Creatures/sw_snapjaw.bmp", "w", "R"),
+    # Palladium's polyps (Race._spawn_polyps): a coral ball to pluck, the sunslag bulb it may reveal
+    "polyp": ("Terrain/sw_coral_ball_2.bmp", "r", "R"),
+    "sunslag": ("Terrain/sw_sunslag_bulb_even.bmp", "W", "Y"),
 }
 
 

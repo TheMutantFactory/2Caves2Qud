@@ -270,11 +270,31 @@ the wizard takes `hit: hazard 3.0` from a vent. Screenshots around the first jel
 the trellis strut before it hiding the lane, which is the course working as designed, so
 the log is the proof here. What is left of the course file: the sunslag polyps.
 
+## The sunslag polyps
+
+Palladium's skill route, from its file: pluck three soft polyps on a tight inside
+sequence; one reveals a fixed sunslag boost each lap, the others ordinary boost charge,
+and lap 3 lights the correct one with a faint golden pulse on approach. The spec is
+`polyps` (`at`, `side`) and `sunslag` (which of them hides the bulb, fixed for competitive
+play). `Race._spawn_polyps` grows a coral polyp (Qud's coral ball, exported as the `polyp`
+icon) at each; driving within a kart's reach plucks it with a burst of green: the sunslag
+one gives a 0.6 boost for 2.5 s and pops Qud's sunslag bulb up out of the spot for a
+moment (the reveal), the others give two coins of boost charge. Plucked polyps stay gone
+until the leader's next lap regrows them, and from lap 3 the sunslag polyp pulses gold.
+Palladium's three sit on the inside of the market shelf's bend at 0.44–0.48, the second
+the sunslag.
+
+Probe: `--hazard-log` prints `polyp: 3 grown, sunslag is 1`, `polyp: <kart> plucks N
+charge|sunslag`, `polyp: regrow lap L` and `regrow lap 3  sunslag glows gold`. Over three
+laps the first kart through plucked all three each lap (the same racer twice), the sunslag
+among them. Palladium's course file is complete.
+
 ## What the bible asks for that the engine cannot build yet
 
 Nothing on the bible's list is left as a rule the engine cannot express. The graybox pass
 (docs/graybox.md) measured the AI field on every course and stretched the loops to the
 bible's lap times; the AI field's damage and the lap rule are balanced (docs/balance.md).
 The section races were re-routed as three regions each and run to their targets, and Eyn
-Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts and its
-venting plasma jellies. What remains is the haptics, which want a controller in hand.
+Roj has its psychic overlays and ghost echoes, Palladium its occlusion struts, its venting
+plasma jellies and its sunslag polyps. What remains is the haptics, which want a
+controller in hand.

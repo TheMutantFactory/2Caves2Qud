@@ -3349,6 +3349,21 @@
      "gold"
     ]
    ],
+   "polyps": [
+    {
+     "at": 0.44,
+     "side": 0.55
+    },
+    {
+     "at": 0.46,
+     "side": 0.55
+    },
+    {
+     "at": 0.48,
+     "side": 0.55
+    }
+   ],
+   "sunslag": 1,
    "spells": [
     "Laser Rifle",
     "Arc Winder",
@@ -3359,9 +3374,7 @@
     "Hand Rail",
     "Rubbergum Injector"
    ],
-   "gaps": [
-    "sunslag polyp boost pockets per lap"
-   ],
+   "gaps": [],
    "size": [
     6840.0,
     4560.0

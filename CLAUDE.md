@@ -269,6 +269,11 @@ PLASMA JELLIES (2026-09-06): hazard kind `jelly` → `Track.hazard_spots` expand
 sprite for JELLY_CHARGE s before the vent. Probe `jelly: N charging / vents` under
 --hazard-log. GOTCHA: a key set on a hazard SPOT must be copied into the course_hazards
 ENTRY (the spawner rebuilds the dict) — the first probe cycled the patches with no jelly.
+SUNSLAG POLYPS (2026-09-06): spec `polyps` + `sunslag` → `Track.polyp_spots`, `Race._spawn_polyps
+/_update_polyps/_regrow_polyps` (regrow in `_apply_lap_sets`); icons `polyp`/`sunslag` from
+Qud's coral ball / sunslag bulb via PICKUP_ICONS in the exporter. Probe `polyp:` lines under
+--hazard-log. GOTCHA: inserting a call "at the end of a function" by text — check the
+function really ends there (a trailing comment + var block bit twice).
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).

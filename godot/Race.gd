@@ -684,6 +684,11 @@ const HAZARD_KINDS := {
 	"plasma": {"tex": "cloud_thunder_cloud", "dtype": "Lightning", "damage": 3.0, "slip": false, "stun": 0.6, "tint": Color(0.45, 0.75, 1.0)},
 }
 const JELLY_CHARGE := 2.0          # seconds of swelling before a plasma jelly vents
+const POLYP_RADIUS := 64.0         # px: driving this close plucks a polyp
+const SUNSLAG_BOOST := [0.6, 2.5]  # the fixed sunslag boost: strength, seconds
+const POLYP_CHARGE := 2            # coins an ordinary polyp gives (boost charge)
+const SUNSLAG_GLOW_LAP := 3        # from this lap the sunslag polyp pulses gold on approach
+var polyps: Array = []             # [{pos, sprite, reveal, sunslag, plucked, id}]
 const JUMP_SECONDS := 0.9
 const JUMP_BOOST := 0.35
 
@@ -747,6 +752,7 @@ func _spawn_track_hazards() -> void:
 			entry["jelly"] = spot["jelly"]
 		course_hazards.append(entry)
 		n += 1
+	_spawn_polyps()
 	# movers: the same hazard node, carried along its path each frame
 	for mv in track.mover_paths():
 		var spec: Dictionary = HAZARD_KINDS.get(String(mv["kind"]), HAZARD_KINDS["cart"])
@@ -815,6 +821,7 @@ func _leader_lap() -> int:
 
 func _apply_lap_sets(lap: int) -> void:
 	course_lap = lap
+	_regrow_polyps(lap)
 	for change in track.apply_lap(lap):       # branches appearing, road stretches changing state
 		if hazard_log:
 			print("%s %d: %s" % [track.stage_name().to_lower(), lap, change])
@@ -857,6 +864,8 @@ func _update_course_hazards(dt: float) -> void:
 				g["stuck"] += dt
 	if hazard_log and player != null and player.alive and Engine.get_physics_frames() % 300 == 0:
 		print("player: t=%.0f road=%s wp=%d/%d branch=%d speed=%d rank=%d h=%d grade=%.2f" % [t, track.on_road(player.pos, player.next_wp), player.next_wp, track.n, player.branch, int(player.speed()), player.rank, int(track.height_px(player.pos)), track.grade(player.pos, player.forward())])
+	if not polyps.is_empty() and state == RACING:
+		_update_polyps(dt)
 	if course_hazards.is_empty():
 		return
 	var lap := _leader_lap()
@@ -908,6 +917,86 @@ func _update_course_hazards(dt: float) -> void:
 						play("sfx_ability_jump", -4.0)
 					if hazard_log:
 						print("jump: %s t=%.2f" % [kart.display_name, t])
+
+
+# ---------------------------------------------------------------- polyps (Palladium)
+#
+# Soft gates on the skill route: a kart drives through a polyp and plucks it. One of the
+# three hides the fixed sunslag boost (the bulb is revealed as it pops), the others give
+# ordinary boost charge (coins). They regrow with each lap of the leader, and from lap 3
+# the sunslag one pulses gold on approach: memory first, then a marked reward.
+func _spawn_polyps() -> void:
+	for spot in track.polyp_spots():
+		var spr := Sprite3D.new()
+		spr.texture = QUD.icon("polyp")
+		spr.pixel_size = Track.U * 1.1
+		spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+		spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		spr.position = track.to3(spot["pos"], 34.0)
+		add_child(spr)
+		var rv := Sprite3D.new()
+		rv.texture = QUD.icon("sunslag")
+		rv.pixel_size = Track.U * 1.1
+		rv.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+		rv.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		rv.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		rv.position = track.to3(spot["pos"], 34.0)
+		rv.visible = false
+		add_child(rv)
+		polyps.append({"pos": spot["pos"], "sprite": spr, "reveal": rv, "sunslag": bool(spot["sunslag"]), "plucked": false, "id": int(spot["id"]), "reveal_t": 0.0})
+	if not polyps.is_empty() and hazard_log:
+		print("polyp: %d grown, sunslag is %d" % [polyps.size(), int(track.spec.get("sunslag", -1))])
+
+
+func _update_polyps(dt: float) -> void:
+	var glow := course_lap >= SUNSLAG_GLOW_LAP
+	for pl in polyps:
+		var spr: Sprite3D = pl["sprite"]
+		var rv: Sprite3D = pl["reveal"]
+		if float(pl["reveal_t"]) > 0.0:
+			pl["reveal_t"] = float(pl["reveal_t"]) - dt
+			rv.visible = float(pl["reveal_t"]) > 0.0
+			rv.position.y = (34.0 + 20.0 * (1.5 - float(pl["reveal_t"]))) * Track.U
+		if bool(pl["plucked"]):
+			continue
+		if glow and bool(pl["sunslag"]):
+			var k := 0.5 + 0.5 * sin(t * 4.0)
+			spr.modulate = Color(1.0, 0.85 + 0.15 * k, 0.35 + 0.35 * k)
+		else:
+			spr.modulate = Color.WHITE
+		for kart in karts:
+			if not kart.alive or kart.air_t > 0.0:
+				continue
+			if kart.pos.distance_to(pl["pos"]) > POLYP_RADIUS + kart.RADIUS:
+				continue
+			pl["plucked"] = true
+			spr.visible = false
+			spawn_effect(QUD.effect("nature"), spr.position, 6, 0.06, -1.0, 1.3)
+			if bool(pl["sunslag"]):
+				kart.add_boost("sunslag", float(SUNSLAG_BOOST[0]), float(SUNSLAG_BOOST[1]))
+				pl["reveal_t"] = 1.5
+				rv.visible = true
+				if kart.is_player:
+					play("sfx_ability_jump", -2.0)
+					say("SUNSLAG!", 1.2)
+			else:
+				kart.coins = mini(int(C.get("coin_max", 6)), kart.coins + POLYP_CHARGE)
+				if kart.is_player:
+					play("item_pickup", -4.0)
+			if hazard_log:
+				print("polyp: %s plucks %d %s t=%.2f" % [kart.display_name, int(pl["id"]), "sunslag" if bool(pl["sunslag"]) else "charge", t])
+			break
+
+
+func _regrow_polyps(lap: int) -> void:
+	if polyps.is_empty():
+		return
+	for pl in polyps:
+		pl["plucked"] = false
+		(pl["sprite"] as Sprite3D).visible = true
+	if hazard_log:
+		print("polyp: regrow lap %d%s" % [lap, "  sunslag glows gold" if lap >= SUNSLAG_GLOW_LAP else ""])
 
 
 # A plasma jelly charges with a bright swelling for JELLY_CHARGE seconds, vents across its

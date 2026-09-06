@@ -330,8 +330,12 @@ COURSES = [
                  strut(0.34, 0.55, 0.9, -15), strut(0.41, -0.45, 1.0, 20), strut(0.47, 0.5, 0.8, 0),
                  strut(0.82, -1.5, 0.7, 0), strut(0.88, 1.5, 0.7, 0), strut(0.94, -1.5, 0.7, 0)],
          strut_strips=[[0.10, 0.50, "silver"], [0.78, 0.97, "gold"]],
+         # the polyps (Race._spawn_polyps): three soft gates on the inside of the market shelf's
+         # bend; the second hides the fixed sunslag boost, the others give boost charge; they
+         # regrow every lap and from lap 3 the sunslag one pulses gold on approach
+         polyps=[{"at": 0.44, "side": 0.55}, {"at": 0.46, "side": 0.55}, {"at": 0.48, "side": 0.55}], sunslag=1,
          spells=["Laser Rifle", "Arc Winder", "Salve Injector", "Eigenrifle", "Sphynx Salt Injector", "Plasma Grenade Mk I", "Hand Rail", "Rubbergum Injector"],
-         gaps=["sunslag polyp boost pockets per lap"]),
+         gaps=[]),
     dict(key="ydfreehold", name="Yd Freehold Pipeworks", cup="Reef Cup", cup_index=15, difficulty=3.5,
          format="3-lap circuit with parallel rooms (run as one line)", target_lap="78-88 s", skill="Room-route strategy",
          sentence="Follow Yd Freehold's dyed pipework through a lyrical surface community and choose among parallel underground rooms that trade speed, items, and technical difficulty.",
