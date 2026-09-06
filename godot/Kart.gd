@@ -324,7 +324,7 @@ func _end_drift(release: bool) -> void:
 func apply_control(dt: float, throttle: float, steer: float, drift: bool, track: Track) -> void:
 	var on_road := track.on_road(pos, next_wp)
 	# the road's grade: uphill caps speed and drags, downhill frees it (authored elevation)
-	var grade := track.grade(pos, forward())
+	var grade := clampf(track.grade(pos, forward()), -0.4, 0.4)   # the shelf's off-road edge is steeper than any road
 	if grade != 0.0 and air_t <= 0.0:
 		vel += forward() * (-grade) * 420.0 * dt
 	if air_t > 0.0:
@@ -388,6 +388,7 @@ func apply_control(dt: float, throttle: float, steer: float, drift: bool, track:
 		heading += steer_s * turn * dt * (1.0 if along >= 0.0 else -1.0) * minf(1.0, ratio * 4.0)
 
 	var grip := float(D.get("grip", 1.7)) if drifting else GRIP
+	grip *= 1.0 + 0.2 * track.banking(pos)      # a banked corner holds the kart
 	if slip_t > 0.0:
 		grip *= 0.12
 	if not on_road:

@@ -817,6 +817,8 @@ func _update_course_hazards(_dt: float) -> void:
 			_update_thrower(c)
 			continue
 		var h: Items.Hazard = c["h"]
+		if track.leaning and not c.has("mover"):
+			h.position = track.to3(h.pos, 3.0)      # the course is tilting under it
 		if c.has("mover"):
 			var mv: Dictionary = c["mover"]
 			var was: Vector2 = h.pos

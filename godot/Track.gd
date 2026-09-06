@@ -102,6 +102,12 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	noise.frequency = float(Shared.t(["godot", "elevation_freq"], 0.0006))
 	_build_profile()
+	_build_camber()
+	if camber_px > 0.0:
+		var mx := 0.0
+		for b in bank:
+			mx = maxf(mx, absf(b))
+		print("camber: %s %d px, steepest bank %d px" % [key, int(camber_px), int(mx)])
 	if not hgrid.is_empty():
 		var lo := INF
 		var hi := -INF
@@ -563,6 +569,96 @@ func _build_profile() -> void:
 			hgrid[r * hg_cols + c] = profile_h[best_i] * (0.5 - 0.5 * cos(w * PI))
 
 
+# Camber (spec "camber", px across the road): corners bank, the outside edge raised by the
+# course's camber scaled by the local curvature. The leaning tree (spec "lean": {"2": [dx, dy]}):
+# the whole course tilts by lap, animated over a few seconds so the sway is the preview.
+var camber_px := 0.0
+var bank := PackedFloat32Array()       # per route point: signed bank height (px) at the road's edge
+var lean := Vector2.ZERO               # height per px of position, about the map centre
+var lean_target := Vector2.ZERO
+var leaning := false
+const LEAN_SECONDS := 3.0
+const CURVE_REF := 0.05                # rad per sample that counts as a full corner
+
+
+func _build_camber() -> void:
+	camber_px = float(spec.get("camber", 0.0)) * scale_k
+	bank.resize(n)
+	for i in n:
+		bank[i] = 0.0
+	if camber_px <= 0.0 or n < 8:
+		return
+	var raw := PackedFloat32Array()
+	raw.resize(n)
+	for i in n:
+		var a := direction_at((i - 1 + n) % n if not open else maxi(0, i - 1))
+		var b := direction_at((i + 1) % n if not open else mini(n - 1, i + 1))
+		raw[i] = a.x * b.y - a.y * b.x         # + turns toward +normal (the right)
+	for i in n:                                 # smooth over the corner
+		var acc := 0.0
+		var cnt := 0
+		for k in range(-6, 7):
+			var j := (i + k + n) % n if not open else clampi(i + k, 0, n - 1)
+			acc += raw[j]
+			cnt += 1
+		bank[i] = camber_px * clampf((acc / cnt) / CURVE_REF, -1.0, 1.0)
+
+
+# The route point nearest p and p's lateral offset from it (+ toward the normal).
+func _route_lateral(p: Vector2) -> Dictionary:
+	var best := INF
+	var bi := 0
+	for i in range(0, n, 2):
+		var d := p.distance_squared_to(points[i])
+		if d < best:
+			best = d
+			bi = i
+	var dir := direction_at(bi)
+	var nrm := Vector2(-dir.y, dir.x)
+	return {"i": bi, "lateral": (p - points[bi]).dot(nrm), "dist": sqrt(best)}
+
+
+func camber_at(p: Vector2) -> float:
+	if camber_px <= 0.0:
+		return 0.0
+	var rl := _route_lateral(p)
+	var half := width * 0.5
+	var lat: float = rl["lateral"]
+	var fade := 1.0 if absf(lat) <= half + 14.0 else clampf(1.0 - (absf(lat) - half - 14.0) / half, 0.0, 1.0)
+	# a right turn (bank > 0) raises the LEFT edge (negative lateral)
+	return -bank[rl["i"]] * clampf(lat / half, -1.0, 1.0) * fade
+
+
+# 0..1: how banked the road is under p (for the grip bonus).
+func banking(p: Vector2) -> float:
+	if camber_px <= 0.0:
+		return 0.0
+	var rl := _route_lateral(p)
+	if float(rl["dist"]) > width:
+		return 0.0
+	return absf(bank[rl["i"]]) / camber_px
+
+
+func lean_h(p: Vector2) -> float:
+	if lean == Vector2.ZERO:
+		return 0.0
+	var c := size * 0.5
+	return lean.x * (p.x - c.x) + lean.y * (p.y - c.y)
+
+
+func _process(dt: float) -> void:
+	if not leaning:
+		return
+	lean = lean.move_toward(lean_target, dt * lean_target.distance_to(Vector2.ZERO) / LEAN_SECONDS + dt * 0.002)
+	if lean.distance_to(lean_target) < 0.00005:
+		lean = lean_target
+		leaning = false
+	# the built course (Track's own meshes) tilts as a whole about the map centre
+	var c := Vector3(size.x * 0.5 * U, 0.0, size.y * 0.5 * U)
+	var b := Basis(Vector3(0, 0, 1), -atan(lean.x)) * Basis(Vector3(1, 0, 0), atan(lean.y))
+	transform = Transform3D(b, c - b * c)
+
+
 func authored_height(p: Vector2) -> float:
 	if hgrid.is_empty():
 		return 0.0
@@ -579,15 +675,15 @@ func authored_height(p: Vector2) -> float:
 
 
 func height_px(p: Vector2) -> float:
-	return noise.get_noise_2d(p.x, p.y) * elev_amp + authored_height(p)
+	return noise.get_noise_2d(p.x, p.y) * elev_amp + authored_height(p) + camber_at(p) + lean_h(p)
 
 
 # The road's grade under a kart: rise per px along `fwd` (positive = uphill).
 func grade(p: Vector2, fwd: Vector2) -> float:
-	if hgrid.is_empty():
+	if hgrid.is_empty() and lean == Vector2.ZERO:
 		return 0.0
 	var step := 60.0
-	return (authored_height(p + fwd * step) - authored_height(p - fwd * step)) / (2.0 * step)
+	return (authored_height(p + fwd * step) + lean_h(p + fwd * step) - authored_height(p - fwd * step) - lean_h(p - fwd * step)) / (2.0 * step)
 
 
 func to3(p: Vector2, lift_px := 0.0) -> Vector3:
@@ -938,6 +1034,15 @@ func _road_state_at(idx: int) -> String:
 # as strings for the log.
 func apply_lap(lap: int) -> Array:
 	var changes := []
+	var leans: Dictionary = spec.get("lean", {})
+	var want := Vector2.ZERO
+	if leans.has(str(lap)):
+		var v: Array = leans[str(lap)]
+		want = Vector2(float(v[0]), float(v[1]))
+	if want != lean_target:
+		lean_target = want
+		leaning = true
+		changes.append("lean %.3f,%.3f" % [want.x, want.y])
 	for b in branches.size():
 		var br: Dictionary = branches[b]
 		var gate: Array = br.get("laps", [])

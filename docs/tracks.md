@@ -167,6 +167,20 @@ a tenth of a lap. Slopes matter: the kart's top speed and acceleration follow th
 under it, so a descent runs away and a climb is earned. `--hazard-log`'s player line carries
 `h=` and `grade=`.
 
+## Camber and the leaning tree
+
+A course's `camber` banks its corners: the road's outer edge rises by the camber scaled by
+the local curvature (smoothed over the corner), the inner edge drops, and the banking fades
+out just past the curbs so the ground meets it. The kart gets a little more grip on a
+banked stretch, so a good line through Joppa's sweeper or Omonporch's court is held rather
+than fought. Ten courses have camber, Omonporch the most.
+
+Chavvah's `lean` tilts the whole course by lap: level on lap 1, toward the branch transfer
+on lap 2, back toward the terrace on lap 3. The tilt animates over three seconds so the
+sway is the preview, the built course rotates about its centre as one piece, and karts,
+hazards and pickups follow because every height comes from the same function. The grade
+under the kart includes the lean, so the fast line really does change with it.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
@@ -178,11 +192,11 @@ to data. The big ones:
   a mover sweeps, it does not cut.
 - **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
   level; the branch-to-branch transfers and the shaft drops stay on one road.
-- **Camber and lean** (Chavvah's tilting tree, Moon Stair's rule changes beyond the pads):
-  the road's shape never changes, only whether a stretch or a branch is road.
+- **Rule changes beyond the pads** (Moon Stair's Twinned lap, the Thin World's echo road):
+  a lap can change what is road and where the pads are, not the driving rules.
 - **A third room** (Yd Freehold has two branches and the loop; the bible has three rooms
   plus a lap-3 bypass) and routes that split more than once.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: camber, the
-leaning tree, and steps.
+What is left is shape: steps and shafts where a slope stands in for a drop, and movers that
+cut the map rather than sweep it.

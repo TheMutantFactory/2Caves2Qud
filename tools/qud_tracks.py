@@ -531,6 +531,13 @@ PROFILES = {
     "thinworld": [[0, 0], [0.3, 200], [0.5, 360], [0.7, 100], [1, 0]],
 }
 
+# Camber (px across the road at a full corner, unscaled) and the leaning tree (lean per lap:
+# height per px of position about the map centre; Chavvah leans toward the branch transfer on
+# lap 2 and back toward the terrace on lap 3).
+CAMBER = {"joppa": 20, "stilt": 15, "kyakukya": 30, "chavvah": 25, "hinnom": 15, "moonstair": 20,
+          "omonporch": 40, "thinworld": 25, "redrock": 15, "asphalt": 15}
+LEAN = {"chavvah": {2: [0.012, 0.0], 3: [-0.008, 0.006]}}
+
 CUPS = ["Fresh Water Cup", "Chrome Cup", "Canopy Cup", "Reef Cup", "Spindle Cup"]
 
 
@@ -565,6 +572,10 @@ def build():
             t["movers"] = MOVERS[t["key"]]
         if t["key"] in PROFILES:
             t["profile"] = PROFILES[t["key"]]
+        if t["key"] in CAMBER:
+            t["camber"] = CAMBER[t["key"]]
+        if t["key"] in LEAN:
+            t["lean"] = {str(k): v for k, v in LEAN[t["key"]].items()}
         if t["key"] in THROWERS:
             t["throwers"] = THROWERS[t["key"]]
         t["control"] = [[int(x), int(y)] for x, y in t["control"]]

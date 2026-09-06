@@ -207,8 +207,18 @@ height faded by distance: full to 1.5 widths, gone by 4); `height_px` = noise + 
 (bilinear); `grade(p, fwd)`; Kart caps top speed by grade (0.72..1.22) and adds a slope push.
 Build prints `elevation: <key> authored lo..hi px`. The probe line has `h=` / `grade=`.
 
-Next, in order:
-1. Camber, the leaning tree, steps (docs/tracks.md).
+CAMBER + LEAN (2026-09-05): spec `camber` → `Track._build_camber` (signed curvature smoothed
+±6 samples, `bank[i]`), `camber_at(p)` via `_route_lateral` (stride-2 nearest scan — cheap
+enough per to3 call; the ground build pays ~5M ops once), `banking(p)` → +20% grip in Kart.
+spec `lean` {lap: [dx, dy]} → `apply_lap` sets `lean_target`, `Track._process` animates
+`lean` over 3 s AND rotates the Track node about the map centre so built meshes tilt; `to3`
+adds `lean_h` so Race-owned things (karts, hazards, boxes) match. `height_px` = noise +
+authored + camber + lean. Build prints `camber: <key> N px, steepest bank M px`; the log
+prints `lap N: lean dx,dy`.
+
+Next: steps/shafts (a drop, not a slope) and map-cutting movers are all that is left of the
+bible's list; otherwise the courses are complete as data and the work moves to balance and
+the racer select's remaining items (docs/racer-select.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.
