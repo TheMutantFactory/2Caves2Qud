@@ -127,8 +127,11 @@ have no Mutations.xml entry) + the creature's inventory weapons that are item re
 `monsters.json[].spells`, ranged-damaging first (the engine picks the first such). 284/904
 armed. `Race.gd` gained `--type=gp|campaign|single` for CLI tests. Probe: a campaign race's
 `race:` tally — monster abilities land in the `bolt` (projectiles), `hazard` (patches) and
-`wolf` (summons) buckets, not `ability` (that bucket is melee). Realm 12 seed 8 killed the
-auto-driven player: tune `campaign.ability_damage_by_band` in tuning.json if that's too hot.
+`wolf` (summons) buckets, not `ability` (that bucket is melee). Damage by band is TUNED
+(docs/balance.md): `ability_damage_by_band` fitted to a per-band median hit, a 20% per-hit
+cap, a 2.5 s mercy window after a monster hit. `hit:` lines under `--hazard-log` are the probe.
+The engine reads tuning from the STORE copy (`godot/qud/shared/tuning.json`): copy or re-export
+after editing `shared/tuning.json`, or a probe silently measures the old values.
 
 PER-WEAPON SOUNDS (2026-09-05): there is NO Sounds.xml in Qud's data — sounds are TAGS on the
 blueprints (`MissileFireSound`, `SwingSound`, `ThrownSound`, `DetonatedSound`, projectile
@@ -233,8 +236,10 @@ the path from `Track.blocks_along`; `Track._build_cut_walls` lays the rock run a
 sinks the kart 1 s (`Kart.void_t`) then `return_point` (past the stretch, +3 samples). Probe:
 `cut: <mover> cut N wall blocks, opens <branch>`, `void: <kart> falls / returns at`.
 
-The bible's engine list is COMPLETE. Next: balance (ability damage by band, lap damage), a
-graybox pass over the authored loops, the racer select extras (docs/racer-select.md).
+The bible's engine list is COMPLETE. BALANCE (2026-09-06): the AI field's damage by band is
+tuned (docs/balance.md; 0 deaths in 18 auto-player races, was 11). Next: lap damage for a
+trailing player, a graybox pass over the authored loops, the racer select extras
+(docs/racer-select.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

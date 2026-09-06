@@ -362,6 +362,12 @@ func _ability_spell_from(spells: Array, band: int) -> Dictionary:
 	if float(e.get("damage", 0.0)) <= 0.0 and String(e["kind"]) in ["bolt", "beam", "blast", "melee", "burst"]:
 		e["damage"] = 3.0 + band
 	e["damage"] = float(e.get("damage", 0.0)) * dmg_scale
+	# no single ability takes more than a share of the wizard's health (Spacetime Vortex at
+	# band 9 is a one-shot otherwise); the scale above is fitted so the band's median hit
+	# lands at 2.5 HP (band 1) to 5.3 HP (band 9), see docs/balance.md
+	var cap := float(C.get("ability_damage_cap_pct", 1.0)) * Campaign.max_hp
+	if String(e["kind"]) != "summon":
+		e["damage"] = minf(float(e["damage"]), cap)
 	return owned
 
 
@@ -2535,9 +2541,19 @@ func _guest_state(msg: Array) -> void:
 
 # ---------------------------------------------------------------- damage
 
+var player_mercy_until := 0.0   # a monster ability that lands starts a mercy window: the start-pack volley is one hit, not seven
+
+
 func hit_kart(target: Kart, damage: float, dtype: String, source: Kart, stun_time: float, cause := "bolt") -> void:
 	if guest or not target.alive:   # guests only draw hits the host reports
 		return
+	if target.is_player and cause in ["bolt", "hazard"] and source != null and not source.is_player:
+		if t < player_mercy_until:
+			target.hit_flash = 0.2
+			if hazard_log:
+				print("hit: mercy %.1f from %s t=%.1f" % [damage, source.display_name, t])
+			return
+		player_mercy_until = t + float(C.get("ability_hit_mercy", 0.0))
 	if target.shields > 0:
 		target.shields -= 1
 		spawn_effect(QUD.effect("shield_expire"), target.position + Vector3(0, 30 * Track.U, 0), 6)
@@ -2549,6 +2565,8 @@ func hit_kart(target: Kart, damage: float, dtype: String, source: Kart, stun_tim
 	if target.is_player:
 		tally[cause] = float(tally.get(cause, 0.0)) + damage
 		play("hit_player")
+		if hazard_log:
+			print("hit: %s %.1f from %s hp=%.0f t=%.1f" % [cause, damage, source.display_name if source != null else "-", maxf(0.0, Campaign.hp - damage), t])
 	else:
 		if source != null and source.is_player:
 			tally["dealt"] += damage
