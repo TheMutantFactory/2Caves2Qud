@@ -122,6 +122,7 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	_build_mover_marks()
 	_build_start_line()
 	_build_scenery(rng)
+	_build_cut_walls()
 
 
 # ---------------------------------------------------------------- city
@@ -392,6 +393,9 @@ func _wall_family() -> String:
 
 # One voxel wall block at a world-px position, its front face turned to `facing`
 # (the direction a viewer stands in). Blocks are WALL_PX wide, the old sprite pitch.
+var scenery_blocks: Array = []     # [{node, pos}] the wall blocks beside the road (a mover can cut them)
+
+
 func _wall_block(fam: String, variant: String, p: Vector2, facing: Vector2, parent: Node) -> bool:
 	var mi := QudVox.block(fam, variant, WALL_PX / 16.0, U)
 	if mi == null:
@@ -399,6 +403,7 @@ func _wall_block(fam: String, variant: String, p: Vector2, facing: Vector2, pare
 	mi.position = to3(p)
 	mi.rotation.y = atan2(facing.x, facing.y)
 	parent.add_child(mi)
+	scenery_blocks.append({"node": mi, "pos": p})
 	return true
 
 
@@ -892,7 +897,8 @@ func _build_branches() -> void:
 		branches.append({"name": String(b.get("name", "route %d" % (bi + 1))), "kind": kind, "pts": pts,
 			"from_i": from_i, "to_i": to_i, "width": w, "ai_take": float(b.get("ai_take", 0.4)),
 			"hazards": b.get("hazards", []), "laps": b.get("laps", []), "live": true,
-			"bypass": bool(b.get("bypass", false)), "mesh": mesh, "curbs": curbs, "color": color})
+			"bypass": bool(b.get("bypass", false)), "mesh": mesh, "curbs": curbs, "color": color,
+			"sealed": bool(b.get("sealed", false))})     # sealed: not a route until a mover cuts it open
 		bi += 1
 	if bi > 0:
 		print("branches: %d parallel routes (%s): %s" % [bi, key, ", ".join(branches.map(func(b): return "%s %s" % [b["name"], b["kind"]]))])
@@ -920,7 +926,8 @@ func mover_paths() -> Array:
 			total += l
 		out.append({"name": String(m.get("name", "mover")), "kind": String(m.get("kind", "cart")), "pts": pts, "seg": seg, "length": total,
 			"period": float(m.get("period", 6.0)), "mode": String(m.get("mode", "pingpong")), "radius": float(m.get("radius", 140.0)),
-			"laps": m.get("laps", []), "phase": float(m.get("phase", 0.0))})
+			"laps": m.get("laps", []), "phase": float(m.get("phase", 0.0)),
+			"cuts_walls": bool(m.get("cuts_walls", false)), "opens": String(m.get("opens", ""))})
 	return out
 
 
@@ -1087,7 +1094,7 @@ func apply_lap(lap: int) -> Array:
 	for b in branches.size():
 		var br: Dictionary = branches[b]
 		var gate: Array = br.get("laps", [])
-		var live := gate.is_empty() or gate.has(lap) or gate.has(float(lap))
+		var live := (gate.is_empty() or gate.has(lap) or gate.has(float(lap))) and not bool(br["sealed"])
 		if live != bool(br["live"]):
 			br["live"] = live
 			_set_branch_live(br, live)
@@ -1129,6 +1136,59 @@ func _set_branch_live(br: Dictionary, live: bool) -> void:
 		mat.albedo_color = Color(0.7, 0.8, 0.9, 0.22)      # the preview of a road to come
 	for c in br["curbs"]:
 		(c as MeshInstance3D).visible = live
+
+
+# A mover cut its way through: the sealed branch becomes a route.
+func unseal_branch(name: String) -> bool:
+	for br in branches:
+		if String(br["name"]) == name and bool(br["sealed"]):
+			br["sealed"] = false
+			br["live"] = true
+			_set_branch_live(br, true)
+			return true
+	return false
+
+
+# The wall blocks within `radius` of a mover's path, each with the path distance at which the
+# mover reaches it, so they can be cut as it passes.
+func blocks_along(mv: Dictionary, radius: float) -> Array:
+	var out := []
+	var pts: PackedVector2Array = mv["pts"]
+	var seg: PackedFloat32Array = mv["seg"]
+	for blk in scenery_blocks:
+		var p: Vector2 = blk["pos"]
+		var s := 0.0
+		for j in range(pts.size() - 1):
+			var q := Geometry2D.get_closest_point_to_segment(p, pts[j], pts[j + 1])
+			if p.distance_to(q) <= radius:
+				out.append({"node": blk["node"], "pos": p, "s": s + pts[j].distance_to(q)})
+				break
+			s += seg[j]
+	return out
+
+
+# The void: a kart that falls off this course (spec void_offroad, beyond void_margin px past
+# the curbs) or into a gap/void stretch is returned to the road a little further on.
+func void_here(p: Vector2, hint: int) -> bool:
+	var near := nearest(p, hint)
+	if int(near.get("branch", -1)) >= 0:
+		return false
+	var idx := int(near["idx"])
+	var half := width * 0.5
+	if not road_pieces.is_empty() and near.dist <= half and _road_state_at(idx) in ["gap", "void"]:
+		return true
+	if bool(spec.get("void_offroad", false)) and near.dist > half + 14.0 + float(spec.get("void_margin", 60.0)) * scale_k:
+		return true
+	return false
+
+
+func return_point(hint: int) -> Dictionary:
+	var idx := hint
+	if not road_pieces.is_empty():
+		while _road_state_at(idx) in ["gap", "void"] and idx < n - 1:
+			idx += 1
+	idx = (idx + 3) % n if not open else mini(n - 2, idx + 3)
+	return {"idx": idx, "pos": points[idx], "dir": direction_at(idx)}
 
 
 func branch_live(b: int) -> bool:
@@ -1216,6 +1276,38 @@ func _build_scenery(rng: RandomNumberGenerator) -> void:
 		placed += 1
 	if fam != "":
 		print("walls: %d voxel scenery blocks (%s)" % [placed, fam])
+
+
+# The rock a map-cutting mover bores through: a run of wall blocks along its path from the
+# curb outward, faces turned back toward the road. Random scenery rarely sits on the path,
+# so the cut is authored here and the mover frees these blocks as it passes them.
+func _build_cut_walls() -> void:
+	var fam := _wall_family()
+	if fam == "":
+		return
+	var holder := Node3D.new()
+	holder.name = "CutWalls"
+	add_child(holder)
+	var half := width * 0.5
+	var placed := 0
+	for mv in mover_paths():
+		if not bool(mv["cuts_walls"]):
+			continue
+		var pts: PackedVector2Array = mv["pts"]
+		for j in range(pts.size() - 1):
+			var a := pts[j]
+			var b := pts[j + 1]
+			var along := (b - a).normalized()
+			var facing := -along
+			var count := int(floor(a.distance_to(b) / WALL_PX))
+			for k in range(count + 1):
+				var q := a + along * k * WALL_PX
+				if nearest(q, -1).dist < half + 8.0:
+					continue
+				if _wall_block(fam, QudVox.run_variant(k, count + 1, along, facing), q, facing, holder):
+					placed += 1
+	if placed > 0:
+		print("walls: %d voxel blocks across the cuts (%s)" % [placed, fam])
 
 
 # ---------------------------------------------------------------- queries

@@ -226,9 +226,15 @@ fell in pieces. Camber's `bank` is interpolated the same way. Kart: `alt`/`vz`/`
 kart falls (GRAVITY 1400 px/s², grip ×0.35 in the air), `landed_from` for one step, Race plays
 the thud + effect and logs `drop: <kart> fell N px`. Build prints `... N steps`.
 
-Next: map-cutting movers and the Thin World's void fall are all that is left of the bible's
-list; otherwise the courses are complete as data and the work moves to balance (the AI field
-is lethal at higher realms) and the racer select's remaining items (docs/racer-select.md).
+CUTTERS + VOID (2026-09-06): mover `cuts_walls`/`opens` → `Race._update_cutter` (blocks along
+the path from `Track.blocks_along`; `Track._build_cut_walls` lays the rock run along the path first, freed as the mover's first-pass distance passes them;
+`unseal_branch` at the end); branch `sealed` (never live until unsealed). Void: `Track.void_here`
+(gap/void stretch within the road, or `void_offroad` past `void_margin`), `Race._void_check`
+sinks the kart 1 s (`Kart.void_t`) then `return_point` (past the stretch, +3 samples). Probe:
+`cut: <mover> cut N wall blocks, opens <branch>`, `void: <kart> falls / returns at`.
+
+The bible's engine list is COMPLETE. Next: balance (ability damage by band, lap damage), a
+graybox pass over the authored loops, the racer select extras (docs/racer-select.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

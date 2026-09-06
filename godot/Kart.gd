@@ -46,6 +46,7 @@ var alt := 0.0            # height above the road under the kart (px): falling o
 var vz := 0.0             # vertical speed of that fall (px/s)
 var abs_h := 0.0          # the kart's absolute height last step
 var landed_from := 0.0    # set for one step when a fall ends: how far it fell (px)
+var void_t := 0.0         # falling into the void: sinks for a moment, then is returned to the road
 const GRAVITY := 1400.0
 var branch := -1          # the parallel route this kart is on (Track.branches index), -1 = the loop
 var branch_idx := 0       # its sample along that branch
@@ -586,6 +587,8 @@ func rig_control(dt: float, track: Track, player: Kart, R: Dictionary) -> Dictio
 func update_visual(track: Track, cam_right: Vector2, t: float) -> void:
 	position = track.to3(pos)
 	var lift := lift_px() * Track.U
+	if void_t > 0.0:
+		lift = -(1.0 - void_t) * 90.0 * Track.U      # sinking
 	sprite.position.y = frame_size * Track.U * 0.5 + lift
 	shadow.position.y = 0.5 * Track.U
 	shadow.scale = Vector3.ONE * (1.0 - 0.35 * (lift_px() / 55.0))

@@ -193,22 +193,23 @@ shaft drops are real drops now (its jump pads there are gone), Eyn Roj dives thr
 hole between the mirrored leaves, Red Rock drops through the cracked opening, and the Thin
 World's unsupported stair climbs three risers. `--hazard-log` prints `drop: <kart> fell N px`.
 
+## Map-cutting movers and the void
+
+A mover with `cuts_walls` bores through a run of wall blocks laid along its path from the
+curb outward (the rock is authored, random scenery rarely sits on a path), freeing each
+block with a puff as its first pass reaches it, and one with `opens` unseals the branch it
+bores toward when it reaches the end: the Asphalt Mines' drillbot works its way through the wall and opens the
+drill cut, an expert shortcut that did not exist when the race began (the HUD says so).
+
+The void is where falling cannot end the race but costs the line: a kart in a gap or void
+stretch, or off a floating course past its margin (`void_offroad`: the Thin World floats
+over the void, Chavvah's deep sky catches a fall on a lower leaf), sinks for a second and is
+returned to the road just past where it fell, slow and facing forward, with a translocation.
+Rust Wells' collapsed bridge is a fall now, not a drive across the ground.
+
 ## What the bible asks for that the engine cannot build yet
 
-Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
-to data. The big ones:
-
-- **Falls that end the line.** A fall lands on the road below; the bible's deep hazards
-  that return the kart through a different line (the Thin World's void) are not modelled.
-- **Movers that change the map**: the drillbot's holes in the wall, a collapsing conveyor;
-  a mover sweeps, it does not cut.
-- **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
-  level; the branch-to-branch transfers and the shaft drops stay on one road.
-- **Rule changes beyond the pads** (Moon Stair's Twinned lap, the Thin World's echo road):
-  a lap can change what is road and where the pads are, not the driving rules.
-- **A third room** (Yd Freehold has two branches and the loop; the bible has three rooms
-  plus a lap-3 bypass) and routes that split more than once.
-- **Ghost echoes**, psychic overlays, occlusion struts.
-
-What is left: movers that cut the map rather than sweep it, and the Thin World's fall that
-returns the kart through a different line.
+Nothing on the bible's list is left as a rule the engine cannot express. What remains is
+craft: the courses are authored as data from the Route paragraphs and want a graybox pass
+(widths, lap times, sightlines, respawn placement), the AI field's damage wants balancing
+by band, and the psychic overlays, ghost echoes and occlusion struts are presentation.

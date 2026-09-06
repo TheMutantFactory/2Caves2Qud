@@ -260,6 +260,7 @@ COURSES = [
          gaps=["colored weeps mixing into soup rivers", "temporary sludge slaloms per lap"]),
     dict(key="chavvah", name="Chavvah Canopy Climb", cup="Canopy Cup", cup_index=11, difficulty=3.5,
          format="3-lap vertical circuit", target_lap="80-90 s", skill="Vertical branch transfers",
+         void_offroad=True, void_margin=120,
          sentence="Climb the inhabited branches of Chavvah on spiral stairs and crystalline limbs, then dive through the canopy while the roaming tree gently changes its lean.",
          tileset="crystal", offroad="leaf", wallset="crystal1", road=[190, 200, 205], ground=[50, 110, 60],
          width=220, elevation=200, laps=3,
@@ -353,6 +354,7 @@ COURSES = [
          gaps=["the Bell clock and checkered sanctuaries", "crematory press/arm/vent/fan sequence", "stairwell teleporter"]),
     dict(key="thinworld", name="Thin World Crossing", cup="Spindle Cup", cup_index=20, difficulty=5.0,
          format="3-lap transformational circuit", target_lap="92-102 s", skill="Committing to recomposed road states", spoiler=True,
+         void_offroad=True, void_margin=40,
          sentence="Cross the Thin World on a road that recomposes from solid azzurum to holographic geometry, where falling cannot end the race but returns the kart through a different line.",
          tileset="hologram", offroad="void", wallset="filigree", road=[60, 150, 180], ground=[8, 8, 14],
          width=220, elevation=120, laps=3,
@@ -384,7 +386,7 @@ def _loop_points(control, samples=16):
     return pts
 
 
-def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None, laps=None, bypass=False):
+def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None, laps=None, bypass=False, sealed=False):
     """laps=[3, 4] makes the branch EXIST only on those laps (drawn as a translucent preview
     before); bypass=True makes AI karts take it when the loop stretch it skirts is a gap."""
     b = {"name": name, "kind": kind, "from": frm, "to": to, "offset": offset, "width": width,
@@ -393,6 +395,8 @@ def branch(name, kind, frm, to, offset, width=180, ai_take=0.4, hazards=None, la
         b["laps"] = list(laps)
     if bypass:
         b["bypass"] = True
+    if sealed:
+        b["sealed"] = True        # not a route until a mover with opens=<name> cuts through
     return b
 
 
@@ -406,10 +410,16 @@ def road_state(frm, to, laps, state):
 # half road widths) back and forth (pingpong) or around (loop) in `period` seconds; its path
 # is drawn on the road as the sweep marking. A thrower lands a stone on the road at `at`
 # every `period` seconds after a `cue`-second shadow.
-def mover(name, kind, path, period=6.0, mode="pingpong", radius=140, laps=None, phase=0.0):
+def mover(name, kind, path, period=6.0, mode="pingpong", radius=140, laps=None, phase=0.0, cuts_walls=False, opens=""):
+    """cuts_walls: on its first pass the mover removes the wall blocks along its path;
+    opens: the sealed branch it bores toward becomes a route when it reaches the end."""
     m = {"name": name, "kind": kind, "path": [list(p) for p in path], "period": period, "mode": mode, "radius": radius, "phase": phase}
     if laps:
         m["laps"] = list(laps)
+    if cuts_walls:
+        m["cuts_walls"] = True
+    if opens:
+        m["opens"] = opens
     return m
 
 
@@ -424,7 +434,7 @@ def thrower(name, at, side=0.0, spread=0.3, period=5.0, cue=1.0, radius=120, dam
 MOVERS = {
     "stilt": [mover("pack animals", "cart", [(0.45, -1.1), (0.45, 1.1)], period=8.0, radius=130, laps=[2]),
               mover("handcarts", "cart", [(0.52, 1.1), (0.52, -1.1)], period=8.0, radius=130, laps=[3])],
-    "asphalt": [mover("drillbot", "barrier", [(0.30, -0.95), (0.40, -0.95)], period=9.0, radius=110)],
+    "asphalt": [mover("drillbot", "barrier", [(0.30, -0.95), (0.40, -1.6)], period=12.0, radius=110, cuts_walls=True, opens="drill cut")],
     "rainbowwood": [mover("cyan sludge", "slime", [(0.16, -0.6), (0.16, 0.6)], period=4.0, radius=150),
                     mover("yellow sludge", "slime", [(0.50, 0.6), (0.50, -0.6)], period=4.0, radius=150, laps=[2, 3]),
                     mover("magenta sludge", "slime", [(0.83, -0.6), (0.83, 0.6)], period=4.0, radius=150, laps=[3])],
@@ -487,7 +497,8 @@ BRANCHES = {
                   branch("outer bypass", "safe", 0.29, 0.36, -230, 220, 0.3, laps=[2, 3], bypass=True)],
     "stilt": [branch("left aisle", "safe", 0.40, 0.56, -210, 240, 0.3), branch("right aisle", "safe", 0.40, 0.56, 210, 240, 0.3)],
     "gritgate": [branch("service tunnel", "safe", 0.34, 0.64, -260, 220, 0.45)],
-    "asphalt": [branch("dry outer bend", "safe", 0.45, 0.56, -220, 220, 0.45)],
+    "asphalt": [branch("dry outer bend", "safe", 0.45, 0.56, -220, 220, 0.45),
+                branch("drill cut", "expert", 0.30, 0.42, -260, 150, 0.4, sealed=True)],
     "golgotha": [branch("second chute", "expert", 0.05, 0.18, 200, 170, 0.4, [haz("poison", 0.5, 0.0, 150, period=4.0, duty=0.4, phase=2.0)])],
     "bethesda": [branch("chrome elevator", "expert", 0.34, 0.42, 240, 150, 0.35, [haz("jump", 0.5, 0.0, 130)])],
     "kyakukya": [branch("root ramp", "safe", 0.28, 0.40, -220, 220, 0.4)],

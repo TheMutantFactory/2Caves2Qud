@@ -824,6 +824,8 @@ func _update_course_hazards(_dt: float) -> void:
 			var was: Vector2 = h.pos
 			h.pos = Track.mover_pos(mv, t)
 			h.position = track.to3(h.pos, 3.0)
+			if bool(mv.get("cuts_walls", false)) or String(mv.get("opens", "")) != "":
+				_update_cutter(c, mv)
 			if hazard_log and (was - h.pos).length() < 0.5 and Engine.get_physics_frames() % 7 == 0 and bool(c.get("lap_ok", true)):
 				pass
 		var period: float = c["period"]
@@ -856,8 +858,74 @@ func _update_course_hazards(_dt: float) -> void:
 						print("jump: %s t=%.2f" % [kart.display_name, t])
 
 
+# The void fall (bible: falling cannot end the race but returns the kart through a different
+# line): a kart in a gap or off a floating course sinks for a second, then is put back on the
+# road just past where it fell, slow, facing forward.
+func _void_check(kart: Kart, dt: float) -> void:
+	if kart.void_t > 0.0:
+		kart.void_t = maxf(0.0, kart.void_t - dt)
+		kart.vel = Vector2.ZERO
+		if kart.void_t <= 0.0:
+			var rp := track.return_point(kart.next_wp)
+			kart.pos = rp["pos"]
+			var d: Vector2 = rp["dir"]
+			kart.heading = atan2(d.y, d.x)
+			kart.vel = d * 260.0
+			kart.next_wp = (int(rp["idx"]) + 1) % track.n
+			kart.abs_h = track.height_px(kart.pos)
+			kart.alt = 0.0
+			spawn_effect(QUD.effect("translocation"), track.to3(kart.pos, 30.0), 6)
+			if kart.is_player:
+				play("teleport", -6.0)
+			if hazard_log:
+				print("void: %s returns at %d t=%.1f" % [kart.display_name, int(rp["idx"]), t])
+		return
+	if not kart.alive or kart.air_t > 0.0 or kart.alt > 0.0 or state != RACING:
+		return
+	if track.void_here(kart.pos, kart.next_wp):
+		kart.void_t = 1.0
+		kart.vel = Vector2.ZERO
+		spawn_effect(QUD.effect("dark"), kart.position, 6, 0.08, -1.0, 1.4)
+		if kart.is_player:
+			play("death_player", -8.0)
+		if hazard_log:
+			print("void: %s falls t=%.1f" % [kart.display_name, t])
+
+
 # A thrower (Red Rock's baboons, Palladium's jellies): every period a target on the road
 # gets a shadow for `cue` seconds, then the stone lands — damage and a stun in its radius.
+# A map-cutting mover (the Asphalt Mines' drillbot): on its first pass it removes the wall
+# blocks along its path as it reaches them, and when it reaches the end it opens the sealed
+# branch it was boring toward.
+func _update_cutter(c: Dictionary, mv: Dictionary) -> void:
+	if not c.has("cut_blocks"):
+		c["cut_blocks"] = track.blocks_along(mv, float(mv["radius"]) + 40.0) if bool(mv.get("cuts_walls", false)) else []
+		c["cut_done"] = false
+		c["cut_count"] = 0
+	if bool(c["cut_done"]):
+		return
+	var L: float = mv["length"]
+	var s := (t + float(mv["phase"])) * (L / maxf(0.1, float(mv["period"])))
+	var left := []
+	for blk in c["cut_blocks"]:
+		if float(blk["s"]) <= s:
+			var node: Node = blk["node"]
+			if is_instance_valid(node):
+				spawn_effect(QUD.effect("physical"), node.position + Vector3(0, 20 * Track.U, 0), 6, 0.06, -1.0, 1.4)
+				node.queue_free()
+			c["cut_count"] = int(c["cut_count"]) + 1
+		else:
+			left.append(blk)
+	c["cut_blocks"] = left
+	if s >= L:
+		c["cut_done"] = true
+		var opened := String(mv.get("opens", ""))
+		if opened != "" and track.unseal_branch(opened):
+			say("%s CUTS THROUGH: %s OPENS" % [String(mv["name"]).to_upper(), opened.to_upper()], 2.4)
+		if hazard_log:
+			print("cut: %s cut %d wall blocks%s t=%.1f" % [String(mv["name"]), int(c["cut_count"]), (", opens " + opened) if opened != "" else "", t])
+
+
 func _update_thrower(c: Dictionary) -> void:
 	var th: Dictionary = c["thrower"]
 	if not bool(c.get("lap_ok", true)):
@@ -1379,6 +1447,7 @@ func _physics_process(dt: float) -> void:
 		if use and kart.item != "" and state == RACING:
 			_net_ev(["item", kart.net_id, kart.item])
 			Items.use(self, kart)
+		_void_check(kart, dt)
 		if kart.landed_from > 60.0:      # a ledge, not a bump
 			spawn_effect(QUD.effect("physical"), kart.position, 6, 0.05, -1.0, 1.2)
 			if kart.is_player:
