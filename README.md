@@ -185,3 +185,17 @@ back to the sprites.
 
 MIT for everything in this repo. Caves of Qud and its assets are © Freehold Games and are not
 included; the tools only ever read the copy you own.
+
+## Sprite browser
+
+```bash
+.venv/bin/python tools/sprite_browser.py --build        # once (and after an extract)
+.venv/bin/python tools/sprite_browser.py --serve 8765   # http://localhost:8765/
+```
+
+Every tiled Qud blueprint painted in its colours, in a category tree drawn from the
+blueprints' inheritance, with which of Qud's zone templates hold it and which courses dress
+with it, how the engine would display it (billboard, voxel wall, water cell, unit strip),
+and a placement helper that writes `dressing` entries for `tools/qud_tracks.py`. Its output
+lives in the asset store, outside the repo.
+

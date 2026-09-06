@@ -290,6 +290,12 @@ Probe `bell:` lines under --hazard-log (rings/tethered/displaced). CREMATORY + T
 vent, fan (mover; pushes along its motion, FAN_PUSH), teleport (`target` fraction → exit
 waypoint; sets pos/vel/heading/next_wp, 2 s cooldown). Mover marks are coloured by kind.
 EVERY COURSE FILE IN THE BIBLE IS BUILT.
+SPRITE BROWSER (2026-09-06): `tools/sprite_browser.py --build` paints every tiled blueprint
+(4031) into <store>/browser/thumbs + index.json (category = inheritance chain, kind, which
+Qud .rpm zones hold it and how many, which courses use it); `--serve 8765` serves
+tools/browser/index.html (tree / search / kind / zone filters, detail with "how displayed",
+a placement helper that writes `dressing` entries and a per-course plan in localStorage).
+Launch config "sprites" in ~/.claude/launch.json (preview pane reads the HOME launch.json).
 SET DRESSING (2026-09-06): `tools/qud_zones.py` reads Qud's .rpm zone templates (80x25 grid
 of blueprint names); the exporter's dressing step (after the walls export — it needs
 manifest.wall_families) writes data/zones.json, data/dressing.json and dressing/<slug>.png

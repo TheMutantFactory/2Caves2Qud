@@ -1,0 +1,114 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>2Caves2Qud sprite browser</title>
+<style>
+:root{--bg:#0f3b3a;--panel:#155352;--ink:#b1c9c3;--bright:#fff;--gold:#cfc041;--chrome:#0c0f10}
+body{margin:0;background:var(--chrome);color:var(--ink);font:14px "Source Code Pro",Menlo,monospace;height:100vh;display:grid;grid-template-columns:300px 1fr 360px;grid-template-rows:44px 1fr}
+header{grid-column:1/4;background:var(--panel);display:flex;align-items:center;gap:12px;padding:0 12px}
+header input{background:var(--chrome);color:var(--bright);border:1px solid var(--ink);padding:4px 8px;font:inherit;width:260px}
+header select,header button{background:var(--chrome);color:var(--ink);border:1px solid var(--ink);font:inherit;padding:4px}
+#tree{overflow:auto;border-right:1px solid var(--panel);padding:8px}
+#tree details{margin-left:10px}#tree summary{cursor:pointer;color:var(--ink)}#tree summary.on{color:var(--gold)}
+#tree .leaf{margin-left:26px;cursor:pointer;color:#8fb}#tree .leaf.on{color:var(--gold)}
+#grid{overflow:auto;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,88px);gap:6px;align-content:start}
+.cell{background:var(--bg);border:1px solid transparent;border-radius:4px;padding:4px;text-align:center;cursor:pointer;height:110px;overflow:hidden}
+.cell.on{border-color:var(--gold)}.cell img{image-rendering:pixelated;height:72px}.cell div{font-size:10px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.used{box-shadow:inset 0 0 0 2px #3a7}
+#detail{overflow:auto;border-left:1px solid var(--panel);padding:10px}
+#detail img.big{image-rendering:pixelated;height:216px;background:var(--bg);padding:8px}
+#detail h2{color:var(--bright);margin:6px 0}#detail .k{color:var(--gold)}#detail pre{background:var(--bg);padding:6px;white-space:pre-wrap;word-break:break-all}
+#detail label{display:block;margin:4px 0}#detail input,#detail select{background:var(--chrome);color:var(--bright);border:1px solid var(--ink);font:inherit;padding:2px 4px}
+#detail button{background:var(--panel);color:var(--bright);border:1px solid var(--ink);font:inherit;padding:4px 8px;cursor:pointer;margin:2px}
+#plan{font-size:12px}#plan li{margin:2px 0}
+</style></head><body>
+<header>
+  <b style="color:var(--gold)">2Caves2Qud sprites</b>
+  <input id="q" placeholder="search name / tile / zone">
+  <select id="kind"><option value="">any kind</option><option>prop</option><option>wall</option><option>liquid</option><option>creature</option><option>skip</option></select>
+  <select id="zone"><option value="">any zone</option></select>
+  <label><input type="checkbox" id="usedonly"> used on a course</label>
+  <span id="count"></span>
+</header>
+<div id="tree"></div>
+<div id="grid"></div>
+<div id="detail"><p>Pick a category on the left or a sprite in the grid.</p></div>
+<script>
+let DATA, items=[], sel=null, catPath=null;
+const $=s=>document.querySelector(s);
+const KIND_HOW={prop:"a billboard: the tile painted in its two palette letters, stood up facing the camera (Track._dressing_sprite)",
+ wall:"voxel wall blocks of the family its tile names, run and end pieces from the neighbour scan",
+ liquid:"a flat water cell (blue, translucent) at ground level",
+ creature:"its unit idle strip (animated frames) as a billboard",
+ skip:"not placed: a floor, path, widget or landmark (the course draws its own ground)"};
+fetch("index.json").then(r=>r.json()).then(d=>{DATA=d;items=d.items;buildTree();fillZones();render();});
+function buildTree(){
+  const root={};
+  for(const it of items){let n=root;for(const c of it.chain){n=(n[c]=n[c]||{__n:0});n.__n++;}}
+  const el=$("#tree");el.innerHTML="";
+  const walk=(node,path,container)=>{
+    const keys=Object.keys(node).filter(k=>k!=="__n").sort((a,b)=>node[b].__n-node[a].__n);
+    for(const k of keys){
+      const p=[...path,k];const kids=Object.keys(node[k]).filter(x=>x!=="__n");
+      if(kids.length){
+        const d=document.createElement("details");const s=document.createElement("summary");
+        s.textContent=`${k} (${node[k].__n})`;
+        s.onclick=e=>{e.preventDefault();d.open=!d.open;catPath=p;render();s.classList.add("on");};
+        d.appendChild(s);const inner=document.createElement("div");d.appendChild(inner);container.appendChild(d);
+        walk(node[k],p,inner);
+      }else{
+        const lf=document.createElement("div");lf.className="leaf";lf.textContent=`${k} (${node[k].__n})`;
+        lf.onclick=()=>{catPath=p;render();lf.classList.add("on");};container.appendChild(lf);
+      }
+    }
+  };
+  walk(root,[],el);
+}
+function fillZones(){const z=$("#zone");for(const n of DATA.zones){const o=document.createElement("option");o.textContent=n;z.appendChild(o);}}
+function matches(it){
+  if(catPath&&!catPath.every((c,i)=>it.chain[i]===c))return false;
+  const q=$("#q").value.trim().toLowerCase();
+  if(q&&!(it.name.toLowerCase().includes(q)||it.tile.toLowerCase().includes(q)||Object.keys(it.zones).some(z=>z.toLowerCase().includes(q))))return false;
+  const k=$("#kind").value;if(k&&it.kind!==k)return false;
+  const z=$("#zone").value;if(z&&!it.zones[z])return false;
+  if($("#usedonly").checked&&!it.courses.length)return false;
+  return true;
+}
+function render(){
+  const g=$("#grid");g.innerHTML="";let n=0;
+  for(const it of items){if(!matches(it))continue;n++;if(n>1200)continue;
+    const c=document.createElement("div");c.className="cell"+(it.courses.length?" used":"")+(sel===it?" on":"");
+    c.innerHTML=`<img loading="lazy" src="thumbs/${it.slug}.png" alt=""><div>${it.name}</div>`;c.onclick=()=>{sel=it;render();detail();};g.appendChild(c);}
+  $("#count").textContent=`${n} sprites${catPath?"  in "+catPath.join(" / "):""}${n>1200?" (first 1200 shown)":""}`;
+  document.querySelectorAll("#tree .leaf, #tree summary").forEach(e=>e.classList.remove("on"));
+}
+function detail(){
+  const it=sel;if(!it)return;const d=$("#detail");
+  const zones=Object.entries(it.zones).sort((a,b)=>b[1]-a[1]).map(([z,c])=>`${z} ×${c}`).join(", ")||"none (procedural only)";
+  d.innerHTML=`<img class="big" src="thumbs/${it.slug}.png"><h2>${it.name}</h2>
+  <div><span class="k">display name</span> ${it.display||"-"}</div>
+  <div><span class="k">category</span> ${it.chain.join(" / ")}</div>
+  <div><span class="k">tile</span> ${it.tile} (${it.w}×${it.h}) &nbsp; <span class="k">colours</span> ${it.main}/${it.detail}</div>
+  <div><span class="k">kind</span> ${it.kind} — ${KIND_HOW[it.kind]||""}${it.unit?"<br>unit strip: units/"+it.unit+"_idle.png":""}</div>
+  <div><span class="k">in Qud's zones</span> ${zones}</div>
+  <div><span class="k">on our courses</span> ${it.courses.join(", ")||"nowhere yet"}</div>
+  <h3>Place it</h3>
+  <label>course <select id="pc">${DATA.courses.map(c=>`<option value="${c.key}">${c.name}</option>`).join("")}</select></label>
+  <label>how <select id="pm"><option value="scatter">scatter off the road</option><option value="roadside">roadside line</option></select></label>
+  <label>count <input id="pn" type="number" value="40" style="width:70px"></label>
+  <button id="add">add to plan</button> <button id="copy1">copy entry</button>
+  <pre id="entry"></pre>
+  <h3>Plan</h3><div id="plan"></div><button id="copyplan">copy plan</button> <button id="clearplan">clear plan</button>`;
+  const entry=()=>{const m=$("#pm").value;const e={scatter:it.name,count:+$("#pn").value};if(m==="roadside")e.roadside=true;return e;};
+  const show=()=>{$("#entry").textContent=JSON.stringify(entry());};
+  ["#pm","#pn"].forEach(s=>$(s).oninput=show);show();
+  $("#add").onclick=()=>{const p=plan();p[$("#pc").value]=(p[$("#pc").value]||[]).filter(e=>e.scatter!==it.name).concat([entry()]);savePlan(p);renderPlan();};
+  $("#copy1").onclick=()=>navigator.clipboard.writeText(JSON.stringify(entry()));
+  $("#copyplan").onclick=()=>navigator.clipboard.writeText(planText());
+  $("#clearplan").onclick=()=>{savePlan({});renderPlan();};
+  renderPlan();
+}
+function plan(){try{return JSON.parse(localStorage.getItem("plan")||"{}");}catch(e){return {};}}
+function savePlan(p){try{localStorage.setItem("plan",JSON.stringify(p));}catch(e){}}
+function planText(){const p=plan();return Object.entries(p).map(([k,es])=>`# ${k}\ndressing=[${es.map(e=>JSON.stringify(e)).join(",\n          ")}],`).join("\n\n");}
+function renderPlan(){const p=plan();const el=$("#plan");if(!el)return;el.innerHTML=Object.entries(p).map(([k,es])=>`<b>${k}</b><ul>${es.map(e=>`<li>${e.scatter} ×${e.count}${e.roadside?" roadside":""}</li>`).join("")}</ul>`).join("")||"<i>empty — add sprites to courses, then copy the plan into tools/qud_tracks.py</i>";}
+["#q","#kind","#zone","#usedonly"].forEach(s=>$(s).oninput=render);
+</script></body></html>

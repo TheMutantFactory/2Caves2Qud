@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sprites",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["tools/sprite_browser.py", "--serve", "8765"],
+      "port": 8765
+    }
+  ]
+}
