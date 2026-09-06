@@ -101,6 +101,14 @@ func _build_loop(rng: RandomNumberGenerator) -> void:
 	noise.seed = rng.randi()
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	noise.frequency = float(Shared.t(["godot", "elevation_freq"], 0.0006))
+	_build_profile()
+	if not hgrid.is_empty():
+		var lo := INF
+		var hi := -INF
+		for h in profile_h:
+			lo = minf(lo, h)
+			hi = maxf(hi, h)
+		print("elevation: %s authored %d..%d px over the route" % [key, int(lo), int(hi)])
 
 	_build_ground()
 	_build_road()
@@ -489,8 +497,97 @@ static func catmull_rom(pts: Array, samples: int) -> PackedVector2Array:
 	return out
 
 
+# Authored elevation (spec "profile": [[at, height_px], ...] along the route): the road
+# rises and falls by the profile, and the ground around it follows within a few road widths
+# (a shelf), fading to the terrain noise in the far field. Sampled from a grid built once.
+var profile_h := PackedFloat32Array()     # per route point
+var hgrid := PackedFloat32Array()
+var hg_cols := 0
+var hg_rows := 0
+var hg_origin := Vector2.ZERO
+const HG_CELL := 160.0
+const HG_MARGIN := 900.0
+
+
+func _build_profile() -> void:
+	profile_h.resize(n)
+	hgrid.resize(0)
+	var prof: Array = spec.get("profile", [])
+	if prof.size() < 2 or n == 0:
+		for i in n:
+			profile_h[i] = 0.0
+		return
+	# smooth interpolation between the keypoints (cosine), wrapping on a loop
+	var keys := []
+	for k in prof:
+		keys.append(Vector2(clampf(float(k[0]), 0.0, 1.0), float(k[1]) * scale_k))
+	keys.sort_custom(func(a, b): return a.x < b.x)
+	for i in n:
+		var f := float(i) / n
+		var a: Vector2 = keys[0]
+		var b: Vector2 = keys[keys.size() - 1]
+		for j in range(keys.size() - 1):
+			if f >= keys[j].x and f <= keys[j + 1].x:
+				a = keys[j]
+				b = keys[j + 1]
+				break
+		if f < keys[0].x:
+			a = Vector2(keys[keys.size() - 1].x - 1.0, keys[keys.size() - 1].y) if not open else Vector2(0.0, keys[0].y)
+			b = keys[0]
+		elif f > keys[keys.size() - 1].x:
+			a = keys[keys.size() - 1]
+			b = Vector2(keys[0].x + 1.0, keys[0].y) if not open else Vector2(1.0, keys[keys.size() - 1].y)
+		var span := maxf(0.0001, b.x - a.x)
+		var u := clampf((f - a.x) / span, 0.0, 1.0)
+		profile_h[i] = lerpf(a.y, b.y, 0.5 - 0.5 * cos(u * PI))
+	# the shelf grid: each cell takes the nearest route point's height, faded by distance
+	hg_origin = Vector2(-HG_MARGIN, -HG_MARGIN)
+	hg_cols = int(ceil((size.x + 2.0 * HG_MARGIN) / HG_CELL)) + 1
+	hg_rows = int(ceil((size.y + 2.0 * HG_MARGIN) / HG_CELL)) + 1
+	hgrid.resize(hg_cols * hg_rows)
+	var stride := maxi(1, n / 120)
+	var full := width * 1.5
+	var fade := width * 4.0
+	for r in hg_rows:
+		for c in hg_cols:
+			var p := hg_origin + Vector2(c, r) * HG_CELL
+			var best := INF
+			var best_i := 0
+			for i in range(0, n, stride):
+				var d := p.distance_squared_to(points[i])
+				if d < best:
+					best = d
+					best_i = i
+			var dist := sqrt(best)
+			var w := 1.0 if dist <= full else clampf(1.0 - (dist - full) / (fade - full), 0.0, 1.0)
+			hgrid[r * hg_cols + c] = profile_h[best_i] * (0.5 - 0.5 * cos(w * PI))
+
+
+func authored_height(p: Vector2) -> float:
+	if hgrid.is_empty():
+		return 0.0
+	var g := (p - hg_origin) / HG_CELL
+	var c := clampi(int(floor(g.x)), 0, hg_cols - 2)
+	var r := clampi(int(floor(g.y)), 0, hg_rows - 2)
+	var fx := clampf(g.x - c, 0.0, 1.0)
+	var fy := clampf(g.y - r, 0.0, 1.0)
+	var h00 := hgrid[r * hg_cols + c]
+	var h10 := hgrid[r * hg_cols + c + 1]
+	var h01 := hgrid[(r + 1) * hg_cols + c]
+	var h11 := hgrid[(r + 1) * hg_cols + c + 1]
+	return lerpf(lerpf(h00, h10, fx), lerpf(h01, h11, fx), fy)
+
+
 func height_px(p: Vector2) -> float:
-	return noise.get_noise_2d(p.x, p.y) * elev_amp
+	return noise.get_noise_2d(p.x, p.y) * elev_amp + authored_height(p)
+
+
+# The road's grade under a kart: rise per px along `fwd` (positive = uphill).
+func grade(p: Vector2, fwd: Vector2) -> float:
+	if hgrid.is_empty():
+		return 0.0
+	var step := 60.0
+	return (authored_height(p + fwd * step) - authored_height(p - fwd * step)) / (2.0 * step)
 
 
 func to3(p: Vector2, lift_px := 0.0) -> Vector3:

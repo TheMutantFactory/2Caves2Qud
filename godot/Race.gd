@@ -806,7 +806,7 @@ func _apply_lap_sets(lap: int) -> void:
 # second before; jump pads loft any kart that crosses them while live.
 func _update_course_hazards(_dt: float) -> void:
 	if hazard_log and player != null and player.alive and Engine.get_physics_frames() % 300 == 0:
-		print("player: t=%.0f road=%s wp=%d/%d branch=%d speed=%d rank=%d" % [t, track.on_road(player.pos, player.next_wp), player.next_wp, track.n, player.branch, int(player.speed()), player.rank])
+		print("player: t=%.0f road=%s wp=%d/%d branch=%d speed=%d rank=%d h=%d grade=%.2f" % [t, track.on_road(player.pos, player.next_wp), player.next_wp, track.n, player.branch, int(player.speed()), player.rank, int(track.height_px(player.pos)), track.grade(player.pos, player.forward())])
 	if course_hazards.is_empty():
 		return
 	var lap := _leader_lap()

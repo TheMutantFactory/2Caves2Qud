@@ -154,13 +154,26 @@ on lap 1, at the racing lane on lap 2 and alternate on lap 3; a mushroom cap fal
 Kyakukya's last straight. `--hazard-log` prints `stone: <name> throws, lands t=` and
 `stone: <name> lands t= hits=N`.
 
+## Authored elevation
+
+A course's `profile` is a list of height keypoints along the route: the road follows them
+(smoothly, wrapping on a loop, open on a section race), and the ground shelves with it, full
+height within one and a half road widths and fading to the terrain noise by four. Red Rock
+drops 320 px into its canyon and climbs the switchbacks out, the Asphalt Mines descend to
+the lava gallery and climb home, Golgotha and Bethesda Susa fall all the way to their
+finishes, the Tomb rises 600 px to the Spindle opening, Chavvah climbs twice around the trunk
+and dives, the Moon Stair climbs its switchback and Omonporch's magnetic wall rises 340 px in
+a tenth of a lap. Slopes matter: the kart's top speed and acceleration follow the grade
+under it, so a descent runs away and a climb is earned. `--hazard-log`'s player line carries
+`h=` and `grade=`.
+
 ## What the bible asks for that the engine cannot build yet
 
 Recorded per course as `gaps` in `tools/qud_tracks.py`, so nothing is lost when a design is cut
 to data. The big ones:
 
-- **Descent as descent.** The section races are one way, but the road's rise and fall is the
-  ground noise, not an authored drop; Golgotha's shafts and the Tomb's climb are not steps.
+- **Steps and shafts.** Elevation is a smooth profile; Golgotha's shaft drops and the
+  Tomb's stairwell are slopes, not falls.
 - **Movers that change the map**: the drillbot's holes in the wall, a collapsing conveyor;
   a mover sweeps, it does not cut.
 - **Vertical transfers with real height**: a jump is a hop with a boost, not a change of
@@ -171,5 +184,5 @@ to data. The big ones:
   plus a lap-3 bypass) and routes that split more than once.
 - **Ghost echoes**, psychic overlays, occlusion struts.
 
-The next engine features that would unlock the most courses are, in order: authored
-elevation, camber, and the leaning tree.
+The next engine features that would unlock the most courses are, in order: camber, the
+leaning tree, and steps.

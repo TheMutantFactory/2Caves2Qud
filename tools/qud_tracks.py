@@ -508,6 +508,29 @@ BRANCHES = {
 BRANCH_REPLACES = {"stilt": [("cart", 0.45), ("cart", 0.52)], "palladium": [("jump", 0.60)], "hydropon": [("jump", 0.50)],
                    "bethesda": [("jump", 0.38)], "chavvah": [("jump", 0.30)]}
 
+# Authored elevation: [at, height px] keypoints along the route (unscaled px; the engine
+# scales them with the course). The road follows them and the ground shelves around it.
+PROFILES = {
+    "joppa": [[0, 0], [0.5, 25], [1, 0]],
+    "redrock": [[0, 0], [0.15, -60], [0.35, -260], [0.5, -320], [0.62, -300], [0.8, -120], [0.95, 0]],
+    "rustwells": [[0, 0], [0.25, -180], [0.45, -260], [0.7, -120], [0.85, 60], [1, 0]],
+    "stilt": [[0, 0], [0.2, 60], [0.5, 0], [0.8, 90], [1, 0]],
+    "gritgate": [[0, 0], [0.15, -90], [0.6, -90], [0.85, 20], [1, 0]],
+    "asphalt": [[0, 0], [0.2, -150], [0.45, -320], [0.6, -360], [0.75, -180], [0.9, -40], [1, 0]],
+    "golgotha": [[0, 0], [0.3, -200], [0.6, -420], [0.85, -560], [1, -600]],
+    "bethesda": [[0, 0], [0.3, -180], [0.7, -380], [1, -420]],
+    "kyakukya": [[0, 0], [0.3, 0], [0.45, 120], [0.6, 160], [0.8, 40], [1, 0]],
+    "chavvah": [[0, 0], [0.2, 150], [0.45, 380], [0.55, 420], [0.7, 220], [0.9, 60], [1, 0]],
+    "eynroj": [[0, 0], [0.3, -250], [0.6, -320], [0.85, -60], [1, 80]],
+    "hinnom": [[0, 0], [0.5, -20], [1, 0]],
+    "palladium": [[0, 0], [0.5, -40], [0.6, -200], [0.8, 60], [1, 0]],
+    "ydfreehold": [[0, 0], [0.3, -40], [0.4, -240], [0.55, -240], [0.75, -60], [1, 0]],
+    "moonstair": [[0, 0], [0.2, 150], [0.45, 320], [0.65, 280], [0.85, 80], [1, 0]],
+    "omonporch": [[0, 0], [0.55, 0], [0.65, 300], [0.72, 340], [0.8, 60], [1, 0]],
+    "tomb": [[0, 0], [0.3, 120], [0.6, 320], [0.85, 520], [1, 600]],
+    "thinworld": [[0, 0], [0.3, 200], [0.5, 360], [0.7, 100], [1, 0]],
+}
+
 CUPS = ["Fresh Water Cup", "Chrome Cup", "Canopy Cup", "Reef Cup", "Spindle Cup"]
 
 
@@ -540,6 +563,8 @@ def build():
         t["hazards"] = [h for h in t["hazards"] if (h["kind"], h["at"]) not in gone]
         if t["key"] in MOVERS:
             t["movers"] = MOVERS[t["key"]]
+        if t["key"] in PROFILES:
+            t["profile"] = PROFILES[t["key"]]
         if t["key"] in THROWERS:
             t["throwers"] = THROWERS[t["key"]]
         t["control"] = [[int(x), int(y)] for x, y in t["control"]]

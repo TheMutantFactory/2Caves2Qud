@@ -201,8 +201,14 @@ with a `thrower` dict and no node until a stone flies (`_update_thrower`: shadow
 `pad_shadow`, cue seconds, then hit_kart + effect + stone sounds). Probe: `stone: ... lands
 hits=N`, the `hazard` tally bucket, `hazards: ... N moving, M throwers`.
 
+AUTHORED ELEVATION (2026-09-05): spec `profile` → `Track._build_profile` (cosine between
+keypoints into `profile_h` per route point, then a 160 px `hgrid` of the nearest route point's
+height faded by distance: full to 1.5 widths, gone by 4); `height_px` = noise + `authored_height`
+(bilinear); `grade(p, fwd)`; Kart caps top speed by grade (0.72..1.22) and adds a slope push.
+Build prints `elevation: <key> authored lo..hi px`. The probe line has `h=` / `grade=`.
+
 Next, in order:
-1. Authored elevation, then camber, then the leaning tree (docs/tracks.md).
+1. Camber, the leaning tree, steps (docs/tracks.md).
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
 3. The tracks: Qud biomes (salt marsh, jungle, desert canyon, ruins) as tilesets; realm dumps
    (`Shared.realms`) could come from Qud zone `.rpm` maps in `data/`.

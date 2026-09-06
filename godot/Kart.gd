@@ -323,6 +323,10 @@ func _end_drift(release: bool) -> void:
 
 func apply_control(dt: float, throttle: float, steer: float, drift: bool, track: Track) -> void:
 	var on_road := track.on_road(pos, next_wp)
+	# the road's grade: uphill caps speed and drags, downhill frees it (authored elevation)
+	var grade := track.grade(pos, forward())
+	if grade != 0.0 and air_t <= 0.0:
+		vel += forward() * (-grade) * 420.0 * dt
 	if air_t > 0.0:
 		air_t = maxf(0.0, air_t - dt)
 		on_road = true             # airborne: whatever is below does not slow the kart
@@ -346,6 +350,7 @@ func apply_control(dt: float, throttle: float, steer: float, drift: bool, track:
 	var top := max_speed * speed_scale * boost_mult * (1.0 + coins * float(K.get("coin_speed_pct", 0.04)))
 	if not on_road and not boosted:
 		top *= OFFROAD_SPEED
+	top *= clampf(1.0 - grade * 0.9, 0.72, 1.22)
 	var acc := accel * (1.0 + (BOOST_ACCEL - 1.0) * (boost_mult - 1.0) / 0.3)
 
 	if throttle > 0.0:
