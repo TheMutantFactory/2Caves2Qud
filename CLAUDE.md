@@ -290,6 +290,12 @@ Probe `bell:` lines under --hazard-log (rings/tethered/displaced). CREMATORY + T
 vent, fan (mover; pushes along its motion, FAN_PUSH), teleport (`target` fraction → exit
 waypoint; sets pos/vel/heading/next_wp, 2 s cooldown). Mover marks are coloured by kind.
 EVERY COURSE FILE IN THE BIBLE IS BUILT.
+LEVEL EDITOR (2026-09-06, docs/level-editor.md): `--editor` → `LevelEditor.gd` over free drive;
+`Track` dressing is now COLLECTED (`dressing_items`, stable ids z:/s:/x:) then PLACED through
+`level_overrides` (shared/levels/<key>.json: kinds / hidden / moves / extras / course) by
+`rebuild_dressing()`; `_place_item` does the display modes; solid = barricade segments.
+Probe `--level_edit=Name:prop=value;...` + `--level_save`. GOTCHA: never name a method `_set`
+(Object._set) — the parser rejects the signature. SAVE writes the repo AND the store copy.
 SPRITE BROWSER (2026-09-06): `tools/sprite_browser.py --build` paints every tiled blueprint
 (4031) into <store>/browser/thumbs + index.json (category = inheritance chain, kind, which
 Qud .rpm zones hold it and how many, which courses use it); `--serve 8765` serves

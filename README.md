@@ -199,3 +199,14 @@ with it, how the engine would display it (billboard, voxel wall, water cell, uni
 and a placement helper that writes `dressing` entries for `tools/qud_tracks.py`. Its output
 lives in the asset store, outside the repo.
 
+## Level editor
+
+```bash
+cd godot && Godot -- --type=gp --track=joppa --newrun --editor
+```
+
+An overlay over a course in free drive: the course's sprites in a tree, per-blueprint hide /
+display mode / scale / tint / solid / density, per-instance hide, nudge, move and place, the
+floor mode and the zone's position, saved to `shared/levels/<key>.json` and read by every
+race. See docs/level-editor.md.
+

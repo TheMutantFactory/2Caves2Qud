@@ -276,6 +276,15 @@ func _ready() -> void:
 	net_live = true
 	if args.has("free"):
 		_set_free(true)
+	if args.has("editor"):
+		_set_free(true)
+		editor = LevelEditor.new(track, self)
+		add_child(editor)
+		var script := String(args.get("level_edit", ""))
+		if script != "":
+			editor.apply_cli(script)
+		if args.has("level_save"):
+			editor.save()
 	tally["sp_start"] = Campaign.sp
 	Audio.music("battle_%d" % (1 + (Campaign.level - 1) % 12))
 
@@ -721,6 +730,7 @@ var _said_no_struts := false
 var psy_ghosts := {}            # kart -> {sprite, ring: Array[Vector2], i}
 var psy_section := -1
 const PSY_DELAY := 60           # physics frames a ghost trails its racer (1 s)
+var editor: LevelEditor = null  # --editor: the level editor over a free drive (docs/level-editor.md)
 var graybox := false            # --graybox: lap times, off-road, stuck, drops and voids per course (docs/graybox.md)
 var gb := {}                    # kart -> {laps: [s], lap_t, off, stuck, drops, voids}
 
@@ -3566,6 +3576,8 @@ func _process(_delta: float) -> void:
 		kart.update_visual(track, cam_right, t)
 	if track.psychic():
 		_psychic_visual()
+	if track.dressing_holder != null:
+		track.dressing_tick(t)
 	if track.has_struts():
 		var hp := []
 		for h in humans:

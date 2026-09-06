@@ -1812,143 +1812,105 @@ func total_len_est() -> float:
 # villagers as billboards; a SCATTER entry sprinkles one blueprint's tile off the road along
 # the whole loop. Cells the road runs through are left out: the course cuts through the
 # village where the Route says it does.
+#
+# Everything is first COLLECTED as items (dressing_items: id, name, kind, art, pos, source)
+# and then PLACED through the level overrides (shared/levels/<key>.json, written by the
+# level editor, docs/level-editor.md): per blueprint hidden / display / scale / lift / alpha /
+# tint / shadow / animate / solid / density and band for scatter; per instance hidden or
+# moved; extra instances placed by hand; course settings. rebuild_dressing() re-places
+# everything live.
 var dressing_stats := {}
+var dressing_items: Array = []
+var dressing_nodes := {}            # id -> Node3D (for picking in the editor)
+var dressing_holder: Node3D = null
+var level_overrides := {}
+var _solid_count := 0               # barricade_walls segments this dressing added
+var _dressing_rng := RandomNumberGenerator.new()
+const DISPLAYS := ["billboard", "floor", "road", "offroad", "wall", "water"]
+const PALETTE := {"r": Color("a64a2e"), "R": Color("d74200"), "o": Color("f15f22"), "O": Color("e99f10"),
+	"w": Color("98875f"), "W": Color("cfc041"), "g": Color("009403"), "G": Color("00c420"), "b": Color("0048bd"),
+	"B": Color("0096ff"), "c": Color("40a4b9"), "C": Color("77bfcf"), "m": Color("b154cf"), "M": Color("da5bd6"),
+	"k": Color("0f3b3a"), "K": Color("155352"), "y": Color("b1c9c3"), "Y": Color("ffffff")}
 
 
-func _dressing_sprite(art: String, p: Vector2, holder: Node3D, rng: RandomNumberGenerator) -> bool:
-	var spr := Sprite3D.new()
-	if art.begins_with("unit:"):
-		var unit := art.substr(5)
-		spr.texture = QUD.unit_idle(unit)
-		spr.hframes = maxi(1, int(QUD.unit_info(unit).get("idle_frames", 1)))
-		spr.frame = rng.randi_range(0, spr.hframes - 1)
-	else:
-		spr.texture = QUD.texture(art)
-	if spr.texture == null:
-		return false
-	spr.pixel_size = U
-	spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	spr.position = to3(p, 36.0)
-	holder.add_child(spr)
-	return true
+func level_path() -> String:
+	return QUD.ROOT + "shared/levels/" + key + ".json"
 
 
-func _build_dressing(rng: RandomNumberGenerator) -> void:
+func load_level_overrides() -> void:
+	level_overrides = Shared.load_json(level_path()) if FileAccess.file_exists(level_path()) else {}
+
+
+func kind_settings(name: String) -> Dictionary:
+	return (level_overrides.get("kinds", {}) as Dictionary).get(name, {})
+
+
+func _collect_dressing() -> void:
+	dressing_items.clear()
 	var entries: Array = spec.get("dressing", [])
-	if entries.is_empty():
-		return
 	var zones: Dictionary = Shared.load_json(QUD.ROOT + "data/zones.json")
 	var arts: Dictionary = Shared.load_json(QUD.ROOT + "data/dressing.json")
-	var holder := Node3D.new()
-	holder.name = "Dressing"
-	add_child(holder)
 	var half := width * 0.5
-	var stats := {"zones": 0, "sprites": 0, "walls": 0, "liquids": 0, "on_road": 0, "scatter": 0, "missing": 0}
-	var zone_rects := []            # world-space rects the scatter keeps out of
-	var drng := RandomNumberGenerator.new()
-	drng.seed = hash(key) + 7
+	var course: Dictionary = level_overrides.get("course", {})
+	_dressing_rng.seed = hash(key) + 7
+	var zone_rects := []
 	for e in entries:
 		if e.has("zone"):
 			var z: Dictionary = zones.get(String(e["zone"]), {})
 			if z.is_empty():
-				stats["missing"] += 1
 				continue
-			stats["zones"] += 1
-			var i := int(floor(float(e.get("at", 0.0)) * n)) % n
+			var zo: Dictionary = course.get("zone", {})
+			var i := int(floor(float(zo.get("at", e.get("at", 0.0))) * n)) % n
 			var d := direction_at(i)
-			var nrm := Vector2(-d.y, d.x) * signf(float(e.get("side", 1.0)))
+			var nrm := Vector2(-d.y, d.x) * signf(float(zo.get("side", e.get("side", 1.0))))
 			var cell := float(e.get("cell", 60.0)) * scale_k * 0.5
 			var w := int(z["w"])
 			var h := int(z["h"])
-			var near_edge := half + 14.0 + float(e.get("gap", 140.0)) * scale_k * 0.5
-			# the zone's x runs along the road, its rows stack away from it, row h-1 nearest
+			var near_edge := half + 14.0 + float(zo.get("gap", e.get("gap", 140.0))) * scale_k * 0.5
 			var origin := points[i] - d * (w * 0.5) * cell + nrm * near_edge
-			var corners := [origin, origin + d * w * cell, origin + nrm * h * cell, origin + d * w * cell + nrm * h * cell]
-			zone_rects.append(corners)
-			# walls first, as runs along each row (the family's run/end models)
+			zone_rects.append([origin, origin + d * w * cell, origin + nrm * h * cell, origin + d * w * cell + nrm * h * cell])
 			var grid := {}
 			for o in z["objects"]:
 				if String(o["kind"]) == "wall" and String(o["fam"]) != "":
-					grid[Vector2i(int(o["x"]), int(o["y"]))] = String(o["fam"])
+					grid[Vector2i(int(o["x"]), int(o["y"]))] = true
 			for o in z["objects"]:
 				var cx := int(o["x"])
 				var cy := int(o["y"])
 				var p := origin + d * (cx + 0.5) * cell + nrm * (h - 1 - cy + 0.5) * cell
-				if nearest(p, -1).dist < half + 40.0:
-					stats["on_road"] += 1
-					continue
-				match String(o["kind"]):
-					"wall":
-						var fam := String(o["fam"])
-						if fam == "" or not QudVox.available(fam):
-							stats["missing"] += 1
-							continue
-						var c := Vector2i(cx, cy)
-						var west := grid.has(c + Vector2i(-1, 0))
-						var east := grid.has(c + Vector2i(1, 0))
-						var north := grid.has(c + Vector2i(0, -1))
-						var south := grid.has(c + Vector2i(0, 1))
-						var along := d
-						var facing := -nrm
-						if not (west or east) and (north or south):
-							along = nrm
-							facing = d
-						var k := 0
-						var count := 1
-						if along == d:
-							var a := cx
-							while grid.has(Vector2i(a - 1, cy)):
-								a -= 1
-							var b := cx
-							while grid.has(Vector2i(b + 1, cy)):
-								b += 1
-							k = cx - a
-							count = b - a + 1
-						else:
-							var a := cy
-							while grid.has(Vector2i(cx, a - 1)):
-								a -= 1
-							var b := cy
-							while grid.has(Vector2i(cx, b + 1)):
-								b += 1
-							k = cy - a
-							count = b - a + 1
-						if _wall_block(fam, QudVox.run_variant(k, count, along, facing), p, facing, holder):
-							stats["walls"] += 1
-					"liquid":
-						var mi := MeshInstance3D.new()
-						var pm := PlaneMesh.new()
-						pm.size = Vector2(cell * U, cell * U)
-						mi.mesh = pm
-						var mat := StandardMaterial3D.new()
-						mat.albedo_color = Color(0.2, 0.45, 0.85, 0.75)
-						mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-						mi.material_override = mat
-						mi.position = to3(p, 2.5)
-						holder.add_child(mi)
-						stats["liquids"] += 1
-					_:
-						if _dressing_sprite(String(o["art"]), p, holder, drng):
-							stats["sprites"] += 1
-						else:
-							stats["missing"] += 1
+				var item := {"id": "z:%s:%d:%d:%s" % [String(e["zone"]), cx, cy, String(o["name"])], "name": String(o["name"]),
+					"kind": String(o["kind"]), "art": String(o["art"]), "fam": String(o["fam"]), "pos": p,
+					"source": "zone " + String(e["zone"]), "on_road": nearest(p, -1).dist < half + 40.0,
+					"along": d, "facing": -nrm}
+				if String(o["kind"]) == "wall":
+					var c := Vector2i(cx, cy)
+					var horizontal := grid.has(c + Vector2i(-1, 0)) or grid.has(c + Vector2i(1, 0)) or not (grid.has(c + Vector2i(0, -1)) or grid.has(c + Vector2i(0, 1)))
+					var a := cx if horizontal else cy
+					var b := a
+					while grid.has(Vector2i(a - 1, cy) if horizontal else Vector2i(cx, a - 1)):
+						a -= 1
+					while grid.has(Vector2i(b + 1, cy) if horizontal else Vector2i(cx, b + 1)):
+						b += 1
+					item["along"] = d if horizontal else nrm
+					item["facing"] = -nrm if horizontal else d
+					item["run_k"] = (cx if horizontal else cy) - a
+					item["run_n"] = b - a + 1
+				dressing_items.append(item)
 		elif e.has("scatter"):
-			var a: Dictionary = arts.get(String(e["scatter"]), {})
+			var name := String(e["scatter"])
+			var a: Dictionary = arts.get(name, {})
 			if a.is_empty() or String(a.get("art", "")) == "":
-				stats["missing"] += 1
 				continue
-			var want := int(e.get("count", 20))
+			var ks := kind_settings(name)
+			var want := int(round(int(e.get("count", 20)) * float(ks.get("density", 1.0))))
 			var roadside := bool(e.get("roadside", false))
+			var lo := half + float(ks.get("band_min", 30.0 if roadside else 70.0)) * scale_k * 0.5
+			var hi := half + float(ks.get("band_max", 110.0 if roadside else 1500.0)) * scale_k * 0.5
 			var placed := 0
 			var tries := 0
 			while placed < want and tries < want * 40:
 				tries += 1
-				var p := Vector2(drng.randf_range(0, size.x), drng.randf_range(0, size.y))
+				var p := Vector2(_dressing_rng.randf_range(0, size.x), _dressing_rng.randf_range(0, size.y))
 				var dist: float = nearest(p, -1).dist
-				var lo := half + (30.0 if roadside else 70.0) * scale_k * 0.5
-				var hi := half + (110.0 if roadside else 1500.0) * scale_k * 0.5
 				if dist < lo or dist > hi:
 					continue
 				var inside := false
@@ -1958,11 +1920,171 @@ func _build_dressing(rng: RandomNumberGenerator) -> void:
 						break
 				if inside:
 					continue
-				if _dressing_sprite(String(a["art"]), p, holder, drng):
-					placed += 1
-			stats["scatter"] += placed
+				dressing_items.append({"id": "s:%s:%d" % [name, placed], "name": name, "kind": String(a["kind"]),
+					"art": String(a["art"]), "fam": String(a.get("fam", "")), "pos": p, "source": "scatter",
+					"on_road": false, "along": Vector2.RIGHT, "facing": Vector2.DOWN})
+				placed += 1
+	for x in level_overrides.get("extras", []):
+		var name := String(x.get("name", ""))
+		var a: Dictionary = arts.get(name, {})
+		if a.is_empty():
+			continue
+		var p := Vector2(float(x.get("x", 0.0)), float(x.get("y", 0.0)))
+		dressing_items.append({"id": "x:%d" % dressing_items.size(), "name": name, "kind": String(a["kind"]),
+			"art": String(a["art"]), "fam": String(a.get("fam", "")), "pos": p, "source": "placed by hand",
+			"on_road": nearest(p, -1).dist < half + 40.0, "along": Vector2.RIGHT, "facing": Vector2.DOWN, "extra": true})
+
+
+func _build_dressing(_rng: RandomNumberGenerator) -> void:
+	if (spec.get("dressing", []) as Array).is_empty():
+		return
+	load_level_overrides()
+	_collect_dressing()
+	rebuild_dressing()
+
+
+# Place every collected item through the overrides (the editor calls this after each change).
+func rebuild_dressing() -> void:
+	if dressing_holder != null:
+		dressing_holder.queue_free()
+	for k in _solid_count:
+		barricade_walls.pop_back()
+	_solid_count = 0
+	dressing_nodes.clear()
+	dressing_holder = Node3D.new()
+	dressing_holder.name = "Dressing"
+	add_child(dressing_holder)
+	var hidden: Array = level_overrides.get("hidden", [])
+	var moves: Dictionary = level_overrides.get("moves", {})
+	var stats := {"items": dressing_items.size(), "sprites": 0, "walls": 0, "liquids": 0, "on_road": 0, "hidden": 0, "missing": 0, "solid": 0}
+	for item in dressing_items:
+		var ks := kind_settings(String(item["name"]))
+		var id := String(item["id"])
+		if bool(ks.get("hidden", false)) or hidden.has(id):
+			stats["hidden"] += 1
+			continue
+		var it: Dictionary = item.duplicate()
+		if moves.has(id):
+			it["pos"] = Vector2(float(moves[id][0]), float(moves[id][1]))
+			it["on_road"] = nearest(it["pos"], -1).dist < width * 0.5 + 40.0
+		var display := String(ks.get("display", {"wall": "wall", "liquid": "water"}.get(String(it["kind"]), "billboard")))
+		if bool(it["on_road"]) and display != "road":
+			stats["on_road"] += 1
+			continue
+		var node := _place_item(it, ks, display)
+		if node == null:
+			stats["missing"] += 1
+			continue
+		dressing_nodes[id] = node
+		match display:
+			"wall":
+				stats["walls"] += 1
+			"water":
+				stats["liquids"] += 1
+			_:
+				stats["sprites"] += 1
+		if bool(ks.get("solid", false)):
+			var r := 22.0 * float(ks.get("scale", 1.0)) * scale_k * 0.5
+			var p: Vector2 = it["pos"]
+			for seg in [[Vector2(-r, -r), Vector2(r, -r)], [Vector2(r, -r), Vector2(r, r)], [Vector2(r, r), Vector2(-r, r)], [Vector2(-r, r), Vector2(-r, -r)]]:
+				barricade_walls.append([p + seg[0], p + seg[1]])
+				_solid_count += 1
+			stats["solid"] += 1
 	dressing_stats = stats
-	print("dressing: %s zones=%d sprites=%d walls=%d liquids=%d on_road=%d scatter=%d missing=%d" % [key, stats["zones"], stats["sprites"], stats["walls"], stats["liquids"], stats["on_road"], stats["scatter"], stats["missing"]])
+	print("dressing: %s items=%d sprites=%d walls=%d liquids=%d on_road=%d hidden=%d solid=%d missing=%d" % [key, stats["items"], stats["sprites"], stats["walls"], stats["liquids"], stats["on_road"], stats["hidden"], stats["solid"], stats["missing"]])
+
+
+func _place_item(it: Dictionary, ks: Dictionary, display: String) -> Node3D:
+	var p: Vector2 = it["pos"]
+	var sc := float(ks.get("scale", 1.0))
+	var lift := float(ks.get("lift", 0.0))
+	var alpha := float(ks.get("alpha", 1.0))
+	var tint := String(ks.get("tint", ""))
+	var col := Color(1, 1, 1, alpha)
+	if PALETTE.has(tint):
+		col = PALETTE[tint]
+		col.a = alpha
+	match display:
+		"wall":
+			var fam := String(ks.get("fam", it.get("fam", "")))
+			if fam == "":
+				fam = _wall_family()
+			if fam == "" or not QudVox.available(fam):
+				return null
+			var variant := QudVox.run_variant(int(it.get("run_k", 0)), int(it.get("run_n", 1)), it["along"], it["facing"])
+			var before := scenery_blocks.size()
+			if not _wall_block(fam, variant, p, it["facing"], dressing_holder):
+				return null
+			return (scenery_blocks[before] as Dictionary)["node"]
+		"water":
+			var mi := MeshInstance3D.new()
+			var pm := PlaneMesh.new()
+			var cw := 60.0 * scale_k * 0.5 * sc
+			pm.size = Vector2(cw * U, cw * U)
+			mi.mesh = pm
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(0.2, 0.45, 0.85, 0.75 * alpha) if not PALETTE.has(tint) else Color(col, 0.75 * alpha)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mi.material_override = mat
+			mi.position = to3(p, 2.5 + lift)
+			dressing_holder.add_child(mi)
+			return mi
+		_:
+			var spr := Sprite3D.new()
+			var art := String(it["art"])
+			if art.begins_with("unit:"):
+				var unit := art.substr(5)
+				spr.texture = QUD.unit_idle(unit)
+				spr.hframes = maxi(1, int(QUD.unit_info(unit).get("idle_frames", 1)))
+				spr.frame = _dressing_rng.randi_range(0, spr.hframes - 1)
+				if bool(ks.get("animate", true)) and spr.hframes > 1:
+					spr.set_meta("animate", true)
+			else:
+				spr.texture = QUD.texture(art)
+			if spr.texture == null:
+				return null
+			spr.pixel_size = U * sc
+			spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD if alpha >= 0.99 else SpriteBase3D.ALPHA_CUT_DISABLED
+			spr.modulate = col
+			var th := float(spr.texture.get_height()) / float(maxi(1, spr.vframes))
+			if display == "billboard":
+				spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+				spr.position = to3(p, th * 0.5 * sc + lift)
+				if bool(ks.get("shadow", false)):
+					var sh := MeshInstance3D.new()
+					var pm := PlaneMesh.new()
+					pm.size = Vector2(th * 0.6 * sc * U, th * 0.3 * sc * U)
+					sh.mesh = pm
+					var smat := StandardMaterial3D.new()
+					smat.albedo_color = Color(0, 0, 0, 0.35)
+					smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					sh.material_override = smat
+					sh.position = to3(p, 1.5)
+					dressing_holder.add_child(sh)
+			else:
+				spr.axis = Vector3.AXIS_Y            # flat on the ground: floor, road, offroad
+				spr.rotation.y = -Vector2(it["along"]).angle()
+				spr.position = to3(p, (9.5 if display == "road" else 3.0) + lift)
+			dressing_holder.add_child(spr)
+			return spr
+
+
+func dressing_tick(t: float) -> void:
+	if dressing_holder == null:
+		return
+	for c in dressing_holder.get_children():
+		if c is Sprite3D and c.has_meta("animate"):
+			(c as Sprite3D).frame = int(t / 0.25 + c.position.x) % maxi(1, (c as Sprite3D).hframes)
+
+
+func rebuild_ground(mode: String) -> void:
+	var g := get_node_or_null("Ground")
+	if g != null:
+		g.free()
+	spec["floor_mode"] = mode
+	_build_ground()
 
 
 # ---------------------------------------------------------------- polyps (Palladium)
