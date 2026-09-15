@@ -4,3 +4,4 @@ UnityPy>=1.25          # reads Unity's resources.assets: tile atlases + AudioCli
 pillow>=10.0           # tile crops, wall previews
 soundfile>=0.13        # writes the decoded clips as OGG Vorbis (bundles libsndfile)
 numpy>=1.26            # soundfile's sample buffers
+pytest>=8.0            # tools/tests (docs/overland.md: python first, TDD)

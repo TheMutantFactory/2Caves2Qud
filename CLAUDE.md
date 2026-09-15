@@ -20,6 +20,17 @@ and `godot/qud/` in case something lands in the tree by accident.
 | Qud decompile | `~/qud-decomp/full/Assembly-CSharp.decompiled.cs` (one file; `grep -n "class exTextureInfo"`) |
 | raves-of-qud | `~/personal-git/raves-of-qud` — the 2.5D Qud viewer; its `docs/rendering.md` §4 and `tools/capture/voxwall.py` are the origin of the flush-and-carve wall model |
 
+## Local paths (the PC — Windows 11)
+
+| what | where |
+|---|---|
+| Python | `.venv\Scripts\python.exe`, made from the Store Python 3.11 (`python` is NOT on PATH in a plain shell; the Store alias lives in `%LOCALAPPDATA%\Microsoft\WindowsApps`) |
+| asset store | `C:\Users\danie\Library\Application Support\2Caves2Qud\qud` via the user env var `CAVES2_ASSETS` (set 2026-09-15). NOT the `%LOCALAPPDATA%` default: the Store Python VIRTUALISES writes under AppData into its package sandbox, so the store landed where Godot could not see it and `godot/qud` pointed at nothing. Anything outside AppData is safe. |
+| Godot 4.7.2 | `C:\Users\danie\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe` (`CAVES2_GODOT` for the exporter's reimport) |
+| Qud install | `C:\Program Files (x86)\Steam\steamapps\common\Caves of Qud` |
+| raves-of-qud | `C:\Users\danie\personal-git\raves-of-qud`; its support dir mirrors the mac path: `C:\Users\danie\Library\Application Support\RavesOfQud` |
+| tests | `.venv\Scripts\python.exe -m pytest tools/tests -q` (needs `CAVES2_ASSETS` in the environment for the store-backed cases; they skip without it) |
+
 ## Commands
 
 ```bash
