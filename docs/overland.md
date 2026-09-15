@@ -38,6 +38,29 @@ status line at the top is the only part that changes often.
 - On this PC the deployed Raves mod is OLDER than `origin/main` (it lacks `zonetp`, `loadout`,
   `identifyall`); the bake command goes on a branch off `origin/main` and is deployed with it.
 
+## What was learned building it (2026-09-15)
+
+- **The bake is fast.** `ZoneManager.GetZone` builds a marsh zone in ~1 s and Joppa's own in
+  17 ms; the 5 x 5 parasang region (225 zones) took 52 s and 2.5 MB. The whole surface
+  (18,000 zones) is an hour or two, not a night. Raves branch `dd/pc-world-bake`:
+  `mod/BakeExporter.cs`, `tools/capture/bake.py` (and `qud.py load <save>` through the bridge).
+- **A course is bigger than a parasang.** `race.track_scale` is 4 in tuning.json (on top of the
+  generator's STRETCH already in tracks.json), so Joppa's canvas is 26,064 x 17,376 px: about
+  two parasangs wide and four tall. `qud_world.COURSE_ANCHORS` puts each course's canvas
+  origin on a zone; Joppa's at `JoppaWorld.10.21.2.0.10` lands the village inside the loop.
+- **Painted ground is a Cell field** (`PaintTile` and kin), readable under an occupied cell;
+  the snapshot path (`Cell.Render`) only answers on an empty one. A Joppa zone: 222 distinct
+  objects, 989 standing, 227 wall cells, 21 torchposts (light radius 6).
+- **Every object in the region resolves** (261,131 of 261,131): 1,044 painted billboard /
+  floor tiles, a 46-cell ground atlas. Qud's colour letters are case-sensitive (`y` / `Y`)
+  and Windows file names are not; the art names spell the case out.
+- **The Store Python virtualises AppData.** The extract "succeeded" into a sandbox Godot
+  could not see. `CAVES2_ASSETS` names a store outside AppData (CLAUDE.md, PC paths).
+- **Paving clears more than solids.** The first race had watervine standing on the road:
+  the road takes everything but floors and water, the verge takes walls and solids.
+- The streaming self-check (`--stream_test`) walks the route: 9 chunks max of cap 9, and an
+  AI race on Joppa's marsh renders at the 60 fps cap with chunks loading one a frame.
+
 ## The shape
 
 ```

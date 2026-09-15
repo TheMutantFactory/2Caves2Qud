@@ -31,6 +31,26 @@ and `godot/qud/` in case something lands in the tree by accident.
 | raves-of-qud | `C:\Users\danie\personal-git\raves-of-qud`; its support dir mirrors the mac path: `C:\Users\danie\Library\Application Support\RavesOfQud` |
 | tests | `.venv\Scripts\python.exe -m pytest tools/tests -q` (needs `CAVES2_ASSETS` in the environment for the store-backed cases; they skip without it) |
 
+## Overland (docs/overland.md) — the courses on the real Qud surface
+
+```bash
+# 1. bake the world in Qud (raves-of-qud, branch dd/pc-world-bake; any loaded save is the world)
+python tools/capture/qud.py start && python tools/capture/qud.py load Tygashwuraq
+python tools/capture/bake.py --center 11.22 --radius 2        # 225 zones -> <RavesOfQud>/chunks/<gameId>/
+# 2. export it (the exporter's last step: world/<gameId>/ in the store) and race on it
+.venv\Scripts\python.exe tools\export_godot_assets.py
+<godot> --path godot -- --track=joppa --overland --auto --frames=300 --screenshot=out.png --mute
+<godot> --headless --path godot -- --track=joppa --overland --stream_test --auto --mute   # -> overland_test: ok=true
+# 3. the scoreboard (reports/overland-score.md); --screen adds the windowed goals
+.venv\Scripts\python.exe tools\overland_score.py
+```
+
+Probes: `overland: chunks=N wanted=M loads=L unloads=U` on every change of the loaded set,
+`overland: <zone> paved N solids under the road`, `overland_test: ok=...` from `--stream_test`.
+`--overland=<zone id>` overrides the course's anchor (`qud_world.COURSE_ANCHORS`). Python
+first: `tools/qud_world.py` (coordinates, chunk format, pave), `tools/qud_overland.py` (chunk
+to art), `tools/qud_light.py` (the light model); tests under `tools/tests/`.
+
 ## Commands
 
 ```bash
