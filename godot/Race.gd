@@ -90,6 +90,15 @@ var screen_arg := ""
 var C := {}
 var free_mode := false
 var overland := false        # the track is a QudWorld: chunks stream round the karts
+# --free_test=N (docs/overland.md G7): free drive N zones east and back, over and over, the
+# player kart steered at the target; prints `overland_free:` every 5 s and a verdict at the end
+var free_test_zones := 0
+var free_target := Vector2.ZERO
+var free_home := Vector2.ZERO
+var free_legs := 0
+var free_max_chunks := 0
+var free_mem: Array = []     # [[t, bytes]] every 5 s
+var free_next_log := 0.0
 var top_view := false
 var state_before_free := ""
 var lbl_street: Label
@@ -256,6 +265,10 @@ func _ready() -> void:
 
 	_build_environment()
 	_build_shadow_mesh()
+	if overland:
+		(track as QudWorld).light_setup(int(args["clock"]) if args.has("clock") else -1)
+		if args.has("free_test"):
+			free_test_zones = int(args["free_test"]) if args["free_test"] is String else 3
 	if rig:
 		laps = 99
 		countdown = 0.01
@@ -276,7 +289,7 @@ func _ready() -> void:
 		player = placeholder
 		humans = [placeholder]
 	else:
-		_spawn_racers(int(Shared.t(["race", "racers"], 8)))
+		_spawn_racers(1 if free_test_zones > 0 else int(Shared.t(["race", "racers"], 8)))   # the crossing: the player alone
 		for k in karts:
 			k.next_wp = track.start_wp()    # an open road's grid sits past its lead-in
 		_spawn_item_boxes()
@@ -1842,6 +1855,9 @@ func _physics_process(dt: float) -> void:
 		for k in karts:
 			ps.append(k.pos)
 		(track as QudWorld).stream(ps)
+		(track as QudWorld).light_step(t, state == FREE)
+		if free_test_zones > 0:
+			_free_test_tick(dt)
 	if state == FREE:
 		_free_step(dt)
 		return
@@ -2079,6 +2095,42 @@ func _rig_report() -> Dictionary:
 		"artifacts": arts, "bonuses": bonuses, "tally": tally, "trace": rig_trace}
 
 
+# The free-drive crossing (--free_test): the player kart is steered at a target N zones
+# east of the start, then back home, repeating; the loaded chunk count and the process
+# memory are sampled every 5 s and judged at the end (_free_test_report).
+func _free_test_tick(dt: float) -> void:
+	if free_home == Vector2.ZERO:
+		free_home = player.pos
+		free_target = free_home + Vector2(free_test_zones * QudWorld.ZONE_W * QudWorld.CELL, 0)
+		_set_free(true)
+	if player.pos.distance_to(free_target) < 300.0:
+		free_legs += 1
+		free_target = free_home if free_target != free_home else free_home + Vector2(free_test_zones * QudWorld.ZONE_W * QudWorld.CELL, 0)
+	free_max_chunks = maxi(free_max_chunks, (track as QudWorld).loaded.size())
+	if t >= free_next_log:
+		free_next_log = t + 5.0
+		var mem := OS.get_static_memory_usage()
+		free_mem.append([t, mem])
+		print("overland_free: t=%.0f chunks=%d mem=%d MB legs=%d at=%s" % [t, (track as QudWorld).loaded.size(), mem / 1048576, free_legs, (track as QudWorld).chunk_of(player.pos)])
+
+
+func _free_test_report() -> void:
+	var qw := track as QudWorld
+	var cap := (2 * qw.radius + 1) * (2 * qw.radius + 1)
+	var delta := 0
+	if free_mem.size() >= 2:
+		var last: int = free_mem[free_mem.size() - 1][1]
+		var minute_ago := last
+		for s in free_mem:
+			if float(s[0]) >= float(free_mem[free_mem.size() - 1][0]) - 60.0:
+				minute_ago = int(s[1])
+				break
+		delta = (last - minute_ago) / 1048576
+	var ok := free_legs >= 2 and free_max_chunks <= cap and delta < 50
+	print("overland_free: ok=%s legs=%d max_chunks=%d cap=%d delta_last_min=%d MB samples=%d loads=%d unloads=%d" % [
+		str(ok).to_lower(), free_legs, free_max_chunks, cap, delta, free_mem.size(), qw.loads, qw.unloads])
+
+
 # Free drive: the wizard roams the whole grid, monsters keep running their route,
 # no laps, no lap rule, no abilities.
 func _free_step(dt: float) -> void:
@@ -2086,7 +2138,13 @@ func _free_step(dt: float) -> void:
 		var throttle := 0.0
 		var steer := 0.0
 		var drift := false
-		if kart.is_player and not auto_player:
+		if kart.is_player and free_test_zones > 0:
+			throttle = 1.0
+			var kp: Vector2 = kart.pos       # typed: kart is untyped here, its fields cannot be inferred
+			var hd: float = kart.heading
+			var want: float = (free_target - kp).angle()
+			steer = clampf(wrapf(want - hd, -PI, PI) * 1.5, -1.0, 1.0)
+		elif kart.is_player and not auto_player:
 			throttle = Input.get_action_strength("drive_forward") - Input.get_action_strength("drive_back")
 			steer = Input.get_action_strength("steer_right") - Input.get_action_strength("steer_left")
 			drift = Input.is_action_pressed("drift")
@@ -3870,6 +3928,11 @@ func _finish_screenshot() -> void:
 		img.save_png(screenshot_path)
 		print("saved ", screenshot_path)
 	print("ui: picker=%s enemies=%s shop=%s paused=%s npcs=%d" % [picker != null, enemies != null, shop != null, paused, karts.size() - 1])
+	if overland:
+		var qw := track as QudWorld
+		print("light: bakes=%d keys=%d last_seg=%d" % [qw.light.bakes, qw.light.keys.size(), qw.light.last_seg])
+		if free_test_zones > 0:
+			_free_test_report()
 	if graybox:
 		_graybox_report()
 	if online:

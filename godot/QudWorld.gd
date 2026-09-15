@@ -47,6 +47,8 @@ var _last_probe := ""
 var _mats := {}                  # art -> StandardMaterial3D, shared across chunks
 var _floor_mat: StandardMaterial3D = null
 var _base_color := Color(0.5, 0.45, 0.35)
+var light := OverlandLight.new()  # the clock, the keyframes, the per-cell bake (G8)
+var light_ready := false
 
 
 # ---------------------------------------------------------------- zone maths (mirrors tools/qud_world.py)
@@ -219,10 +221,10 @@ func _load_chunk(zid: String) -> void:
 	var holder := Node3D.new()
 	holder.name = zid.replace(".", "_")
 	add_child(holder)
-	var rec := {"node": holder, "walls": [], "lights": []}
+	var local0 := zone_origin_px(zid) - origin_px
+	var rec := {"node": holder, "walls": [], "lights": [], "local0": local0, "props": [], "dark": null}
 	loaded[zid] = rec
 	loads += 1
-	var local0 := zone_origin_px(zid) - origin_px
 	_base_plane(holder, local0)
 	var d: Dictionary = Shared.load_json(QUD.ROOT + world_root + zid + ".json")
 	if d.is_empty():
@@ -251,7 +253,7 @@ func _load_chunk(zid: String) -> void:
 		# the road takes everything on it but floors and water; the verge takes the hard things
 		var hard := bool(p.get("wall", false)) or bool(p.get("solid", false))
 		if route_box.has_point(c) and (hard or (kind != "floor" and kind != "water")):
-			var dist := nearest(c, -1).dist
+			var dist: float = nearest(c, -1).dist   # typed: a Dictionary value cannot be inferred
 			if dist <= half + (verge if hard else 0.0):
 				paved += 1
 				continue
@@ -267,15 +269,17 @@ func _load_chunk(zid: String) -> void:
 			_:
 				_push(props, String(p.get("art", "")), c)
 		if int(p.get("radius", 0)) > 0:
-			rec["lights"].append({"pos": c, "radius": int(p["radius"])})
+			rec["lights"].append({"pos": c, "cell": Vector2i(x, y), "radius": int(p["radius"])})
 	_build_walls(holder, local0, cr, wall_grid, pal, rec)
 	_build_floor_art(holder, floors)
 	_build_water(holder, water)
-	_build_props(holder, props)
+	_build_props(holder, props, local0, rec)
 	_build_creatures(holder, creatures)
 	lights.append_array(rec["lights"])
 	if paved > 0:
 		print("overland: %s paved %d solids under the road" % [zid, paved])
+	if light.bakes > 0:
+		_bake_chunk(rec, light.last_seg)   # a chunk streamed in after a bake matches its neighbours
 
 
 func _unload_chunk(zid: String) -> void:
@@ -417,6 +421,7 @@ func _art_material(art: String, billboard: bool) -> StandardMaterial3D:
 	if billboard:
 		m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 		m.billboard_keep_scale = true
+		m.vertex_color_use_as_albedo = true   # MultiMesh instance colours = the baked light
 	_mats[k] = m
 	return m
 
@@ -471,22 +476,30 @@ func _build_water(holder: Node3D, water: Array) -> void:
 	holder.add_child(mi)
 
 
-func _build_props(holder: Node3D, props: Dictionary) -> void:
+func _build_props(holder: Node3D, props: Dictionary, local0: Vector2, rec: Dictionary) -> void:
 	for art in props:
 		var centres: Array = props[art]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true     # the light bake tints each sprite by its cell (set before the count)
 		var quad := QuadMesh.new()
 		quad.size = Vector2(TILE_W_PX * U, TILE_H_PX * U)
 		mm.mesh = quad
 		mm.instance_count = centres.size()
+		var cells := PackedInt32Array()
+		cells.resize(centres.size())
 		for i in centres.size():
-			mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, to3(centres[i], TILE_H_PX * 0.5)))
+			var c: Vector2 = centres[i]
+			mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, to3(c, TILE_H_PX * 0.5)))
+			mm.set_instance_color(i, Color.WHITE)
+			cells[i] = int((c.y - local0.y) / CELL) * ZONE_W + int((c.x - local0.x) / CELL)
 		var mi := MultiMeshInstance3D.new()
 		mi.name = "Props_" + art.get_file().get_basename()
 		mi.multimesh = mm
 		mi.material_override = _art_material(art, true)
+		mi.set_meta("cells", cells)
 		holder.add_child(mi)
+		rec["props"].append(mi)
 
 
 func _build_creatures(holder: Node3D, creatures: Array) -> void:
@@ -509,6 +522,81 @@ func _build_creatures(holder: Node3D, creatures: Array) -> void:
 		var th := float(spr.texture.get_height()) / float(maxi(1, spr.vframes))
 		spr.position = to3(c, th * 0.5)
 		holder.add_child(spr)
+
+
+# ---------------------------------------------------------------- the light bake (G8)
+
+## Wire the clock to the race's sun and sky. `clock_override` < 0 keeps tuning's start.
+func light_setup(clock_override: int) -> void:
+	var sun: DirectionalLight3D = null
+	var env: Environment = null
+	var parent := get_parent()
+	if parent != null:
+		for ch in parent.get_children():
+			if ch is DirectionalLight3D:
+				sun = ch
+			elif ch is WorldEnvironment:
+				env = (ch as WorldEnvironment).environment
+	light.setup(Shared.tuning.get("overland", {}), clock_override, sun, env)
+	light_ready = true
+
+
+## Called every physics frame with the race time; bakes when the schedule says so.
+func light_step(t: float, free: bool) -> void:
+	if not light_ready or not light.due(t, free):
+		return
+	var seg := light.segment(t)
+	light.mark_baked(t, free, seg)
+	bake_all(seg)
+	print("light: bake #%d seg=%d (%s) daylight=%.2f chunks=%d mode=%s t=%.0f" % [
+		light.bakes, seg, OverlandLight.clock_text(seg), OverlandLight.daylight(seg), loaded.size(), "free" if free else "race", t])
+
+
+func bake_all(seg: int) -> void:
+	light.apply_sky(seg)
+	for zid in loaded:
+		_bake_chunk(loaded[zid], seg)
+
+
+## One chunk: the darkness mesh over its cells and the tint of its billboards.
+func _bake_chunk(rec: Dictionary, seg: int) -> void:
+	var grid := light.grid(ZONE_W, ZONE_H, rec["lights"], seg)
+	var holder: Node3D = rec["node"]
+	var local0: Vector2 = rec["local0"]
+	if rec["dark"] != null:
+		(rec["dark"] as Node).queue_free()
+		rec["dark"] = null
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var quads := 0
+	for y in ZONE_H:
+		for x in ZONE_W:
+			var l := grid[y * ZONE_W + x]
+			if l >= 0.995:
+				continue
+			quads += 1
+			var col := Color(0, 0, 0, (1.0 - l) * OverlandLight.DARK_MAX)
+			var a := local0 + Vector2(x * CELL, y * CELL)
+			var b := a + Vector2(CELL, 0)
+			var c := a + Vector2(CELL, CELL)
+			var d := a + Vector2(0, CELL)
+			for tri in [[a, b, c], [a, c, d]]:
+				for p in tri:
+					st.set_color(col)
+					st.add_vertex(to3(p, OverlandLight.DARK_LIFT_PX))
+	if quads > 0:
+		var mi := MeshInstance3D.new()
+		mi.name = "Dark"
+		mi.mesh = st.commit()
+		mi.material_override = light.dark_material()
+		holder.add_child(mi)
+		rec["dark"] = mi
+	for mmi in rec["props"]:
+		var mm: MultiMesh = (mmi as MultiMeshInstance3D).multimesh
+		var cells: PackedInt32Array = mmi.get_meta("cells")
+		for i in mm.instance_count:
+			var l := maxf(grid[cells[i]], 1.0 - OverlandLight.DARK_MAX)
+			mm.set_instance_color(i, Color(l, l, l))
 
 
 # ---------------------------------------------------------------- collision

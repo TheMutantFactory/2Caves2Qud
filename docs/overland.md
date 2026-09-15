@@ -60,6 +60,19 @@ status line at the top is the only part that changes often.
   the road takes everything but floors and water, the verge takes walls and solids.
 - The streaming self-check (`--stream_test`) walks the route: 9 chunks max of cap 9, and an
   AI race on Joppa's marsh renders at the 60 fps cap with chunks loading one a frame.
+- **The crossing is slow because the marsh is off-road.** The player alone, steered three
+  zones east and back (`--free_test=3`): a leg takes ~50 s of wall time at timescale 3,
+  static memory sits at 65 MB the whole way (39 loads, 30 unloads, delta 0). With the AI
+  field still racing the loop the loaded set is the UNION of every kart's window (20 chunks
+  seen), so the crossing runs the player alone and the cap is one window.
+- **A dusk race re-bakes every 12 s.** At an hour of Qud a minute (`seg_per_s` 8.33) and a
+  0.1 daylight step, a race started at 19:24 has keys at 0, 12 and 24 s; a noon race has
+  one. Each bake is one MIX-black mesh per chunk plus the billboard instance colours; walls
+  keep their own vertex colours for now (Deferred).
+- **GDScript infers nothing from an untyped value** (`var d := nearest(c, -1).dist`, or a
+  field of an untyped loop variable): the script fails to compile and Race.gd with it, so the
+  run never quits and every probe times out. Type such locals; the score's "timeout" is
+  the symptom.
 
 ## The shape
 
@@ -109,9 +122,9 @@ checkout; a check that cannot fail earns nothing.
 | G4 | Paving | `qud_world.pave(course, anchor)`: road cells lie within half-width of the route, no wall or solid object remains within width/2 + verge of the road, output is byte-identical across runs | 10 | 09-15 |
 | G5 | Chunk streaming | `QudWorld.gd` headless test: for kart positions along a path, every chunk within radius R is loaded, none beyond R + 1, loads and unloads counted in the `overland:` probe line | 15 | 09-17 |
 | G6 | A race on the surface | `--overland=11.22 --track=joppa --auto` finishes 3 laps; graybox offroad % within 5 points of the canvas course, 0 drops, 0 voids; render >= 55 fps windowed | 15 | 09-18 |
-| G7 | Free drive across zones | drive 3 zones out and back under `--auto` free drive; loaded chunks never exceed (2R+1)^2 and process memory settles (last-minute delta < 50 MB) | 10 | 09-18 |
-| G8 | Light bake | race mode: exactly one bake per chunk for the whole race (`light:` probe); free drive: rebake every 60 s; a noon and a night screenshot differ by mean luminance > 0.15 | 10 | 09-19 |
-| G9 | On-screen regression | windowed screenshots for {noon, night} x {race, free drive} compared with goldens in `reports/overland/golden/` (perceptual hash distance <= 6) and probe lines equal; runs from `tools/overland_score.py --screen` | 10 | 09-19 |
+| G7 | Free drive across zones | `--free_test=3`: the player alone, steered 3 zones east and back, repeating, for 150 s; at least two legs done, loaded chunks never exceed (2R+1)^2, static memory delta over the last minute < 50 MB (`overland_free:` verdict) | 10 | 09-18 |
+| G8 | Light bake | `light:` summary: a noon race bakes once (1 key); a race started at 19:24 bakes at every keyframe and no more; free drive rebakes on the 60 s cadence (2 bakes in 80 s); on screen (G9's run) noon minus night luminance > 0.15 | 10 | 09-19 |
+| G9 | On-screen regression | windowed screenshots for {noon, night} x {race, free drive} compared with goldens in `reports/overland/golden/` (average-hash distance <= 6), fps >= 55 in the `race:` line; runs from `tools/overland_score.py --screen` | 10 | 09-19 |
 
 70 is demo-able (a race on the real surface); 100 closes the milestone. Anything scored is
 re-run by the score script, so a goal cannot silently regress to "done".
@@ -135,7 +148,8 @@ goldens. Headless catches logic; only a window catches an escape.
 4. **G5 + G6 in Godot**: `QudWorld.gd` (extends Track: flat ground, chunk streaming, the road
    built from the anchored course, `resolve()` against wall cells), Race `--overland=`, the
    probe lines, the headless streaming test, then the AI race.
-5. **G7 + G8**: free drive across chunks; the light bake with the clock.
+5. **G7 + G8** (built 09-15): `--free_test` in Race, `godot/OverlandLight.gd` + the bake in
+   QudWorld, `--clock=<segment>` to start a race at any hour.
 6. **G9**: goldens, the on-screen regression run, the score script's `--screen` pass.
 7. Then: drive to the next race (a second course anchored two parasangs away and a paved road
    between them on the overworld), which is the start of the next milestone, not this one.

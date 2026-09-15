@@ -163,12 +163,46 @@ def g6():
         over["nlaps"], over["lap_med"], over["offroad"], canvas["offroad"], over["drops"], over["voids"], over["state"])
 
 
+FREE = re.compile(r"overland_free: ok=(true|false) legs=(\d+) max_chunks=(\d+) cap=(\d+) delta_last_min=(-?\d+) MB samples=(\d+) loads=(\d+) unloads=(\d+)")
+
+
 def g7():
-    return False, "not built yet: the free-drive crossing (docs/overland.md plan step 5)"
+    """Free drive three zones east and back, repeating, for 150 s of wall time (the marsh is
+    off-road: a crossing takes ~50 s at timescale 3). The player alone, so the chunk cap is
+    one kart's window."""
+    out, err = run_godot(["--track=joppa", "--overland", "--free_test=3", "--frames=9000", "--timescale=3", "--mute"], timeout=900)
+    if out is None:
+        return False, err
+    m = FREE.search(out)
+    if not m:
+        return False, "no overland_free verdict" + (" (%s)" % err if err else "")
+    return m.group(1) == "true", "legs %s, max %s chunks of cap %s, memory delta over the last minute %s MB, %s loads, %s unloads" % m.group(2, 3, 4, 5, 7, 8)
+
+
+LIGHT = re.compile(r"light: bakes=(\d+) keys=(\d+) last_seg=(\d+)")
 
 
 def g8():
-    return False, "not built yet: the light bake (docs/overland.md plan step 5)"
+    """Race mode: a noon race bakes once; a dusk race bakes at its keyframes and no more.
+    Free drive: rebakes on the cadence (60 s) — 80 s of wall time gives two bakes."""
+    notes = []
+    ok = True
+    for name, args, want in [
+        ("noon race", ["--auto", "--frames=1800", "--clock=6000"], lambda b, k: b == 1 and k == 1),
+        ("dusk race", ["--auto", "--frames=1800", "--clock=9700"], lambda b, k: b == k and k >= 2),
+        ("free drive", ["--free_test=1", "--frames=4800", "--clock=6000"], lambda b, k: b == 2),
+    ]:
+        out, err = run_godot(["--track=joppa", "--overland", "--mute"] + args, timeout=600)
+        m = LIGHT.search(out or "")
+        if not m:
+            notes.append("%s: no light summary (%s)" % (name, err or "?"))
+            ok = False
+            continue
+        b, k = int(m.group(1)), int(m.group(2))
+        good = want(b, k)
+        ok = ok and good
+        notes.append("%s: %d bakes, %d keys%s" % (name, b, k, "" if good else " (WRONG)"))
+    return ok, "; ".join(notes)
 
 
 def _ahash(path):
@@ -182,9 +216,15 @@ def _ahash(path):
 def g9():
     """Windowed shots for {race, free drive}; compared with goldens by average hash."""
     os.makedirs(SHOTS, exist_ok=True)
-    scenes = {"race": ["--track=joppa", "--overland", "--auto", "--frames=240", "--mute"]}
+    scenes = {
+        "race_noon": ["--track=joppa", "--overland", "--auto", "--frames=240", "--clock=6000", "--mute"],
+        "race_night": ["--track=joppa", "--overland", "--auto", "--frames=240", "--clock=0", "--mute"],
+        "free_noon": ["--track=joppa", "--overland", "--free_test=1", "--frames=240", "--clock=6000", "--mute"],
+        "free_night": ["--track=joppa", "--overland", "--free_test=1", "--frames=240", "--clock=0", "--mute"],
+    }
     results = []
     all_ok = True
+    lums = {}
     for name, args in scenes.items():
         shot = os.path.join(SHOTS, name + ".png")
         if os.path.exists(shot):
@@ -196,6 +236,7 @@ def g9():
             continue
         fps = re.search(r"race: state=\w+ .*?fps=(\d+)", out)
         h, lum = _ahash(shot)
+        lums[name] = lum
         gold = os.path.join(GOLDEN, name + ".png")
         if not os.path.exists(gold):
             results.append("%s: no golden at %s (copy the shot there once it looks right)" % (name, gold))
@@ -206,6 +247,12 @@ def g9():
         fps_ok = fps is None or int(fps.group(1)) >= 55
         results.append("%s: hash distance %d, luminance %.2f vs golden %.2f, fps %s" % (name, dist, lum, glum, fps.group(1) if fps else "?"))
         if dist > 6 or not fps_ok:
+            all_ok = False
+    # G8's on-screen half: night is darker than noon by a margin
+    if "race_noon" in lums and "race_night" in lums:
+        d = lums["race_noon"] - lums["race_night"]
+        results.append("noon minus night luminance %.2f%s" % (d, "" if d > 0.15 else " (WRONG: needs > 0.15)"))
+        if d <= 0.15:
             all_ok = False
     return all_ok, "; ".join(results)
 
