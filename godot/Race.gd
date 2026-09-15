@@ -89,6 +89,7 @@ var frame_count := 0
 var screen_arg := ""
 var C := {}
 var free_mode := false
+var overland := false        # the track is a QudWorld: chunks stream round the karts
 var top_view := false
 var state_before_free := ""
 var lbl_street: Label
@@ -231,12 +232,25 @@ func _ready() -> void:
 		level = Campaign.current_realm()
 	if level.is_empty() and not Shared.tracks.has(key):
 		key = Shared.track_for_level(Campaign.level)   # the Grand Prix runs the cups in order
-	track = Track.new()
-	add_child(track)
-	if not level.is_empty():
-		track.setup_level(level, rng)
+	overland = args.has("overland")
+	if overland:
+		# the course paved into the real Qud surface (docs/overland.md): --overland[=anchor zone]
+		var qw := QudWorld.new()
+		track = qw
+		add_child(track)
+		qw.setup_overland(key, String(args["overland"]) if args["overland"] is String else "", rng)
+		qw.stream([track.points[track.start_i]], 99)   # the start area, before anyone stands on it
+		if args.has("stream_test"):
+			var ok := qw.stream_test(int(args["stream_test"]) if args["stream_test"] is String else 8)
+			get_tree().quit(0 if ok else 1)
+			return
 	else:
-		track.setup(key, rng)
+		track = Track.new()
+		add_child(track)
+		if not level.is_empty():
+			track.setup_level(level, rng)
+		else:
+			track.setup(key, rng)
 	track_spells = track.spec.get("spells", [])
 	laps = int(track.spec.get("laps", laps))
 
@@ -1823,6 +1837,11 @@ func _physics_process(dt: float) -> void:
 		return
 	t += dt
 	message_t = maxf(0.0, message_t - dt)
+	if overland:
+		var ps := []
+		for k in karts:
+			ps.append(k.pos)
+		(track as QudWorld).stream(ps)
 	if state == FREE:
 		_free_step(dt)
 		return

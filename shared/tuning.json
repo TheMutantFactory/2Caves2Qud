@@ -1,5 +1,6 @@
 {
   "_comment": "Gameplay numbers shared by both paths. Units: world px, seconds, radians. See docs/kart-reference.md for where each mechanic comes from.",
+  "overland": {"radius": 1, "verge_px": 60.0, "_comment": "docs/overland.md: chunks kept round a kart (1 = 3x3 zones); the strip beside the road cleared of walls"},
   "race": {
     "laps": 3,
     "racers": 8,

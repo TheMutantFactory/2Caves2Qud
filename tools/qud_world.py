@@ -151,7 +151,8 @@ def zones_within(px, radius, z=SURFACE_Z):
 
 # --- the compact chunk --------------------------------------------------------------------
 
-PALETTE_KEYS = ("name", "tile", "color", "detail", "tilecolor", "wall", "solid", "liquid", "ground")
+PALETTE_KEYS = ("name", "tile", "color", "detail", "tilecolor", "wall", "solid", "liquid", "ground",
+                "creature", "lightRadius", "layer")
 
 
 def _palette_entry(o):
@@ -165,6 +166,9 @@ def _palette_entry(o):
         "solid": bool(o.get("solid", False)),
         "liquid": bool(o.get("liquid", False)),
         "ground": bool(o.get("ground", False)),
+        "creature": bool(o.get("creature", False)),
+        "lightRadius": int(o.get("lightRadius", 0) or 0),
+        "layer": int(o.get("layer", 0) or 0),
     }
 
 
@@ -305,8 +309,9 @@ class Paving:
 
 def pave(chunks, route, width_px, verge_px=CELL_PX, closed=True):
     """Lay a road (a polyline in world px) over the chunks. A cell is ROAD when its centre is
-    within width/2 of the route; every wall / solid object within width/2 + verge is
-    cleared. Input chunks are not mutated."""
+    within width/2 of the route: everything standing on it goes except floors and liquids
+    (the road is drawn over them). Within the VERGE beyond that, walls and solids go too, so
+    nothing hard stands at the curb. Input chunks are not mutated."""
     half = width_px * 0.5
     reach = half + verge_px
     xs = [p[0] for p in route]
@@ -333,7 +338,10 @@ def pave(chunks, route, width_px, verge_px=CELL_PX, closed=True):
         kept = []
         for (x, y, i) in ch.objs:
             p = ch.palette[i]
-            if (p["wall"] or p["solid"]) and dist[(x, y)] <= reach:
+            d = dist[(x, y)]
+            hard = p["wall"] or p["solid"]
+            on_road = d <= half and not p["liquid"] and not p.get("floor", False)
+            if on_road or (hard and d <= reach):
                 cleared.append((x, y, i))
             else:
                 kept.append((x, y, i))
@@ -346,11 +354,48 @@ def pave(chunks, route, width_px, verge_px=CELL_PX, closed=True):
     return out
 
 
+# Where each course lands on the world: the anchor zone whose origin is the canvas origin.
+# Joppa's loop, at track_scale 4, spans about 26k x 17k px; anchored at parasang 10.21's
+# last column the village (11.22.1.1) sits inside the loop, within the 5x5 region baked
+# round it (wx 9..13, wy 20..24).
+COURSE_ANCHORS = {"joppa": "JoppaWorld.10.21.2.0.10"}
+
+
+def track_scale():
+    """The engine's px multiplier on every course (shared/tuning.json race.track_scale,
+    Track._build_loop): the generator's STRETCH is already in tracks.json's control points."""
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shared", "tuning.json")
+    try:
+        with open(p, encoding="utf-8") as f:
+            return float(json.load(f).get("race", {}).get("track_scale", 2.0))
+    except (OSError, ValueError):
+        return 2.0
+
+
+def course_spec(key):
+    """The engine's copy of a course (shared/tracks.json), which is what Godot builds."""
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shared", "tracks.json")
+    with open(p, encoding="utf-8") as f:
+        tj = json.load(f)
+    for t in (tj["tracks"] if isinstance(tj, dict) else tj):
+        if t["key"] == key:
+            return t
+    raise KeyError(key)
+
+
+def course_bounds_px(spec, anchor_zone):
+    """(x0, y0, x1, y1): where the course canvas lands in world px."""
+    k = track_scale()
+    ox, oy = zone_origin_px(anchor_zone)
+    return (ox, oy, ox + spec["size"][0] * k, oy + spec["size"][1] * k)
+
+
 def course_route(spec, anchor_zone, samples=16):
-    """A course's loop as world px: its control points scaled by the course STRETCH (as the
-    engine does), with the canvas origin on the anchor zone's origin."""
+    """A course's loop as world px, the way the engine lays it: tracks.json control points
+    (STRETCH already applied) times race.track_scale, the canvas origin on the anchor zone's
+    origin. With track_scale 4 a course is ~26k x 17k px: two parasangs wide, four tall."""
     import qud_tracks
-    k = qud_tracks.STRETCH.get(spec["key"], 1.0)
+    k = track_scale()
     ox, oy = zone_origin_px(anchor_zone)
     control = [(ox + x * k, oy + y * k) for (x, y) in spec["control"]]
     return qud_tracks._loop_points(control, samples)

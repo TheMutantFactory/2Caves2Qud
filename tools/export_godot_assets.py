@@ -810,6 +810,17 @@ def main(argv=None):
     log("dressing: %d zones (%s), %d scatter kinds, %d painted tiles" % (
         len(zones), ", ".join("%s %d" % (k, len(v["objects"])) for k, v in zones.items()), len(scatter),
         sum(1 for a in dx.arts.values() if a["art"].startswith("dressing/"))))
+    # the overland world: the zones the Raves bridge baked, resolved to art (docs/overland.md)
+    import qud_overland
+    world = qud_overland.export_world(bp, out, manifest.get("wall_families", {}), unit_slugs, paint, scaled, load_tile)
+    if world is None:
+        log("world:   none baked (raves-of-qud tools/capture/bake.py)")
+    else:
+        st = world["stats"]
+        log("world:   %s: %d zones, %d objects, %d resolved (%.1f%%), %d art, atlas %d cells%s" % (
+            world["gameId"], len(world["zones"]), st["objects"], st["resolved"],
+            100.0 * st["resolved"] / max(1, st["objects"]), st["art"], world["atlas"]["count"],
+            (", skipped: " + ", ".join("%s %d" % kv for kv in list(st["skipped"].items())[:6])) if st["skipped"] else ""))
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=1)
     with open(os.path.join(out, "README.txt"), "w") as f:

@@ -202,7 +202,11 @@ def test_pave_clears_solids_under_the_road_and_keeps_the_rest():
     assert out.is_wall(40, 0) and out.is_wall(40, 24)
     assert not out.is_wall(40, 12) and not out.is_wall(0, 12)
     assert [o["name"] for o in out.objects_at(0, 0)] == ["Watervine"]
-    assert len(paved.cleared[ch.id]) == 80 + 6   # the row of wall + the crossing wall's 7 cells minus the shared one
+    # a plant ON the road goes too (row 12 is road; the props at rows 8 and 16 sit 4 cells
+    # off the centre line = 240 px, outside the 150 px half-width, and stay)
+    assert out.objects_at(40, 12) == [] and out.objects_at(0, 12) == []
+    assert [o["name"] for o in out.objects_at(0, 8)] == ["Watervine"]
+    assert len(paved.cleared[ch.id]) == 80 + 6 + 20   # the wall row, the crossing wall's 6 verge cells, the 20 props on row 12
     assert ch.is_wall(40, 12), "the input chunk is not mutated"
 
 
@@ -218,16 +222,30 @@ def test_pave_is_deterministic_and_stays_in_touched_chunks():
     assert other.id not in a.road_cells, "a chunk the road never crosses is not in the overlay"
 
 
-@needs_store
-def test_course_route_lands_in_the_anchor_parasang():
-    import qud_tracks
-    spec = next(c for c in qud_tracks.COURSES if c["key"] == "joppa")
-    route = qw.course_route(spec, "JoppaWorld.11.22.0.0.10")
+def test_course_route_lands_on_the_anchor_at_the_engine_scale():
+    spec = qw.course_spec("joppa")
+    anchor = "JoppaWorld.10.21.0.0.10"
+    route = qw.course_route(spec, anchor)
     assert len(route) >= 16 * len(spec["control"])
-    ox, oy = qw.zone_origin_px("JoppaWorld.11.22.0.0.10")
+    x0, y0, x1, y1 = qw.course_bounds_px(spec, anchor)
+    assert (x0, y0) == qw.zone_origin_px(anchor)
+    k = qw.track_scale()
+    assert k >= 1.0 and (x1 - x0) == spec["size"][0] * k
     xs = [p[0] for p in route]
     ys = [p[1] for p in route]
-    assert min(xs) >= ox and min(ys) >= oy
-    assert max(xs) < ox + 3 * 4800 and max(ys) < oy + 3 * 1500, "the course fits its parasang"
+    assert min(xs) >= x0 - 1 and min(ys) >= y0 - 1 and max(xs) <= x1 + 1 and max(ys) <= y1 + 1
     zones = {qw.zone_at_px(*p) for p in route}
-    assert len(zones) >= 2, "a course spans more than one zone"
+    assert None not in zones and len(zones) >= 4, "a course spans many zones"
+
+
+def test_course_anchors_keep_the_canvas_in_the_baked_region():
+    # the 5x5 parasang region baked round Joppa (wx 9..13, wy 20..24)
+    rx0, ry0 = qw.zone_origin_px("JoppaWorld.9.20.0.0.10")
+    rx1, ry1 = qw.zone_origin_px("JoppaWorld.13.24.2.2.10")
+    for key, anchor in qw.COURSE_ANCHORS.items():
+        x0, y0, x1, y1 = qw.course_bounds_px(qw.course_spec(key), anchor)
+        assert x0 >= rx0 and y0 >= ry0 and x1 <= rx1 + 4800 and y1 <= ry1 + 1500, key
+    # Joppa's village zone lies inside its course canvas
+    x0, y0, x1, y1 = qw.course_bounds_px(qw.course_spec("joppa"), qw.COURSE_ANCHORS["joppa"])
+    vx, vy = qw.zone_origin_px("JoppaWorld.11.22.1.1.10")
+    assert x0 <= vx and vx + 4800 <= x1 and y0 <= vy and vy + 1500 <= y1
