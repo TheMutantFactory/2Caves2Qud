@@ -8,7 +8,10 @@ continuous ground, and eventually you drive from one race to the next across it.
 This page is the plan, the scoreboard that grades it, and the decisions it rests on. The
 status line at the top is the only part that changes often.
 
-**Status (2026-09-15): plan written, goals G1 and G4 (pure Python) in progress. Score 0 / 100.**
+**Status (2026-09-15, evening): everything in the table is built and G1-G8 score green
+headless (80 / 100); G9's goldens were recorded from the first on-screen pass and the
+`--screen` run scores them. Next: step 7, the drive to the next race. See
+`reports/overland-score.md` for the last run.**
 
 ## What was learned before the plan (2026-09-15)
 
@@ -172,6 +175,9 @@ goldens. Headless catches logic; only a window catches an escape.
 
 ## Deferred
 
+- The light bake dims the ground, the road and the billboards; voxel walls, creature sprites
+  and the racers keep their colours, and the sky stays the canvas sky at night. Qud's real
+  dawn/dusk curve (read `time` off the bridge) in place of the two-hour ramps.
 - Floating origin for the full 57 km map (needed before "drive anywhere"; not for one region).
 - Terrain from the overworld kind (hills, mountains, canyon walls).
 - Strata (underground races), the world map view, the race-to-race road network.

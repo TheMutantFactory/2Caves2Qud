@@ -3930,7 +3930,7 @@ func _finish_screenshot() -> void:
 	print("ui: picker=%s enemies=%s shop=%s paused=%s npcs=%d" % [picker != null, enemies != null, shop != null, paused, karts.size() - 1])
 	if overland:
 		var qw := track as QudWorld
-		print("light: bakes=%d keys=%d last_seg=%d" % [qw.light.bakes, qw.light.keys.size(), qw.light.last_seg])
+		print("light: bakes=%d keys=%d due=%d last_seg=%d" % [qw.light.bakes, qw.light.keys.size(), qw.light.next_key, qw.light.last_seg])
 		if free_test_zones > 0:
 			_free_test_report()
 	if graybox:

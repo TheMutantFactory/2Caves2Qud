@@ -179,18 +179,18 @@ def g7():
     return m.group(1) == "true", "legs %s, max %s chunks of cap %s, memory delta over the last minute %s MB, %s loads, %s unloads" % m.group(2, 3, 4, 5, 7, 8)
 
 
-LIGHT = re.compile(r"light: bakes=(\d+) keys=(\d+) last_seg=(\d+)")
+LIGHT = re.compile(r"light: bakes=(\d+) keys=(\d+) due=(\d+) last_seg=(\d+)")
 
 
 def g8():
-    """Race mode: a noon race bakes once; a dusk race bakes at its keyframes and no more.
-    Free drive: rebakes on the cadence (60 s) — 80 s of wall time gives two bakes."""
+    """Race mode: exactly one bake per keyframe the run reached (`due`) — a noon race reaches
+    one, a race started at 19:24 several. Free drive: the 60 s cadence, two bakes in 80 s."""
     notes = []
     ok = True
     for name, args, want in [
-        ("noon race", ["--auto", "--frames=1800", "--clock=6000"], lambda b, k: b == 1 and k == 1),
-        ("dusk race", ["--auto", "--frames=1800", "--clock=9700"], lambda b, k: b == k and k >= 2),
-        ("free drive", ["--free_test=1", "--frames=4800", "--clock=6000"], lambda b, k: b == 2),
+        ("noon race", ["--auto", "--frames=1800", "--clock=6000"], lambda b, k, d: b == d == 1),
+        ("dusk race", ["--auto", "--frames=1800", "--clock=9700"], lambda b, k, d: b == d and d >= 2),
+        ("free drive", ["--free_test=1", "--frames=4800", "--clock=6000"], lambda b, k, d: b == 2),
     ]:
         out, err = run_godot(["--track=joppa", "--overland", "--mute"] + args, timeout=600)
         m = LIGHT.search(out or "")
@@ -198,10 +198,10 @@ def g8():
             notes.append("%s: no light summary (%s)" % (name, err or "?"))
             ok = False
             continue
-        b, k = int(m.group(1)), int(m.group(2))
-        good = want(b, k)
+        b, k, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        good = want(b, k, d)
         ok = ok and good
-        notes.append("%s: %d bakes, %d keys%s" % (name, b, k, "" if good else " (WRONG)"))
+        notes.append("%s: %d bakes for %d keys due of %d%s" % (name, b, d, k, "" if good else " (WRONG)"))
     return ok, "; ".join(notes)
 
 
@@ -216,11 +216,14 @@ def _ahash(path):
 def g9():
     """Windowed shots for {race, free drive}; compared with goldens by average hash."""
     os.makedirs(SHOTS, exist_ok=True)
+    # seeded and from a fresh campaign, so the field lines up the same way every run (the
+    # night race's hash sat at the threshold with the AI spread varying)
+    base = ["--track=joppa", "--overland", "--seed=1", "--newrun", "--frames=240", "--mute"]
     scenes = {
-        "race_noon": ["--track=joppa", "--overland", "--auto", "--frames=240", "--clock=6000", "--mute"],
-        "race_night": ["--track=joppa", "--overland", "--auto", "--frames=240", "--clock=0", "--mute"],
-        "free_noon": ["--track=joppa", "--overland", "--free_test=1", "--frames=240", "--clock=6000", "--mute"],
-        "free_night": ["--track=joppa", "--overland", "--free_test=1", "--frames=240", "--clock=0", "--mute"],
+        "race_noon": base + ["--auto", "--clock=6000"],
+        "race_night": base + ["--auto", "--clock=0"],
+        "free_noon": base + ["--free_test=1", "--clock=6000"],
+        "free_night": base + ["--free_test=1", "--clock=0"],
     }
     results = []
     all_ok = True
