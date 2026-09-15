@@ -8,10 +8,9 @@ continuous ground, and eventually you drive from one race to the next across it.
 This page is the plan, the scoreboard that grades it, and the decisions it rests on. The
 status line at the top is the only part that changes often.
 
-**Status (2026-09-15, evening): everything in the table is built and G1-G8 score green
-headless (80 / 100); G9's goldens were recorded from the first on-screen pass and the
-`--screen` run scores them. Next: step 7, the drive to the next race. See
-`reports/overland-score.md` for the last run.**
+**Status (2026-09-15, evening): everything in the table is built; the full run
+(`tools/overland_score.py --screen`) scores 100 / 100, see `reports/overland-score.md`.
+Next: step 7, the drive to the next race.**
 
 ## What was learned before the plan (2026-09-15)
 

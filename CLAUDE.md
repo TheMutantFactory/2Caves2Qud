@@ -351,6 +351,18 @@ manifest.wall_families) writes data/zones.json, data/dressing.json and dressing/
 neighbour scan, ponds → water cells, creatures → unit idle strips, else billboards) and
 scatters blueprints. Course spec `dressing` (see the generator's docstring). Probe: the
 `dressing:` build line. Joppa done; the other courses' zones are listed in docs/tracks.md.
+OVERLAND (2026-09-15, docs/overland.md): the courses paved into the REAL Qud surface. The
+Raves bridge bakes zones (`bake` command, `tools/capture/bake.py` over there; 225 zones round
+Joppa in 52 s), `tools/qud_overland.py` resolves them to art at export, `godot/QudWorld.gd`
+streams one chunk per zone round the karts with the road paved through (walls collide by
+cell; everything but floors and water leaves the road, hard things leave the verge too), and
+`godot/OverlandLight.gd` bakes Qud's light by the clock (race: keyframes; free drive: 60 s).
+`--overland`, `--clock=<seg>`, `--stream_test`, `--free_test=N`; `tools/overland_score.py`
+grades the nine goals (headless 80/100 + G9 on `--screen`). GOTCHAS: `var x := <untyped>.field`
+does not compile and takes Race.gd down with it (every probe then "times out"); a MultiMesh
+needs `use_colors` before its instance count; Qud's colour letters are case-sensitive but
+Windows file names are not. Next there: the drive to the next race (a second anchored course
+and a paved road between them on the static overworld).
 Next: play it — the graybox and select passes are numeric; a human lap and a human select
 session will find what the probes cannot.
 2. Racer select: unlocks, duplicate rule, 3D racer-and-kart preview, search (docs/racer-select.md).
