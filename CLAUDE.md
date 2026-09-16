@@ -34,6 +34,9 @@ and `godot/qud/` in case something lands in the tree by accident.
 ## Overland (docs/overland.md) — the courses on the real Qud surface
 
 ```bash
+tools/run-demo.sh                # the whole thing: checks the store, bakes + exports if missing, launches the race
+tools/run-demo.sh --auto --dusk  # AI drives 300 frames -> reports/overland/demo.png; --check verifies only; --help
+# by hand:
 # 1. bake the world in Qud (raves-of-qud, branch dd/pc-world-bake; any loaded save is the world)
 python tools/capture/qud.py start && python tools/capture/qud.py load Tygashwuraq
 python tools/capture/bake.py --center 11.22 --radius 2        # 225 zones -> <RavesOfQud>/chunks/<gameId>/
