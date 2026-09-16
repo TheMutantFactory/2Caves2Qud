@@ -1857,6 +1857,14 @@ func _physics_process(dt: float) -> void:
 		return
 	t += dt
 	message_t = maxf(0.0, message_t - dt)
+	# --seconds ends the run on PHYSICS time in every state (free drive and the countdown
+	# too): a screenshot taken by render frames lands at a different simulation time when
+	# the frame rate varies, and the on-screen regression needs the same instant every run
+	if seconds_limit > 0.0 and t >= seconds_limit:
+		seconds_limit = -1.0
+		frames_left = -1
+		_finish_screenshot()
+		return
 	if overland:
 		var ps := []
 		for k in karts:
@@ -3938,6 +3946,7 @@ func _finish_screenshot() -> void:
 	if overland:
 		var qw := track as QudWorld
 		print("light: bakes=%d keys=%d due=%d last_seg=%d" % [qw.light.bakes, qw.light.keys.size(), qw.light.next_key, qw.light.last_seg])
+		print(qw.build_stats())
 		if free_test_zones > 0:
 			_free_test_report()
 	if graybox:

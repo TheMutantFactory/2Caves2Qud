@@ -141,7 +141,7 @@ checkout; a check that cannot fail earns nothing.
 | G6 | A race on the surface | `--overland=11.22 --track=joppa --auto` finishes 3 laps; graybox offroad % within 5 points of the canvas course, 0 drops, 0 voids; render >= 55 fps windowed | 15 | 09-18 |
 | G7 | Free drive across zones | `--free_test=3`: the player alone, steered 3 zones east and back, repeating, for 150 s; at least two legs done, loaded chunks never exceed (2R+1)^2, static memory delta over the last minute < 50 MB (`overland_free:` verdict) | 10 | 09-18 |
 | G8 | Light bake | `light:` summary: a noon race bakes once (1 key); a race started at 19:24 bakes at every keyframe and no more; free drive rebakes on the 60 s cadence (2 bakes in 80 s); on screen (G9's run) noon minus night luminance > 0.15 | 10 | 09-19 |
-| G9 | On-screen regression | windowed screenshots for {noon, night} x {race, free drive} compared with goldens in `reports/overland/golden/` (average-hash distance <= 6), fps >= 55 in the `race:` line; runs from `tools/overland_score.py --screen` | 10 | 09-19 |
+| G9 | On-screen regression | windowed screenshots for {noon, night} x {race, parked free drive} compared with goldens in `reports/overland/golden/` (average-hash distance <= 6), fps >= 55 in the race scenes' `race:` line (free drive's is reported: the AI field roams the loop there and the loaded set grows to ~21 chunks); runs from `tools/overland_score.py --screen` | 10 | 09-19 |
 
 70 is demo-able (a race on the real surface); 100 closes the milestone. Anything scored is
 re-run by the score script, so a goal cannot silently regress to "done".

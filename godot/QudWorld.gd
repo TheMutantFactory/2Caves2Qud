@@ -202,8 +202,8 @@ func stream(positions: Array, max_loads := 1) -> void:
 			break
 		_load_chunk(z)
 		done += 1
-	# a load a frame, and a build step a frame; at setup (max_loads 99) everything at once
-	_run_steps(99 if max_loads >= 99 else 1)
+	# a load a frame, and a few ms of build steps a frame; at setup (max_loads 99) everything
+	_run_steps(1.0e9 if max_loads >= 99 else STEP_BUDGET_MS)
 	wanted_now = want.keys()
 	var line := "overland: chunks=%d wanted=%d loads=%d unloads=%d" % [loaded.size(), want.size(), loads, unloads]
 	if line != _last_probe:
@@ -255,6 +255,14 @@ func stream_test(steps := 8) -> bool:
 # ---------------------------------------------------------------- chunks
 
 func _load_chunk(zid: String) -> void:
+	var t0 := Time.get_ticks_usec()
+	_load_chunk_now(zid)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	load_ms += ms
+	load_max = maxf(load_max, ms)
+
+
+func _load_chunk_now(zid: String) -> void:
 	var holder := Node3D.new()
 	holder.name = zid.replace(".", "_")
 	add_child(holder)
@@ -309,32 +317,62 @@ func _load_chunk(zid: String) -> void:
 	# The rest is built one STEP per frame (stream() runs them), so a chunk arriving during a
 	# race costs a few small frames instead of one long one: the floor, then walls and water,
 	# then the standing sprites, then the creatures and the light bake.
-	rec["steps"] = [
+	var steps := [
 		func() -> void: _build_floor(holder, local0, w, h, d.get("ground", [])),
 		func() -> void:
 			_build_walls(holder, local0, cr, wall_grid, pal, rec)
 			_build_floor_art(holder, floors)
 			_build_water(holder, water),
-		func() -> void: _build_props(holder, props, local0, rec),
-		func() -> void:
-			_build_creatures(holder, creatures)
-			lights.append_array(rec["lights"])
-			if light.bakes > 0:
-				_bake_chunk(rec, light.last_seg),   # a chunk streamed in after a bake matches its neighbours
 	]
+	for key in props:       # one art group a step: the grass alone is hundreds of instances
+		var one := {key: props[key]}
+		steps.append(func() -> void: _build_props(holder, one, local0, rec))
+	steps.append(func() -> void:
+		_build_creatures(holder, creatures)
+		lights.append_array(rec["lights"])
+		if light.bakes > 0:
+			_bake_chunk(rec, light.last_seg))   # a chunk streamed in after a bake matches its neighbours
+	rec["steps"] = steps
+	rec["nsteps"] = steps.size()
 
 
-## Run pending build steps, at most `budget` across all loading chunks (one a frame in play).
-func _run_steps(budget: int) -> void:
+var step_ms := [0.0, 0.0, 0.0, 0.0]     # total ms per build step (floor, walls+water, sprites, rest)
+var step_max := [0.0, 0.0, 0.0, 0.0]    # the worst single call of each
+var step_n := [0, 0, 0, 0]
+var load_ms := 0.0                      # the JSON read + sort in _load_chunk
+var load_max := 0.0
+
+
+const STEP_BUDGET_MS := 5.0   # build time a frame in play; the rest of the frame is the race's
+
+
+## Run pending build steps across the loading chunks until `budget_ms` of this frame is
+## spent (at least one step; all of them when budget_ms is huge, as at setup).
+func _run_steps(budget_ms: float) -> void:
+	var t_start := Time.get_ticks_usec()
 	for zid in loaded:
 		var rec: Dictionary = loaded[zid]
 		var steps: Array = rec.get("steps", [])
-		while budget > 0 and not steps.is_empty():
+		while not steps.is_empty():
+			var done: int = int(rec.get("nsteps", 4)) - steps.size()
+			var i: int = 0 if done == 0 else (1 if done == 1 else (3 if steps.size() == 1 else 2))
 			var step: Callable = steps.pop_front()
+			var t0 := Time.get_ticks_usec()
 			step.call()
-			budget -= 1
-		if budget <= 0:
-			return
+			var ms := (Time.get_ticks_usec() - t0) / 1000.0
+			step_ms[i] += ms
+			step_max[i] = maxf(step_max[i], ms)
+			step_n[i] += 1
+			if (Time.get_ticks_usec() - t_start) / 1000.0 >= budget_ms:
+				return
+
+
+## What chunk building cost this run: the probe behind the frame-rate floor.
+func build_stats() -> String:
+	var parts := []
+	for i in 4:
+		parts.append("%s avg %.1f max %.1f" % [["floor", "walls", "sprites", "rest"][i], step_ms[i] / maxi(1, step_n[i]), step_max[i]])
+	return "overland: builds=%d load avg %.1f max %.1f ms; %s" % [loads, load_ms / maxi(1, loads), load_max, "; ".join(parts)]
 
 
 func building() -> int:
@@ -379,6 +417,73 @@ func _push(groups: Dictionary, art: String, c: Vector2) -> void:
 
 # ---------------------------------------------------------------- builders
 
+## The world is flat (elevation, profile, camber and lean are stripped), so a chunk's vertices
+## need none of Track.to3's height sampling — 12,000 noise reads per floor cost 25 ms a chunk.
+func flat3(p: Vector2, lift_px := 0.0) -> Vector3:
+	return Vector3(p.x * U, lift_px * U, p.y * U)
+
+
+## A mesh of axis-aligned cell quads from arrays (four vertices and six indices a cell),
+## which is several times cheaper than SurfaceTool's per-vertex calls. `cells` is an Array of
+## [Vector2 top-left, size, Vector2 uv0, Vector2 uv1, Color]; lift in px.
+func _quad_mesh(cells: Array, lift: float, name: String, mat: Material, holder: Node3D) -> MeshInstance3D:
+	var n := cells.size()
+	if n == 0:
+		return null
+	var verts := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var cols := PackedColorArray()
+	var norms := PackedVector3Array()
+	var idx := PackedInt32Array()
+	verts.resize(n * 4)
+	uvs.resize(n * 4)
+	cols.resize(n * 4)
+	norms.resize(n * 4)
+	idx.resize(n * 6)
+	var y := lift * U
+	for i in n:
+		var q: Array = cells[i]
+		var a: Vector2 = q[0]
+		var s: float = q[1]
+		var uv0: Vector2 = q[2]
+		var uv1: Vector2 = q[3]
+		var col: Color = q[4]
+		var v := i * 4
+		verts[v] = Vector3(a.x * U, y, a.y * U)
+		verts[v + 1] = Vector3((a.x + s) * U, y, a.y * U)
+		verts[v + 2] = Vector3((a.x + s) * U, y, (a.y + s) * U)
+		verts[v + 3] = Vector3(a.x * U, y, (a.y + s) * U)
+		uvs[v] = uv0
+		uvs[v + 1] = Vector2(uv1.x, uv0.y)
+		uvs[v + 2] = uv1
+		uvs[v + 3] = Vector2(uv0.x, uv1.y)
+		for k in 4:
+			cols[v + k] = col
+			norms[v + k] = Vector3.UP
+		var t := i * 6
+		idx[t] = v
+		idx[t + 1] = v + 1
+		idx[t + 2] = v + 2
+		idx[t + 3] = v
+		idx[t + 4] = v + 2
+		idx[t + 5] = v + 3
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_COLOR] = cols
+	arrays[Mesh.ARRAY_NORMAL] = norms
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mi := MeshInstance3D.new()
+	mi.name = name
+	mi.mesh = mesh
+	mi.material_override = mat
+	holder.add_child(mi)
+	return mi
+
+
 func _base_plane(holder: Node3D, local0: Vector2) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -389,7 +494,7 @@ func _base_plane(holder: Node3D, local0: Vector2) -> void:
 	for tri in [[a, b, c], [a, c, d]]:
 		for p in tri:
 			st.set_uv(p / TILE_PX)
-			st.add_vertex(to3(p, -0.5))
+			st.add_vertex(flat3(p, -0.5))
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.name = "Base"
@@ -406,37 +511,18 @@ func _build_floor(holder: Node3D, local0: Vector2, w: int, h: int, ground: Array
 		_floor_mat.texture_repeat = false
 		_floor_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		_floor_mat.alpha_scissor_threshold = 0.5
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var cells := 0
+	var cells := []
+	var du := 1.0 / float(atlas_cols)
+	var dv := 1.0 / float(atlas_rows)
 	for y in h:
 		for x in w:
 			var gi := int(ground[y * w + x])
 			if gi < 0:
 				continue
-			cells += 1
 			@warning_ignore("integer_division")
-			var u0 := float(gi % atlas_cols) / float(atlas_cols)
-			@warning_ignore("integer_division")
-			var v0 := float(gi / atlas_cols) / float(atlas_rows)
-			var u1 := u0 + 1.0 / float(atlas_cols)
-			var v1 := v0 + 1.0 / float(atlas_rows)
-			var a := local0 + Vector2(x * CELL, y * CELL)
-			var b := a + Vector2(CELL, 0)
-			var c := a + Vector2(CELL, CELL)
-			var d := a + Vector2(0, CELL)
-			for tri in [[a, Vector2(u0, v0), b, Vector2(u1, v0), c, Vector2(u1, v1)], [a, Vector2(u0, v0), c, Vector2(u1, v1), d, Vector2(u0, v1)]]:
-				for i in range(0, 6, 2):
-					st.set_uv(tri[i + 1])
-					st.add_vertex(to3(tri[i], 1.0))
-	if cells == 0:
-		return
-	st.generate_normals()
-	var mi := MeshInstance3D.new()
-	mi.name = "Floor"
-	mi.mesh = st.commit()
-	mi.material_override = _floor_mat
-	holder.add_child(mi)
+			var uv0 := Vector2(float(gi % atlas_cols) * du, float(gi / atlas_cols) * dv)
+			cells.append([local0 + Vector2(x * CELL, y * CELL), CELL, uv0, uv0 + Vector2(du, dv), Color.WHITE])
+	_quad_mesh(cells, 1.0, "Floor", _floor_mat, holder)
 
 
 func _build_walls(holder: Node3D, local0: Vector2, cr: Vector2i, grid: Dictionary, pal: Array, rec: Dictionary) -> void:
@@ -500,52 +586,29 @@ func _art_material(art: String, billboard: bool) -> Material:
 
 func _build_floor_art(holder: Node3D, floors: Dictionary) -> void:
 	for art in floors:
-		var st := SurfaceTool.new()
-		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var cells := []
 		for c in floors[art]:
-			var a: Vector2 = c - Vector2(CELL, CELL) * 0.5
-			var b := a + Vector2(CELL, 0)
-			var cc := a + Vector2(CELL, CELL)
-			var d := a + Vector2(0, CELL)
-			for tri in [[a, Vector2(0, 0), b, Vector2(1, 0), cc, Vector2(1, 1)], [a, Vector2(0, 0), cc, Vector2(1, 1), d, Vector2(0, 1)]]:
-				for i in range(0, 6, 2):
-					st.set_uv(tri[i + 1])
-					st.add_vertex(to3(tri[i], 2.0))
-		st.generate_normals()
-		var mi := MeshInstance3D.new()
-		mi.name = "Floor_" + art.get_file().get_basename()
-		mi.mesh = st.commit()
-		mi.material_override = _art_material(art, false)
-		holder.add_child(mi)
+			cells.append([Vector2(c) - Vector2(CELL, CELL) * 0.5, CELL, Vector2.ZERO, Vector2.ONE, Color.WHITE])
+		_quad_mesh(cells, 2.0, "Floor_" + art.get_file().get_basename(), _art_material(art, false), holder)
+
+
+var _water_mat: StandardMaterial3D = null
 
 
 func _build_water(holder: Node3D, water: Array) -> void:
 	if water.is_empty():
 		return
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	if _water_mat == null:
+		_water_mat = StandardMaterial3D.new()
+		_water_mat.vertex_color_use_as_albedo = true
+		_water_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_water_mat.roughness = 0.2
+	var cells := []
 	for cw in water:
-		var c: Vector2 = cw[0]
 		var col: Color = cw[1]
 		col.a = 0.75
-		var a := c - Vector2(CELL, CELL) * 0.5
-		var b := a + Vector2(CELL, 0)
-		var cc := a + Vector2(CELL, CELL)
-		var d := a + Vector2(0, CELL)
-		for tri in [[a, b, cc], [a, cc, d]]:
-			for p in tri:
-				st.set_color(col)
-				st.add_vertex(to3(p, 2.5))
-	st.generate_normals()
-	var mi := MeshInstance3D.new()
-	mi.name = "Water"
-	mi.mesh = st.commit()
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.roughness = 0.2
-	mi.material_override = m
-	holder.add_child(mi)
+		cells.append([Vector2(cw[0]) - Vector2(CELL, CELL) * 0.5, CELL, Vector2.ZERO, Vector2.ONE, col])
+	_quad_mesh(cells, 2.5, "Water", _water_mat, holder)
 
 
 func _build_props(holder: Node3D, props: Dictionary, local0: Vector2, rec: Dictionary) -> void:
@@ -564,7 +627,7 @@ func _build_props(holder: Node3D, props: Dictionary, local0: Vector2, rec: Dicti
 		cells.resize(centres.size())
 		for i in centres.size():
 			var c: Vector2 = centres[i]
-			mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, to3(c, TILE_H_PX * 0.5 * scale)))
+			mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, flat3(c, TILE_H_PX * 0.5 * scale)))
 			mm.set_instance_color(i, Color.WHITE)
 			cells[i] = int((c.y - local0.y) / CELL) * ZONE_W + int((c.x - local0.x) / CELL)
 		var mi := MultiMeshInstance3D.new()
@@ -594,7 +657,7 @@ func _build_creatures(holder: Node3D, creatures: Array) -> void:
 		spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 		spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 		var th := float(spr.texture.get_height()) / float(maxi(1, spr.vframes))
-		spr.position = to3(c, th * 0.5)
+		spr.position = flat3(c, th * 0.5)
 		holder.add_child(spr)
 
 
@@ -650,31 +713,15 @@ func _bake_chunk(rec: Dictionary, seg: int) -> void:
 	if rec["dark"] != null:
 		(rec["dark"] as Node).queue_free()
 		rec["dark"] = null
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var quads := 0
+	var dark_cells := []
 	for y in ZONE_H:
 		for x in ZONE_W:
 			var l := grid[y * ZONE_W + x]
 			if l >= 0.995:
 				continue
-			quads += 1
-			var col := Color(0, 0, 0, (1.0 - l) * OverlandLight.DARK_MAX)
-			var a := local0 + Vector2(x * CELL, y * CELL)
-			var b := a + Vector2(CELL, 0)
-			var c := a + Vector2(CELL, CELL)
-			var d := a + Vector2(0, CELL)
-			for tri in [[a, b, c], [a, c, d]]:
-				for p in tri:
-					st.set_color(col)
-					st.add_vertex(to3(p, OverlandLight.DARK_LIFT_PX))
-	if quads > 0:
-		var mi := MeshInstance3D.new()
-		mi.name = "Dark"
-		mi.mesh = st.commit()
-		mi.material_override = light.dark_material()
-		holder.add_child(mi)
-		rec["dark"] = mi
+			dark_cells.append([local0 + Vector2(x * CELL, y * CELL), CELL, Vector2.ZERO, Vector2.ONE,
+				Color(0, 0, 0, (1.0 - l) * OverlandLight.DARK_MAX)])
+	rec["dark"] = _quad_mesh(dark_cells, OverlandLight.DARK_LIFT_PX, "Dark", light.dark_material(), holder)
 	for mmi in rec["props"]:
 		var mm: MultiMesh = (mmi as MultiMeshInstance3D).multimesh
 		var cells: PackedInt32Array = mmi.get_meta("cells")
