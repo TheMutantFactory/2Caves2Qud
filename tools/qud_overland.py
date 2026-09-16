@@ -38,6 +38,26 @@ TILE_W, TILE_H = 16, 24
 FLOOR_LETTER = "k"                              # Qud's world background, "Qud viridian" 0f3b3a
 ROAD_TILE, ROAD_MAIN, ROAD_DETAIL = "Terrain/sw_ground_dots1.png", "w", "w"   # blueprint DirtPath
 
+# Painted ground that is really vegetation stands up as a billboard instead of lying in the
+# floor atlas — raves-of-qud's UPRIGHT_GROUND rule (ZoneRenderer._is_vegetation): a tile
+# under Creatures/ (where Qud keeps plants) or a vegetation word in the file name. A name
+# heuristic, because the paint has no blueprint behind it to ask.
+UPRIGHT_GROUND = ("grass", "weed", "flower", "shrub", "moss", "fern", "plant", "vine", "sapling",
+                  "reed", "cactus", "bush", "brush", "mushroom", "sprout")
+# Things Qud marks as blocking light (Render Occluding="true": trees, brinestalk, sunflowers,
+# statues) stand at twice the size of everything else.
+OCCLUDER_SCALE = 2
+# The ambient fauna a course spawns comes from what the bake found living in the region
+FLYING_WORDS = ("bird", "bat", "moth", "hawk", "wasp", "fly", "wing", "crow", "vulture", "dragonfly", "harpy", "eagle")
+
+
+def is_vegetation(tile):
+    path = tile.replace("\\", "/").lower()
+    if path.startswith("creatures/") or "/creatures/" in path:
+        return True
+    name = path.rsplit("/", 1)[-1]
+    return any(w in name for w in UPRIGHT_GROUND)
+
 
 def chunks_root():
     """Where the Raves bake writes: <RavesOfQud support dir>/chunks. CAVES2_CHUNKS overrides."""
@@ -165,6 +185,7 @@ class WorldExporter:
         self.atlas = GroundAtlas()
         self.art = {}              # art key -> relative path
         self.skipped = {}          # name -> count
+        self.creatures = {}        # creature name -> count across the export (the fauna census)
         os.makedirs(os.path.join(out, "art"), exist_ok=True)
 
     def _wall_family(self, name):
@@ -212,22 +233,79 @@ class WorldExporter:
         if kind == "water":
             e["color"] = rgb_hex(p.get("color", "&b"))
         e["kind"] = kind
+        e["scale"] = OCCLUDER_SCALE if kind == "prop" and self._occluding(name) else 1
         return e
+
+    def _occluding(self, name):
+        try:
+            return str(self.bp.render(name).get("Occluding", "")).lower() == "true"
+        except Exception:
+            return False
+
+    def _upright_entry(self, p):
+        """A painted-ground vegetation tile as a standing billboard (see UPRIGHT_GROUND)."""
+        return {"name": "[painted " + norm_tile(p.get("tile", "")).rsplit("/", 1)[-1] + "]", "kind": "prop",
+                "art": self._paint_art("ground", p.get("tile", ""), p.get("color", ""), p.get("detail", "")),
+                "fam": "", "color": rgb_hex(p.get("color", "")), "wall": False, "solid": False, "radius": 0, "scale": 1}
 
     def resolve_chunk(self, ch):
         palette = [self.resolve_entry(p) for p in ch.palette]
         ground = []
-        for g in ch.ground:
+        objs = [list(o) for o in ch.objs]
+        upright = {}     # ground palette index -> its standing entry's index
+        for i, g in enumerate(ch.ground):
             if g < 0:
                 ground.append(-1)
+                continue
+            p = ch.palette[g]
+            if is_vegetation(p.get("tile", "")):
+                ground.append(-1)          # the floor shows; the plant stands on it
+                if g not in upright:
+                    e = self._upright_entry(p)
+                    if not e["art"]:
+                        continue
+                    upright[g] = len(palette)
+                    palette.append(e)
+                objs.append([i % ch.w, i // ch.w, upright[g]])
             else:
-                p = ch.palette[g]
                 ground.append(self.atlas.index(p["tile"], p["color"], p["detail"]))
         for (x, y, i) in ch.objs:
             if palette[i]["kind"] == "skip":
                 self.skipped[palette[i]["name"]] = self.skipped.get(palette[i]["name"], 0) + 1
+            elif palette[i]["kind"] == "creature":
+                self.creatures[palette[i]["name"]] = self.creatures.get(palette[i]["name"], 0) + 1
         return {"id": ch.id, "wx": ch.wx, "wy": ch.wy, "zx": ch.zx, "zy": ch.zy, "z": ch.z, "w": ch.w, "h": ch.h,
-                "ground": ground, "objs": [list(o) for o in ch.objs], "palette": palette}
+                "ground": ground, "objs": objs, "palette": palette}
+
+    def _flies(self, name):
+        low = name.lower()
+        if any(w in low for w in FLYING_WORDS):
+            return True
+        try:
+            return "Flying" in self.bp.get(name).get("parts", {})
+        except Exception:
+            return False
+
+    def _mobile(self, name):
+        try:
+            brain = self.bp.get(name).get("parts", {}).get("Brain", {})
+        except Exception:
+            return False
+        return str(brain.get("Mobile", "true")).lower() != "false" and str(brain.get("Aquatic", "false")).lower() != "true"
+
+    def fauna(self):
+        """What lives in the baked region, by count, split into what flies and what walks —
+        only creatures the extractor has a unit strip for, so the engine can spawn them."""
+        flying, ground = [], []
+        for name, n in sorted(self.creatures.items(), key=lambda kv: -kv[1]):
+            u = self.unit_slugs.get(name)
+            if not u:
+                continue
+            if self._flies(name):
+                flying.append([name, u, n])
+            elif self._mobile(name):
+                ground.append([name, u, n])
+        return {"flying": flying[:8], "ground": ground[:8]}
 
     def export(self, gid, src_dir):
         zones = []
@@ -254,6 +332,7 @@ class WorldExporter:
             pass
         index = {"gameId": gid, "world": manifest, "cell_px": qw.CELL_PX, "zone_w": qw.ZONE_W, "zone_h": qw.ZONE_H,
                  "parasang": qw.PARASANG, "atlas": atlas, "zones": zones, "anchors": qw.COURSE_ANCHORS,
+                 "fauna": self.fauna(),
                  "stats": {"objects": total, "resolved": resolved, "art": len([a for a in self.art.values() if a]),
                            "skipped": dict(sorted(self.skipped.items(), key=lambda kv: -kv[1]))}}
         with open(os.path.join(self.out, "index.json"), "w", encoding="utf-8") as f:

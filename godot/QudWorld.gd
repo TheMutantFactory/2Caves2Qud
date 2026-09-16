@@ -132,8 +132,41 @@ func setup_overland(k: String, anchor_zid: String, rng: RandomNumberGenerator) -
 		for p in br["pts"]:
 			route_box = route_box.expand(p)
 	route_box = route_box.grow(half + verge + CELL)
-	print("overland: %s anchored at %s (origin %d,%d px), %d zones baked, radius %d, road %d px" % [
-		key, anchor, int(origin_px.x), int(origin_px.y), (index.get("zones", []) as Array).size(), radius, int(width)])
+	_build_paving(half, half + verge)
+	print("overland: %s anchored at %s (origin %d,%d px), %d zones baked, radius %d, road %d px, paving %d road cells, %d verge cells" % [
+		key, anchor, int(origin_px.x), int(origin_px.y), (index.get("zones", []) as Array).size(), radius, int(width), road_cells.size(), verge_cells.size()])
+
+
+var road_cells := {}     # global cell -> true: under the road (everything but floors and water goes)
+var verge_cells := {}    # global cell -> true: within the verge too (walls and solids go)
+
+
+## The paved cells, once: every cell whose centre lies within `soft` px of the route is road,
+## within `hard` px is verge. Walked from the route samples (and live branches) with a disc
+## per sample; the samples sit closer than a cell, so a disc a half-cell wider than the reach
+## covers the segments between them. Chunk loads then look cells up instead of scanning the
+## route per object — with the grass standing (~500 sprites a zone) that scan cost a frame.
+func _build_paving(soft: float, hard: float) -> void:
+	road_cells.clear()
+	verge_cells.clear()
+	var pts: Array = [points]
+	for br in branches:
+		pts.append(br["pts"])
+	var r_cells := int(ceil((hard + CELL * 0.71) / CELL))
+	for arr in pts:
+		for p in arr:
+			var gp: Vector2 = Vector2(p) + origin_px
+			var cx := int(floor(gp.x / CELL))
+			var cy := int(floor(gp.y / CELL))
+			for dy in range(-r_cells, r_cells + 1):
+				for dx in range(-r_cells, r_cells + 1):
+					var centre := Vector2((cx + dx + 0.5) * CELL, (cy + dy + 0.5) * CELL)
+					var d := centre.distance_to(gp)
+					var g := Vector2i(cx + dx, cy + dy)
+					if d <= hard + CELL * 0.71:
+						verge_cells[g] = true
+					if d <= soft + CELL * 0.71:
+						road_cells[g] = true
 
 
 # The ground, scenery and dressing are the world's; the loop builder's own are skipped.
@@ -169,6 +202,8 @@ func stream(positions: Array, max_loads := 1) -> void:
 			break
 		_load_chunk(z)
 		done += 1
+	# a load a frame, and a build step a frame; at setup (max_loads 99) everything at once
+	_run_steps(99 if max_loads >= 99 else 1)
 	wanted_now = want.keys()
 	var line := "overland: chunks=%d wanted=%d loads=%d unloads=%d" % [loaded.size(), want.size(), loads, unloads]
 	if line != _last_probe:
@@ -234,9 +269,6 @@ func _load_chunk(zid: String) -> void:
 	var w := int(d.get("w", ZONE_W))
 	var h := int(d.get("h", ZONE_H))
 	var pal: Array = d.get("palette", [])
-	_build_floor(holder, local0, w, h, d.get("ground", []))
-	var half := width * 0.5
-	var reach := half + verge
 	var cr := zone_col_row(zid)
 	var wall_grid := {}
 	var floors := {}
@@ -254,11 +286,10 @@ func _load_chunk(zid: String) -> void:
 		var c := local0 + Vector2((x + 0.5) * CELL, (y + 0.5) * CELL)
 		# the road takes everything on it but floors and water; the verge takes the hard things
 		var hard := bool(p.get("wall", false)) or bool(p.get("solid", false))
-		if route_box.has_point(c) and (hard or (kind != "floor" and kind != "water")):
-			var dist: float = nearest(c, -1).dist   # typed: a Dictionary value cannot be inferred
-			if dist <= half + (verge if hard else 0.0):
-				paved += 1
-				continue
+		var g := Vector2i(cr.x * ZONE_W + x, cr.y * ZONE_H + y)
+		if (hard and verge_cells.has(g)) or (kind != "floor" and kind != "water" and road_cells.has(g)):
+			paved += 1
+			continue
 		match kind:
 			"wall":
 				wall_grid[Vector2i(x, y)] = int(o[2])
@@ -269,24 +300,55 @@ func _load_chunk(zid: String) -> void:
 			"creature":
 				creatures.append([c, String(p.get("art", ""))])
 			_:
-				_push(props, String(p.get("art", "")), c)
+				# grouped by art AND size: Qud's light-occluders (trees, brinestalk) stand at x2
+				_push(props, "%s@%d" % [String(p.get("art", "")), int(p.get("scale", 1))], c)
 		if int(p.get("radius", 0)) > 0:
 			rec["lights"].append({"pos": c, "cell": Vector2i(x, y), "radius": int(p["radius"])})
-	_build_walls(holder, local0, cr, wall_grid, pal, rec)
-	_build_floor_art(holder, floors)
-	_build_water(holder, water)
-	_build_props(holder, props, local0, rec)
-	_build_creatures(holder, creatures)
-	lights.append_array(rec["lights"])
 	if paved > 0:
-		print("overland: %s paved %d solids under the road" % [zid, paved])
-	if light.bakes > 0:
-		_bake_chunk(rec, light.last_seg)   # a chunk streamed in after a bake matches its neighbours
+		print("overland: %s paved %d objects under the road" % [zid, paved])
+	# The rest is built one STEP per frame (stream() runs them), so a chunk arriving during a
+	# race costs a few small frames instead of one long one: the floor, then walls and water,
+	# then the standing sprites, then the creatures and the light bake.
+	rec["steps"] = [
+		func() -> void: _build_floor(holder, local0, w, h, d.get("ground", [])),
+		func() -> void:
+			_build_walls(holder, local0, cr, wall_grid, pal, rec)
+			_build_floor_art(holder, floors)
+			_build_water(holder, water),
+		func() -> void: _build_props(holder, props, local0, rec),
+		func() -> void:
+			_build_creatures(holder, creatures)
+			lights.append_array(rec["lights"])
+			if light.bakes > 0:
+				_bake_chunk(rec, light.last_seg),   # a chunk streamed in after a bake matches its neighbours
+	]
+
+
+## Run pending build steps, at most `budget` across all loading chunks (one a frame in play).
+func _run_steps(budget: int) -> void:
+	for zid in loaded:
+		var rec: Dictionary = loaded[zid]
+		var steps: Array = rec.get("steps", [])
+		while budget > 0 and not steps.is_empty():
+			var step: Callable = steps.pop_front()
+			step.call()
+			budget -= 1
+		if budget <= 0:
+			return
+
+
+func building() -> int:
+	var n := 0
+	for zid in loaded:
+		if not (loaded[zid].get("steps", []) as Array).is_empty():
+			n += 1
+	return n
 
 
 func _unload_chunk(zid: String) -> void:
 	var rec: Dictionary = loaded[zid]
 	var holder: Node3D = rec["node"]
+	rec["steps"] = []   # whatever was still to be built for it is not
 	for g in rec["walls"]:
 		wall_cells.erase(g)
 	var keep := []
@@ -306,17 +368,13 @@ func _unload_chunk(zid: String) -> void:
 
 
 func _push(groups: Dictionary, art: String, c: Vector2) -> void:
-	if art == "":
+	if art == "" or art.begins_with("@"):
 		return
 	if not groups.has(art):
 		groups[art] = []
 	groups[art].append(c)
 
 
-func _paved(c: Vector2, reach: float) -> bool:
-	if not route_box.has_point(c):
-		return false
-	return nearest(c, -1).dist <= reach
 
 
 # ---------------------------------------------------------------- builders
@@ -408,11 +466,27 @@ func _build_walls(holder: Node3D, local0: Vector2, cr: Vector2i, grid: Dictionar
 			rec["walls"].append(g)
 
 
-func _art_material(art: String, billboard: bool) -> StandardMaterial3D:
+static var _billboard_shader: Shader = null
+
+
+## Standing sprites get the overland billboard shader (facing, the instance tint, darker
+## with distance); flat art a plain unshaded material.
+func _art_material(art: String, billboard: bool) -> Material:
 	var k := art + ("|b" if billboard else "|f")
 	if _mats.has(k):
 		return _mats[k]
 	var tex := QUD.texture(world_root + art)
+	if billboard:
+		if _billboard_shader == null:
+			_billboard_shader = load("res://overland_billboard.gdshader")
+		var sm := ShaderMaterial.new()
+		sm.shader = _billboard_shader
+		sm.set_shader_parameter("tex", tex)
+		sm.set_shader_parameter("dark_near", float(Shared.t(["overland", "dark_near_m"], 30.0)))
+		sm.set_shader_parameter("dark_far", float(Shared.t(["overland", "dark_far_m"], 150.0)))
+		sm.set_shader_parameter("dark_min", float(Shared.t(["overland", "dark_min"], 0.35)))
+		_mats[k] = sm
+		return sm
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = tex
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
@@ -420,10 +494,6 @@ func _art_material(art: String, billboard: bool) -> StandardMaterial3D:
 	m.alpha_scissor_threshold = 0.5
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	if billboard:
-		m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-		m.billboard_keep_scale = true
-		m.vertex_color_use_as_albedo = true   # MultiMesh instance colours = the baked light
 	_mats[k] = m
 	return m
 
@@ -479,20 +549,22 @@ func _build_water(holder: Node3D, water: Array) -> void:
 
 
 func _build_props(holder: Node3D, props: Dictionary, local0: Vector2, rec: Dictionary) -> void:
-	for art in props:
-		var centres: Array = props[art]
+	for key in props:
+		var art: String = key.get_slice("@", 0)
+		var scale := float(maxi(1, int(key.get_slice("@", 1))))
+		var centres: Array = props[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = true     # the light bake tints each sprite by its cell (set before the count)
 		var quad := QuadMesh.new()
-		quad.size = Vector2(TILE_W_PX * U, TILE_H_PX * U)
+		quad.size = Vector2(TILE_W_PX * U, TILE_H_PX * U) * scale
 		mm.mesh = quad
 		mm.instance_count = centres.size()
 		var cells := PackedInt32Array()
 		cells.resize(centres.size())
 		for i in centres.size():
 			var c: Vector2 = centres[i]
-			mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, to3(c, TILE_H_PX * 0.5)))
+			mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, to3(c, TILE_H_PX * 0.5 * scale)))
 			mm.set_instance_color(i, Color.WHITE)
 			cells[i] = int((c.y - local0.y) / CELL) * ZONE_W + int((c.x - local0.x) / CELL)
 		var mi := MultiMeshInstance3D.new()
@@ -524,6 +596,16 @@ func _build_creatures(holder: Node3D, creatures: Array) -> void:
 		var th := float(spr.texture.get_height()) / float(maxi(1, spr.vframes))
 		spr.position = to3(c, th * 0.5)
 		holder.add_child(spr)
+
+
+## The unit strip of the region's most common creature of a kind ("flying" / "ground"), from
+## the export's census of the bake — what actually lives on this stretch of the map.
+func fauna(kind: String) -> String:
+	var list: Array = index.get("fauna", {}).get(kind, [])
+	for e in list:
+		if QUD.has_unit(String(e[1])):
+			return String(e[1])
+	return ""
 
 
 # ---------------------------------------------------------------- the light bake (G8)

@@ -84,3 +84,37 @@ def test_joppa_chunk_resolves(tmp_path):
     walls = [p for p in res["palette"] if p["kind"] == "wall"]
     assert any(p["fam"] == "wall_brinestalk" for p in walls), [p["fam"] for p in walls]
     assert any(p.get("radius", 0) > 0 for p in res["palette"]), "Joppa's torchposts carry a light radius"
+    # painted grass stands up: no grass in the floor atlas, standing entries in the objects
+    assert not any("grass" in t[0].lower() for t in wx.atlas.entries)
+    standing = [p for p in res["palette"] if p["name"].startswith("[painted ") and p["name"] != "[painted ground]"]
+    assert standing and all(p["kind"] == "prop" and p["art"] for p in standing)
+    assert len(res["objs"]) > len(ch.objs), "the grass cells became objects"
+    # Qud's light-occluders (brinestalk, trees) stand at twice the size
+    big = {p["name"] for p in res["palette"] if p.get("scale") == 2}
+    assert "Brinestalk" in big, big
+    assert all(p.get("scale", 1) == 1 for p in res["palette"] if p["kind"] != "prop")
+
+
+def test_vegetation_rule_matches_raves():
+    assert ov.is_vegetation("Terrain/sw_grass2.bmp")
+    assert ov.is_vegetation("assets_content_textures_tiles_tile-grass1.png")
+    assert ov.is_vegetation("Creatures/sw_plant3.bmp")
+    assert not ov.is_vegetation("Tiles/tile-dirt1.png")
+    assert not ov.is_vegetation("Terrain/sw_ground_dots1.png")
+
+
+@needs_store
+@pytest.mark.skipif(not BAKED, reason="no baked Joppa chunk on this machine")
+def test_fauna_comes_from_the_region(tmp_path):
+    import export_godot_assets as X
+    import qud_blueprints as B
+    bp = B.Blueprints(qud_assets.path("data"))
+    units = {"GiantDragonfly": "giant_dragonfly", "Glowpad": "glowpad", "Croc": "croc", "Glowfish": "glowfish"}
+    wx = ov.WorldExporter(bp, str(tmp_path), {}, units, X.paint, X.scaled, X.load_tile)
+    for path in sorted(glob.glob(os.path.join(os.path.dirname(BAKED[0]), "JoppaWorld.*.json"))):
+        wx.resolve_chunk(qw.load_chunk(path))
+    f = wx.fauna()
+    assert [e[0] for e in f["flying"]][:1] == ["GiantDragonfly"]
+    ground = [e[0] for e in f["ground"]]
+    assert "Glowpad" not in ground and "Glowfish" not in ground, "rooted and aquatic things do not roam"
+    assert "Croc" in ground

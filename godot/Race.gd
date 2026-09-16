@@ -1605,8 +1605,15 @@ func _spawn_shiny(p: Vector2, kind: String, respawn := true) -> Sprite3D:
 
 func _spawn_mobs() -> void:
 	var density := track.scale_k * track.scale_k
-	for spec in [["bat", 4, 160.0, false], ["green_slime", 3, 25.0, true]]:
-		if not QUD.has_unit(spec[0]):
+	var specs := [["bat", 4, 160.0, false], ["green_slime", 3, 25.0, true]]
+	if overland:
+		# the region's own fauna (the export's census of the bake): its commonest flyer in
+		# the bats' slot, its commonest roaming walker in the slimes'
+		var qw := track as QudWorld
+		specs = [[qw.fauna("flying"), 4, 160.0, false], [qw.fauna("ground"), 3, 25.0, true]]
+		print("overland: fauna flying=%s ground=%s" % [specs[0][0], specs[1][0]])
+	for spec in specs:
+		if String(spec[0]) == "" or not QUD.has_unit(spec[0]):
 			continue
 		for _i in int(round(spec[1] * density)):
 			var i := rng.randi_range(6, track.n - 1)

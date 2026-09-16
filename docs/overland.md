@@ -71,6 +71,21 @@ Next: step 7, the drive to the next race.**
   0.1 daylight step, a race started at 19:24 has keys at 0, 12 and 24 s; a noon race has
   one. Each bake is one MIX-black mesh per chunk plus the billboard instance colours; walls
   keep their own vertex colours for now (Deferred).
+- **The second lap's fixes (09-16).** Qud's painted grass is vegetation, not floor: it stands
+  up as billboards by Raves' `UPRIGHT_GROUND` rule (a vegetation word in the tile name, or a
+  tile under Creatures/), so the floor atlas is four dirt tiles and the grass is ~500 sprites a
+  zone. Qud's light-occluders (`Render Occluding="true"`: trees, brinestalk, sunflowers,
+  statues) stand at 2x. Standing sprites use `overland_billboard.gdshader` (fixed-Y billboard,
+  the bake's instance tint, darker with distance: tuning `dark_near_m` / `dark_far_m` /
+  `dark_min`). The ambient fauna is the region's own: the export counts the creatures the
+  bake found (828 giant dragonflies, 355 snapjaw scavengers round Joppa) and the race spawns
+  the commonest flyer and the commonest roaming walker (rooted and aquatic things excluded).
+- **A chunk load must not cost a frame.** With the grass standing, a chunk's build (floor
+  mesh, walls, ~1,000 sprites, the dark mesh at night) plus a route scan per sprite for the
+  paving dropped the free-drive crossing to 43-47 fps. Two fixes: the paved cells are computed
+  once at setup (a disc per route sample into two dictionaries, road and verge) so paving is
+  a lookup; and a chunk builds in four steps, one a frame (`_run_steps`), all at once only at
+  setup. Steady 60 fps in every G9 scene since.
 - **GDScript infers nothing from an untyped value** (`var d := nearest(c, -1).dist`, or a
   field of an untyped loop variable): the script fails to compile and Race.gd with it, so the
   run never quits and every probe times out. Type such locals; the score's "timeout" is
@@ -175,7 +190,7 @@ goldens. Headless catches logic; only a window catches an escape.
 ## Deferred
 
 - The light bake dims the ground, the road, the billboards and the sky; voxel walls, creature
-  sprites and the racers keep their colours. Qud's real dawn/dusk curve (read `time` off the
+  sprites and the racers keep their colours, and creature sprites do not darken with distance. Qud's real dawn/dusk curve (read `time` off the
   bridge) in place of the two-hour ramps.
 - Floating origin for the full 57 km map (needed before "drive anywhere"; not for one region).
 - Terrain from the overworld kind (hills, mountains, canyon walls).
