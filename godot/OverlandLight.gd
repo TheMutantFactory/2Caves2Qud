@@ -38,6 +38,7 @@ var last_free_bake := -INF
 var sun: DirectionalLight3D = null
 var env: Environment = null
 var _dark_mat: StandardMaterial3D = null
+var _sky_day := {}     # the canvas sky's colours as built, scaled down with the daylight
 
 
 static func daylight(seg: int) -> float:
@@ -85,6 +86,11 @@ func setup(tuning_overland: Dictionary, clock_override: int, race_sun: Direction
 	max_delta = float(tuning_overland.get("max_delta", max_delta))
 	sun = race_sun
 	env = race_env
+	_sky_day.clear()
+	if env != null and env.sky != null and env.sky.sky_material is ProceduralSkyMaterial:
+		var sm: ProceduralSkyMaterial = env.sky.sky_material
+		_sky_day = {"top": sm.sky_top_color, "horizon": sm.sky_horizon_color,
+			"ground_bottom": sm.ground_bottom_color, "ground_horizon": sm.ground_horizon_color, "fog": env.fog_light_color}
 	keys = keyframes()
 	next_key = 0
 	print("light: start seg=%d (%s) keys=%s" % [start_seg, clock_text(start_seg), str(keys)])
@@ -151,6 +157,15 @@ func apply_sky(seg: int) -> void:
 		sun.light_color = Color(1.0, 0.92, 0.85).lerp(Color(0.8, 0.85, 1.0), 1.0 - d)
 	if env != null:
 		env.ambient_light_energy = 0.25 + 0.45 * d
+		# the sky goes down with the sun too: a quarter of the canvas colours at midnight
+		if not _sky_day.is_empty():
+			var k := 0.25 + 0.75 * d
+			var sm: ProceduralSkyMaterial = env.sky.sky_material
+			sm.sky_top_color = (_sky_day["top"] as Color) * k
+			sm.sky_horizon_color = (_sky_day["horizon"] as Color) * k
+			sm.ground_bottom_color = (_sky_day["ground_bottom"] as Color) * k
+			sm.ground_horizon_color = (_sky_day["ground_horizon"] as Color) * k
+			env.fog_light_color = (_sky_day["fog"] as Color) * k
 
 
 func dark_material() -> StandardMaterial3D:

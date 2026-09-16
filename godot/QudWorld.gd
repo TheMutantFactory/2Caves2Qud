@@ -119,8 +119,10 @@ func setup_overland(k: String, anchor_zid: String, rng: RandomNumberGenerator) -
 	atlas_cols = maxi(1, int(at.get("cols", 16)))
 	atlas_rows = maxi(1, int(at.get("rows", 1)))
 	atlas = QUD.texture(world_root + "ground.png")
-	var g: Array = spec.get("ground", [128, 115, 90])
-	_base_color = Color8(int(g[0]), int(g[1]), int(g[2]))
+	# the floor and the road are Qud's (the export writes both): the viridian an unpainted
+	# cell shows, and a DirtPath's dots for the road, not the course's canvas colours
+	_base_color = Color(String(index.get("floor_color", "0f3b3a")))
+	spec["road_tex"] = world_root + String(index.get("road", "road.png"))
 	_build_loop(rng)
 	var half := width * 0.5
 	route_box = Rect2(points[0], Vector2.ZERO)

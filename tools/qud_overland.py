@@ -35,6 +35,8 @@ from qud_blueprints import slug
 
 ATLAS_COLS = 16
 TILE_W, TILE_H = 16, 24
+FLOOR_LETTER = "k"                              # Qud's world background, "Qud viridian" 0f3b3a
+ROAD_TILE, ROAD_MAIN, ROAD_DETAIL = "Terrain/sw_ground_dots1.png", "w", "w"   # blueprint DirtPath
 
 
 def chunks_root():
@@ -269,6 +271,16 @@ def export_world(bp, out, families, unit_slugs, paint, scaled, load_tile, gid=No
     os.makedirs(dst, exist_ok=True)
     wx = WorldExporter(bp, dst, families, unit_slugs, paint, scaled, load_tile)
     index = wx.export(gid, os.path.join(root, gid))
+    # The road and the floor are Qud's, not the course's: the world floor is Qud's viridian
+    # background ("k", what an unpainted cell shows) and a road is what Qud lays as a path —
+    # DirtPath: the ground-dots tile in "&w" / "w" (ZoneTerrain.xml) — tiled over that floor.
+    import export_godot_assets as X
+    floor = qud_palette.rgb(FLOOR_LETTER)
+    X.tileable(X.tile_or_blank(ROAD_TILE, ROAD_MAIN, ROAD_DETAIL), floor).save(os.path.join(dst, "road.png"))
+    index["floor_color"] = "%02x%02x%02x" % floor
+    index["road"] = "road.png"
+    with open(os.path.join(dst, "index.json"), "w", encoding="utf-8") as f:
+        json.dump(index, f, indent=0)
     with open(os.path.join(out, "world", "index.json"), "w", encoding="utf-8") as f:
         json.dump({"latest": gid, "worlds": [gid]}, f)
     return index

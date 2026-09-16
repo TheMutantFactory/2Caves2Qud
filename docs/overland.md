@@ -174,9 +174,9 @@ goldens. Headless catches logic; only a window catches an escape.
 
 ## Deferred
 
-- The light bake dims the ground, the road and the billboards; voxel walls, creature sprites
-  and the racers keep their colours, and the sky stays the canvas sky at night. Qud's real
-  dawn/dusk curve (read `time` off the bridge) in place of the two-hour ramps.
+- The light bake dims the ground, the road, the billboards and the sky; voxel walls, creature
+  sprites and the racers keep their colours. Qud's real dawn/dusk curve (read `time` off the
+  bridge) in place of the two-hour ramps.
 - Floating origin for the full 57 km map (needed before "drive anywhere"; not for one region).
 - Terrain from the overworld kind (hills, mountains, canyon walls).
 - Strata (underground races), the world map view, the race-to-race road network.
